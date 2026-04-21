@@ -1,20 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { History, Search, Calendar, User, CreditCard, Banknote, FileText, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
-import { Sale } from '../../models/types';
+import type { Sale } from '../../models/types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
 import GlassCard from '../../components/common/GlassCard';
 
 export default function SalesView() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     BackendAPI.getSales().then(data => {
       setSales(data);
-      setLoading(false);
     });
   }, []);
 

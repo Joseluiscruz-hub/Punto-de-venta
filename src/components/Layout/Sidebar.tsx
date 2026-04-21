@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShoppingCart, LayoutDashboard, PackageSearch, History, LogOut, ShieldCheck, UserCog } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import NavItem from './NavItem';

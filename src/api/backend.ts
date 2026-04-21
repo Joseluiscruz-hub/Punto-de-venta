@@ -1,4 +1,4 @@
-import { User, Product, Sale, StockMovement, Role, PaymentMethod } from '../models/types';
+import type { User, Product, Sale, StockMovement, Role } from '../models/types';
 
 // Simulador de latencia de red
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));

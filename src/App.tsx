@@ -1,4 +1,3 @@
-import React from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import MainLayout from './components/layout/MainLayout';
 import LoginScreen from './components/Login/LoginScreen';

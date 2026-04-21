@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, Cell, PieChart, Pie
+  Cell, PieChart, Pie
 } from 'recharts';
 import { TrendingUp, Package, AlertCircle, ShoppingBag } from 'lucide-react';
 import { BackendAPI } from '../../api/backend';

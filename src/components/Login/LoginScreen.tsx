@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Lock, ShieldCheck, ArrowRight, ShoppingCart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,7 +25,6 @@ export default function LoginScreen() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Abstract Background Elements */}
       <div className="absolute top-0 -left-20 w-96 h-96 bg-primary-600/20 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-0 -right-20 w-96 h-96 bg-emerald-600/10 rounded-full blur-[120px] pointer-events-none"></div>
       
@@ -35,12 +34,10 @@ export default function LoginScreen() {
         transition={{ duration: 0.8 }}
         className="w-full max-w-[1000px] grid grid-cols-1 md:grid-cols-2 bg-slate-900 rounded-[48px] overflow-hidden shadow-2xl border border-slate-800"
       >
-        {/* Left Side: Branding */}
         <div className="hidden md:flex flex-col p-12 bg-gradient-to-br from-primary-600 to-primary-800 text-white relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
              <div className="absolute top-10 left-10"><ShoppingCart size={200} /></div>
           </div>
-          
           <div className="relative z-10 flex flex-col h-full">
             <div className="flex items-center gap-3 mb-12">
               <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-xl">
@@ -48,14 +45,12 @@ export default function LoginScreen() {
               </div>
               <span className="text-2xl font-black tracking-tighter">POS PRO</span>
             </div>
-            
             <div className="mt-auto">
               <h2 className="text-5xl font-black leading-tight mb-6">Control Total <br/> de tu Negocio.</h2>
               <p className="text-primary-100 text-lg font-medium max-w-sm">
                 La herramienta definitiva para la gestión de ventas, inventarios y analítica avanzada.
               </p>
             </div>
-            
             <div className="mt-12 flex gap-4">
               <div className="flex -space-x-3">
                 {[1,2,3].map(i => (
@@ -70,14 +65,11 @@ export default function LoginScreen() {
             </div>
           </div>
         </div>
-
-        {/* Right Side: Form */}
         <div className="p-12 md:p-16 bg-slate-900 flex flex-col justify-center">
           <div className="mb-10 text-center md:text-left">
             <h1 className="text-3xl font-black text-white mb-3">Bienvenido</h1>
             <p className="text-slate-400 font-medium">Ingresa tus credenciales para acceder al panel.</p>
           </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">Nombre de Usuario</label>
@@ -95,7 +87,6 @@ export default function LoginScreen() {
                 />
               </div>
             </div>
-            
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3 ml-1">PIN de Seguridad</label>
               <div className="relative">
@@ -112,7 +103,6 @@ export default function LoginScreen() {
                 />
               </div>
             </div>
-
             {error && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }} 
@@ -122,7 +112,6 @@ export default function LoginScreen() {
                 {error}
               </motion.div>
             )}
-
             <button 
               type="submit"
               disabled={loading || !username || !pin}
@@ -135,7 +124,6 @@ export default function LoginScreen() {
               )}
             </button>
           </form>
-          
           <div className="mt-12 p-4 rounded-2xl bg-slate-800/50 border border-slate-700 text-center">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Acceso de Demostración</p>
             <p className="text-xs text-slate-400 font-mono">

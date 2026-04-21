@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Role } from '../models/types';
+import type { User, Role } from '../models/types';
 import { BackendAPI } from '../api/backend';
 
 interface AuthContextType {

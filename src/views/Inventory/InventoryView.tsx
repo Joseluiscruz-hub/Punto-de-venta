@@ -3,7 +3,7 @@ import { Plus, Search, Edit, Trash2, Save, X, Barcode, Package, DollarSign, Tren
 import { motion, AnimatePresence } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
 import { useAuth } from '../../contexts/AuthContext';
-import { Product } from '../../models/types';
+import type { Product } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
 import GlassCard from '../../components/common/GlassCard';
 

@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ShoppingCart, Plus, Trash2, CheckCircle2, Barcode, Banknote, CreditCard, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ShoppingCart, Plus, Trash2, CheckCircle2, Banknote, CreditCard, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
 import { useAuth } from '../../contexts/AuthContext';
-import { Product, SaleItem, PaymentMethod } from '../../models/types';
+import type { Product, SaleItem, PaymentMethod } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
-import GlassCard from '../../components/common/GlassCard';
 
 export default function POSView() {
   const { user } = useAuth();
