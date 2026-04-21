@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, Cell
+  BarChart, Bar
 } from 'recharts';
 import { 
-  TrendingUp, Package, AlertCircle, ShoppingBag, 
-  ArrowUpRight, ArrowDownRight, Clock, Target, 
+  TrendingUp, AlertCircle, ShoppingBag, 
+  ArrowDownRight, Clock, Target, 
   Zap, ChevronRight, CheckSquare
 } from 'lucide-react';
 import { BackendAPI } from '../../api/backend';
-import type { Sale, Product, Money } from '../../models/types';
+import type { Sale, Product } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
 import SurfaceCard from '../../components/common/GlassCard';
 
@@ -22,7 +22,6 @@ export default function DashboardView() {
     BackendAPI.getProducts().then(setProducts);
   }, []);
 
-  const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
   const lowStockProducts = products.filter(p => p.stock <= p.minStock);
   const todaySales = sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString());
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);

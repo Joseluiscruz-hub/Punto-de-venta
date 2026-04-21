@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, Plus, Search, AlertCircle, FileUp, Download, Edit3, Trash2, Tag, Layers } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Package, Plus, Search, AlertCircle, FileUp, Download, Edit3, Trash2, Layers } from 'lucide-react';
 import { BackendAPI } from '../../api/backend';
 import type { Product, CreateProductInput } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';

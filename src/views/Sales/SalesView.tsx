@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
-import { History, Search, Calendar, User, CreditCard, Banknote, FileText, ChevronRight, QrCode } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { History, Search, Calendar, User, CreditCard, Banknote, FileText, QrCode } from 'lucide-react';
 import { BackendAPI } from '../../api/backend';
 import type { Sale } from '../../models/types';
 import { formatCurrency, formatDate } from '../../utils/formatters';
-import GlassCard from '../../components/common/GlassCard';
 
 export default function SalesView() {
   const [sales, setSales] = useState<Sale[]>([]);

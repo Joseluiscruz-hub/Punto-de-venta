@@ -1,15 +1,14 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Search, Grid, Tag, UserPlus, Trash2, Banknote, 
   CreditCard, RefreshCw, Layers, Star, Plus, Minus,
-  ChevronDown, Printer, X, CheckCircle2, History
+  Printer, X, CheckCircle2, History, ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
 import { useAuth } from '../../contexts/AuthContext';
 import type { Product, SaleItem, PaymentMethod, Sale } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
-import SurfaceCard from '../../components/common/GlassCard';
 
 export default function POSView() {
   const { user } = useAuth();
@@ -71,9 +70,6 @@ export default function POSView() {
     }));
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.productId !== productId));
-  };
 
   const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const taxes = subtotal * 0.16;
@@ -118,7 +114,7 @@ export default function POSView() {
 
           <div className="space-y-2">
             <p className="text-[10px] font-black text-text-secondary uppercase tracking-[0.2em] mb-4">Categorías</p>
-            {categories.map(cat => (
+            {categories.map((cat: string) => (
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}

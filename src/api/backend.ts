@@ -1,4 +1,4 @@
-import type { User, Product, Sale, Id, ProcessSaleInput, CreateProductInput } from '../models/types';
+import type { User, Product, Sale, ProcessSaleInput, CreateProductInput } from '../models/types';
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
