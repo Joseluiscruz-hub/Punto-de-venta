@@ -1,0 +1,29 @@
+{
+  "products": [
+    {
+      "id": "1",
+      "barcode": "1234567890123",
+      "name": "Producto de ejemplo",
+      "price": 25.5,
+      "cost": 15.0,
+      "stock": 100,
+      "minStock": 10,
+      "category": "General"
+    }
+  ],
+  "sales": [],
+  "users": [
+    {
+      "id": "1",
+      "username": "admin",
+      "name": "Dueño El Triunfo",
+      "role": "ADMIN"
+    },
+    {
+      "id": "2",
+      "username": "caja1",
+      "name": "Cajero Principal",
+      "role": "CASHIER"
+    }
+  ]
+}
