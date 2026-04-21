@@ -59,7 +59,9 @@ if (error) {
   );
 }
 
-const addToCart = (product: Product) => {
+import { useCallback } from 'react';
+
+const addToCart = useCallback((product: Product) => {
   setCart(prev => {
     const existing = prev.find(item => item.productId === product.id);
     if (existing) {
@@ -77,9 +79,9 @@ const addToCart = (product: Product) => {
       subtotal: product.price
     }];
   });
-};
+}, []);
 
-const updateQuantity = (productId: string, delta: number) => {
+const updateQuantity = useCallback((productId: string, delta: number) => {
   setCart(prev => prev.map(item => {
     if (item.productId === productId) {
       const newQty = Math.max(1, item.quantity + delta);
@@ -87,14 +89,14 @@ const updateQuantity = (productId: string, delta: number) => {
     }
     return item;
   }));
-};
+}, []);
 
 
-const subtotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
-const taxes = subtotal * 0.16;
-const total = subtotal + taxes;
+const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.subtotal, 0), [cart]);
+const taxes = useMemo(() => subtotal * 0.16, [subtotal]);
+const total = useMemo(() => subtotal + taxes, [subtotal, taxes]);
 
-const handleCheckout = async () => {
+const handleCheckout = useCallback(async () => {
   if (cart.length === 0) return;
   setIsProcessing(true);
   try {
@@ -112,7 +114,7 @@ const handleCheckout = async () => {
   } finally {
     setIsProcessing(false);
   }
-};
+}, [cart, paymentMethod, total]);
 
 return (
   <div className="flex h-full bg-bg text-text-strong overflow-hidden font-sans">

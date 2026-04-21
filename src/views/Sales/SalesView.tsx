@@ -28,10 +28,11 @@ if (error) {
   );
 }
 
-const filteredSales = sales.filter(s =>
+import { useMemo } from 'react';
+const filteredSales = useMemo(() => sales.filter(s =>
   s.id.toLowerCase().includes(search.toLowerCase()) ||
   s.items.some(i => i.name.toLowerCase().includes(search.toLowerCase()))
-);
+), [sales, search]);
 
 return (
   <div className="p-8 h-full flex flex-col space-y-8 bg-slate-50 overflow-hidden">

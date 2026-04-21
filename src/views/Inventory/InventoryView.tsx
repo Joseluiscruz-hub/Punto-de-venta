@@ -41,11 +41,12 @@ if (error) {
   );
 }
 
-const filteredProducts = products.filter(p => {
+import { useMemo } from 'react';
+const filteredProducts = useMemo(() => products.filter(p => {
   const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
   const matchesCategory = categoryFilter === 'Todas' || p.category === categoryFilter;
   return matchesSearch && matchesCategory;
-});
+}), [products, search, categoryFilter]);
 
 const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
   const file = e.target.files?.[0];

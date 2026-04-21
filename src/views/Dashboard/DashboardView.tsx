@@ -36,10 +36,11 @@ if (error) {
   );
 }
 
-const lowStockProducts = products.filter(p => p.stock <= p.minStock);
-const todaySales = sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString());
-const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
-const avgTicket = todaySales.length > 0 ? todayRevenue / todaySales.length : 0;
+import { useMemo } from 'react';
+const lowStockProducts = useMemo(() => products.filter(p => p.stock <= p.minStock), [products]);
+const todaySales = useMemo(() => sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString()), [sales]);
+const todayRevenue = useMemo(() => todaySales.reduce((sum, s) => sum + s.total, 0), [todaySales]);
+const avgTicket = useMemo(() => todaySales.length > 0 ? todayRevenue / todaySales.length : 0, [todaySales, todayRevenue]);
 
 // KPI Row Data
 const kpis = [
