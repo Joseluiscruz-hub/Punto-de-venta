@@ -100,10 +100,10 @@ return (
                 <td className="px-6 py-5">
                   <div className="flex justify-center">
                     <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase border ${sale.paymentMethod === 'CASH'
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                        : sale.paymentMethod === 'CARD'
-                          ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
-                          : 'bg-amber-50 text-amber-600 border-amber-100'
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      : sale.paymentMethod === 'CARD'
+                        ? 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                        : 'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
                       {sale.paymentMethod === 'CASH' ? <Banknote size={14} /> : sale.paymentMethod === 'CARD' ? <CreditCard size={14} /> : <QrCode size={14} />}
                       {sale.paymentMethod}

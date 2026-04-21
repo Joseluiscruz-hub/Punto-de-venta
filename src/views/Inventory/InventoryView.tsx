@@ -213,8 +213,8 @@ return (
                 <td className="px-6 py-5">
                   <div className="flex flex-col items-center">
                     <div className={`px-4 py-1 rounded-full text-xs font-black min-w-[60px] text-center border ${product.stock <= product.minStock
-                        ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse'
-                        : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse'
+                      : 'bg-emerald-50 text-emerald-600 border-emerald-100'
                       }`}>
                       {product.stock}
                     </div>
