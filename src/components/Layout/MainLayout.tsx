@@ -22,11 +22,11 @@ export default function MainLayout() {
     <div className="flex h-screen w-full bg-bg text-text-strong overflow-hidden font-sans">
       {/* Sidebar Enterprise */}
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} />
-      
+
       <div className="flex-1 flex flex-col min-w-0 relative h-screen">
         {/* Topbar Superior */}
         <Topbar />
-        
+
         <main className="flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait">
             <motion.div
