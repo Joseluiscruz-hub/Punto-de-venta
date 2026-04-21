@@ -1,48 +1,56 @@
-// Tipos y modelos base para el punto de venta
+export type Money = number;
+export type Id = string;
+export type ISODateString = string;
+
 export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
-export type PaymentMethod = 'CASH' | 'CARD';
-export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT';
 
 export interface User {
-  id: string;
+  id: Id;
   username: string;
   name: string;
   role: Role;
 }
 
 export interface Product {
-  id: string;
+  id: Id;
   barcode: string;
   name: string;
-  category: string;
-  cost: number;
-  price: number;
+  price: Money;
+  cost: Money;
   stock: number;
   minStock: number;
+  category: string;
+  imageUrl?: string;
 }
 
-export interface SaleItem extends Product {
+export interface SaleItem {
+  productId: Id;
+  name: string;
+  price: Money;
   quantity: number;
-  subtotal: number;
+  subtotal: Money;
 }
+
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER';
 
 export interface Sale {
-  id: string;
-  datetime: string;
-  cashierId: string;
+  id: Id;
+  date: ISODateString;
   items: SaleItem[];
-  total: number;
+  total: Money;
   paymentMethod: PaymentMethod;
-  amountTendered: number;
-  change: number;
+  cashReceived?: Money;
+  change?: Money;
+  userId: Id;
+  isOfflineSync?: boolean;
 }
 
-export interface StockMovement {
-  id: string;
-  productId: string;
-  userId: string;
-  type: MovementType;
-  quantity: number;
-  date: string;
-  reason?: string;
+export interface ProcessSaleInput {
+  items: SaleItem[];
+  paymentMethod: PaymentMethod;
+  cashReceived?: Money;
+  isOfflineSync?: boolean;
+  offlineDate?: ISODateString;
 }
+
+export interface CreateProductInput extends Omit<Product, 'id'> {}
