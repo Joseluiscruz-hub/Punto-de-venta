@@ -6,6 +6,11 @@ import POSView from '../../views/POS/POSView';
 import DashboardView from '../../views/Dashboard/DashboardView';
 import InventoryView from '../../views/Inventory/InventoryView';
 import SalesView from '../../views/Sales/SalesView';
+import PurchasesView from '../../views/Purchases/PurchasesView';
+import ClientsView from '../../views/Clients/ClientsView';
+import PricesView from '../../views/Prices/PricesView';
+import ReportsView from '../../views/Reports/ReportsView';
+import ConfigView from '../../views/Config/ConfigView';
 import SyncManager from '../common/SyncManager';
 
 export type ViewType = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'purchases' | 'clients' | 'prices' | 'reports' | 'config';
@@ -36,14 +41,11 @@ export default function MainLayout() {
               {currentView === 'pos' && <POSView />}
               {currentView === 'inventory' && <InventoryView />}
               {currentView === 'sales' && <SalesView />}
-              
-              {/* Vistas en construcción */}
-              {['purchases', 'clients', 'prices', 'reports', 'config'].includes(currentView) && (
-                <div className="h-full flex items-center justify-center text-text-secondary opacity-30 flex-col gap-4">
-                   <div className="w-12 h-12 border-2 border-current rounded-xl animate-pulse"></div>
-                   <span className="font-black uppercase tracking-[0.3em] text-xs">Módulo en Desarrollo</span>
-                </div>
-              )}
+              {currentView === 'purchases' && <PurchasesView />}
+              {currentView === 'clients' && <ClientsView />}
+              {currentView === 'prices' && <PricesView />}
+              {currentView === 'reports' && <ReportsView />}
+              {currentView === 'config' && <ConfigView />}
             </motion.div>
           </AnimatePresence>
         </main>
