@@ -1,156 +1,204 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  Cell, PieChart, Pie
+  BarChart, Bar, Cell
 } from 'recharts';
-import { TrendingUp, Package, AlertCircle, ShoppingBag } from 'lucide-react';
+import { 
+  TrendingUp, Package, AlertCircle, ShoppingBag, 
+  ArrowUpRight, ArrowDownRight, Clock, Target, 
+  Zap, ChevronRight, CheckSquare
+} from 'lucide-react';
 import { BackendAPI } from '../../api/backend';
-import GlassCard from '../../components/common/GlassCard';
+import type { Sale, Product, Money } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
+import SurfaceCard from '../../components/common/GlassCard';
 
 export default function DashboardView() {
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    BackendAPI.getStats().then(data => {
-      setStats(data);
-      setLoading(false);
-    });
+    BackendAPI.getSales().then(setSales);
+    BackendAPI.getProducts().then(setProducts);
   }, []);
 
-  if (loading) return (
-    <div className="flex-1 flex items-center justify-center bg-slate-50">
-      <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
-    </div>
-  );
+  const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  const lowStockProducts = products.filter(p => p.stock <= p.minStock);
+  const todaySales = sales.filter(s => new Date(s.date).toDateString() === new Date().toDateString());
+  const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+  const avgTicket = todaySales.length > 0 ? todayRevenue / todaySales.length : 0;
+
+  // KPI Row Data
+  const kpis = [
+    { label: 'Ventas de hoy', value: formatCurrency(todayRevenue), delta: '+5.4%', trend: 'up', icon: <TrendingUp size={20} /> },
+    { label: 'Ticket promedio', value: formatCurrency(avgTicket), delta: '+2.1%', trend: 'up', icon: <Target size={20} /> },
+    { label: 'Margen bruto', value: '32.5%', delta: '-0.4%', trend: 'down', icon: <Zap size={20} /> },
+    { label: 'Stock crítico', value: lowStockProducts.length, delta: lowStockProducts.length > 0 ? 'Riesgo' : 'OK', trend: lowStockProducts.length > 0 ? 'down' : 'up', icon: <AlertCircle size={20} /> },
+    { label: 'Merma est.', value: formatCurrency(450), delta: '-12%', trend: 'up', icon: <ArrowDownRight size={20} /> },
+    { label: 'Trans. por hora', value: (todaySales.length / 8).toFixed(1), delta: 'Estable', trend: 'up', icon: <Clock size={20} /> },
+  ];
+
+  // Chart Data
+  const salesByHour = [
+    { h: '08:00', t: 1200 }, { h: '10:00', t: 4500 }, { h: '12:00', t: 8900 },
+    { h: '14:00', t: 6700 }, { h: '16:00', t: 11200 }, { h: '18:00', t: 9400 }
+  ];
+
+  const categoryUtility = products.slice(0, 5).map(p => ({
+    name: p.category,
+    value: p.price - p.cost
+  }));
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto bg-slate-50">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black text-slate-800">Panel de Control</h2>
-        <p className="text-slate-500 font-medium">Resumen ejecutivo del estado del negocio.</p>
+    <div className="p-8 h-full overflow-y-auto custom-scrollbar space-y-8 bg-bg">
+      
+      {/* Fila 1: 6 KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {kpis.map((kpi, idx) => (
+          <SurfaceCard key={idx} className="p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-text-secondary opacity-40">{kpi.icon}</div>
+              <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                kpi.trend === 'up' ? 'text-success bg-success/10' : 'text-error bg-error/10'
+              }`}>
+                {kpi.delta}
+              </span>
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-text-secondary uppercase tracking-widest mb-1">{kpi.label}</p>
+              <p className="text-xl font-black text-text-strong tracking-tight">{kpi.value}</p>
+            </div>
+          </SurfaceCard>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          icon={<TrendingUp className="text-emerald-500" />} 
-          label="Ventas Totales" 
-          value={formatCurrency(stats.totalSales)} 
-          trend="+12.5%" 
-          color="bg-emerald-50"
-        />
-        <StatCard 
-          icon={<ShoppingBag className="text-primary-500" />} 
-          label="Transacciones" 
-          value={stats.salesCount} 
-          trend="+3 hoy" 
-          color="bg-primary-50"
-        />
-        <StatCard 
-          icon={<Package className="text-blue-500" />} 
-          label="Productos" 
-          value={stats.totalProducts} 
-          trend="Activos" 
-          color="bg-blue-50"
-        />
-        <StatCard 
-          icon={<AlertCircle className="text-rose-500" />} 
-          label="Stock Crítico" 
-          value={stats.lowStockCount} 
-          trend={stats.lowStockCount > 0 ? "Requiere acción" : "Todo bien"} 
-          color="bg-rose-50"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <GlassCard className="lg:col-span-2 h-[400px]">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Tendencia de Ventas (Últimos 7 días)</h3>
-          <ResponsiveContainer width="100%" height="85%">
-            <LineChart data={stats.salesByDay}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-              <XAxis 
-                dataKey="date" 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#64748b', fontSize: 12}} 
-                dy={10}
-              />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tick={{fill: '#64748b', fontSize: 12}}
-                tickFormatter={(val) => `$${val}`}
-              />
-              <Tooltip 
-                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                formatter={(val: number) => [formatCurrency(val), 'Ventas']}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="total" 
-                stroke="#8b5cf6" 
-                strokeWidth={4} 
-                dot={{ r: 6, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }}
-                activeDot={{ r: 8, fill: '#8b5cf6' }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </GlassCard>
-
-        <GlassCard className="h-[400px]">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Distribución de Inventario</h3>
-          <ResponsiveContainer width="100%" height="85%">
-            <PieChart>
-              <Pie
-                data={[
-                  { name: 'Stock Saludable', value: stats.totalProducts - stats.lowStockCount },
-                  { name: 'Bajo Stock', value: stats.lowStockCount },
-                ]}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                <Cell fill="#10b981" />
-                <Cell fill="#f43f5e" />
-              </Pie>
-              <Tooltip 
-                contentStyle={{ borderRadius: '16px', border: 'none' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex justify-center gap-6 mt-2">
-             <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-               <div className="w-3 h-3 rounded-full bg-emerald-500"></div> Saludable
-             </div>
-             <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-               <div className="w-3 h-3 rounded-full bg-rose-500"></div> Crítico
-             </div>
+      {/* Fila 2: Gráficas */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <SurfaceCard className="p-6 lg:col-span-2">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-black uppercase tracking-widest text-text-strong">Ventas por hora (Proyectado)</h3>
+            <button className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">Ver Reporte <ChevronRight size={12} /></button>
           </div>
-        </GlassCard>
-      </div>
-    </div>
-  );
-}
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesByHour}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                <XAxis dataKey="h" axisLine={false} tickLine={false} tick={{fill: '#9AA4B2', fontSize: 10, fontWeight: 'bold'}} />
+                <YAxis axisLine={false} tickLine={false} tick={{fill: '#9AA4B2', fontSize: 10, fontWeight: 'bold'}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#151922', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)', fontSize: '12px' }}
+                />
+                <Line type="monotone" dataKey="t" stroke="#18B3A7" strokeWidth={3} dot={{ r: 4, fill: '#18B3A7', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </SurfaceCard>
 
-function StatCard({ icon, label, value, trend, color }: any) {
-  return (
-    <GlassCard className="flex flex-col gap-4">
-      <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center`}>
-        {React.cloneElement(icon, { size: 24 })}
+        <SurfaceCard className="p-6">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="text-sm font-black uppercase tracking-widest text-text-strong">Utilidad por Categoría</h3>
+          </div>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={categoryUtility} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(255,255,255,0.03)" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#9AA4B2', fontSize: 10, fontWeight: 'bold'}} width={80} />
+                <Tooltip cursor={{fill: 'rgba(255,255,255,0.02)'}} contentStyle={{ backgroundColor: '#151922', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }} />
+                <Bar dataKey="value" fill="#18B3A7" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </SurfaceCard>
       </div>
-      <div>
-        <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">{label}</p>
-        <h4 className="text-2xl font-black text-slate-800 mt-1">{value}</h4>
+
+      {/* Fila 3: Stock Crítico & Top Productos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <SurfaceCard className="p-6 lg:col-span-1">
+          <h3 className="text-sm font-black uppercase tracking-widest text-text-strong mb-6 flex items-center gap-2">
+            <AlertCircle size={16} className="text-alert" /> Stock Crítico
+          </h3>
+          <div className="space-y-4">
+            {lowStockProducts.slice(0, 5).map(p => (
+              <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-surface-2 border border-border-subtle">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-error animate-pulse"></div>
+                  <div>
+                    <p className="text-xs font-black text-text-strong">{p.name}</p>
+                    <p className="text-[10px] font-bold text-text-secondary">{p.barcode}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-black text-error">{p.stock} pza</p>
+                  <p className="text-[10px] font-bold text-text-secondary">Min: {p.minStock}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard className="p-6 lg:col-span-2 overflow-hidden">
+          <h3 className="text-sm font-black uppercase tracking-widest text-text-strong mb-6">Actividad Reciente y Top Movimientos</h3>
+          <div className="overflow-x-auto">
+             <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-border-subtle">
+                    <th className="pb-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Operación</th>
+                    <th className="pb-4 text-[10px] font-black text-text-secondary uppercase tracking-widest">Origen</th>
+                    <th className="pb-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">Monto</th>
+                    <th className="pb-4 text-[10px] font-black text-text-secondary uppercase tracking-widest text-right">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border-subtle">
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} className="group hover:bg-surface-2 transition-colors">
+                      <td className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-surface-2 border border-border-subtle flex items-center justify-center text-text-secondary">
+                            <ShoppingBag size={14} />
+                          </div>
+                          <div>
+                            <p className="text-xs font-black text-text-strong">Venta Pos #{(824 + i)}</p>
+                            <p className="text-[10px] font-bold text-text-secondary">Hace {i+1} min</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 text-xs font-bold text-text-secondary">Sucursal Central</td>
+                      <td className="py-4 text-right text-xs font-black text-text-strong">{formatCurrency(1200 + i * 450)}</td>
+                      <td className="py-4 text-right">
+                        <span className="text-[9px] font-black uppercase tracking-widest bg-success/10 text-success px-2 py-0.5 rounded-md">Completado</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+             </table>
+          </div>
+        </SurfaceCard>
       </div>
-      <div className="flex items-center gap-2">
-        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${trend.includes('+') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-          {trend}
-        </span>
-      </div>
-    </GlassCard>
+
+      {/* Fila 4: Tareas Pendientes */}
+      <SurfaceCard className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-sm font-black uppercase tracking-widest text-text-strong flex items-center gap-2">
+            <CheckSquare size={16} className="text-primary" /> Tareas Operativas Pendientes
+          </h3>
+          <span className="text-[10px] font-black bg-surface-2 text-text-secondary px-3 py-1 rounded-full border border-border-subtle">4 Pendientes</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[
+            { t: 'Arqueo de caja terminal 01', d: 'Prioridad Alta', c: 'border-l-error' },
+            { t: 'Recepción de proveedor Sabritas', d: 'Programado 14:00', c: 'border-l-primary' },
+            { t: 'Ajuste de inventario Lácteos', d: 'Auditoría mensual', c: 'border-l-alert' },
+            { t: 'Actualización de precios Panadería', d: 'Cambio de temporada', c: 'border-l-text-secondary' },
+          ].map((task, i) => (
+            <div key={i} className={`p-4 rounded-xl bg-surface-2 border border-border-subtle border-l-4 ${task.c}`}>
+              <p className="text-xs font-black text-text-strong mb-1">{task.t}</p>
+              <p className="text-[10px] font-bold text-text-secondary">{task.d}</p>
+            </div>
+          ))}
+        </div>
+      </SurfaceCard>
+
+    </div>
   );
 }

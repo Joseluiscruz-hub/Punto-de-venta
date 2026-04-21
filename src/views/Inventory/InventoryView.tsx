@@ -1,254 +1,232 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Barcode, Package, DollarSign, TrendingUp } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, Plus, Search, AlertCircle, FileUp, Download, Edit3, Trash2, Tag, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
-import { useAuth } from '../../contexts/AuthContext';
-import type { Product } from '../../models/types';
+import type { Product, CreateProductInput } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
 import GlassCard from '../../components/common/GlassCard';
+import * as XLSX from 'xlsx';
 
 export default function InventoryView() {
-  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
-  const [isEditing, setIsEditing] = useState<Product | Partial<Product> | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('Todas');
 
-  const loadData = () => BackendAPI.getProducts().then(setProducts);
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
-  const handleSave = async (productData: any) => {
-    try {
-      await BackendAPI.saveProduct(productData, user!.id);
-      await loadData();
-      setIsEditing(null);
-    } catch (e: any) {
-      alert("Error guardando: " + e.message);
-    }
+  const loadProducts = async () => {
+    const data = await BackendAPI.getProducts();
+    setProducts(data);
   };
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("¿Estás seguro de eliminar este producto?")) {
-      await BackendAPI.deleteProduct(id);
-      await loadData();
-    }
+  const categories = ['Todas', ...Array.from(new Set(products.map(p => p.category)))];
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search);
+    const matchesCategory = categoryFilter === 'Todas' || p.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+        const formattedProducts: CreateProductInput[] = data.map(item => ({
+          barcode: String(item.barcode || item.codigo || ''),
+          name: String(item.name || item.nombre || ''),
+          price: Number(item.price || item.precio || 0),
+          cost: Number(item.cost || item.costo || 0),
+          stock: Number(item.stock || item.existencia || 0),
+          minStock: Number(item.minStock || item.minimo || 5),
+          category: String(item.category || item.categoria || 'General')
+        }));
+
+        await BackendAPI.importProducts(formattedProducts);
+        await loadProducts();
+        alert('Importación completada con éxito');
+      } catch (error) {
+        console.error('Error importando:', error);
+        alert('Error al procesar el archivo. Asegúrate de que el formato sea correcto.');
+      } finally {
+        setIsImporting(false);
+        if (e.target) e.target.value = '';
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
-  const filtered = products.filter(p => 
-    p.name.toLowerCase().includes(search.toLowerCase()) || 
-    p.barcode.includes(search)
-  );
+  const downloadTemplate = () => {
+    const template = [
+      { barcode: '123456', name: 'Producto Ejemplo', price: 10.50, cost: 8.00, stock: 50, minStock: 10, category: 'General' }
+    ];
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plantilla");
+    XLSX.writeFile(wb, "Plantilla_ElTriunfo.xlsx");
+  };
 
   return (
-    <div className="flex-1 p-8 bg-slate-50 overflow-hidden flex flex-col h-full">
-      <div className="flex justify-between items-end mb-8">
+    <div className="p-8 h-full flex flex-col space-y-8 bg-slate-50">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">Inventario Pro</h2>
-          <p className="text-slate-500 font-medium">Control total de stock y márgenes de ganancia.</p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="bg-emerald-600 text-white p-2.5 rounded-2xl shadow-lg shadow-emerald-500/30">
+              <Layers size={24} />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Gestión de Stock</h1>
+          </div>
+          <p className="text-slate-500 font-medium">Control total del inventario de El Triunfo</p>
         </div>
-        <motion.button 
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsEditing({ category: 'Abarrotes', stock: 0, minStock: 5 })} 
-          className="bg-primary-600 hover:bg-primary-500 text-white px-6 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-primary-500/20 transition-all"
-        >
-          <Plus size={24} /> NUEVO PRODUCTO
-        </motion.button>
+
+        <div className="flex gap-3">
+          <button 
+            onClick={downloadTemplate}
+            className="flex items-center gap-2 px-6 py-4 bg-white border-2 border-slate-200 text-slate-600 font-black rounded-2xl hover:bg-slate-50 transition-all uppercase tracking-widest text-xs"
+          >
+            <Download size={18} /> Plantilla
+          </button>
+          
+          <label className="flex items-center gap-2 px-6 py-4 bg-white border-2 border-emerald-100 text-emerald-600 font-black rounded-2xl hover:bg-emerald-50 transition-all cursor-pointer uppercase tracking-widest text-xs">
+            <FileUp size={18} /> {isImporting ? 'Procesando...' : 'Importar Excel'}
+            <input type="file" className="hidden" accept=".xlsx, .xls, .csv" onChange={handleFileUpload} disabled={isImporting} />
+          </label>
+
+          <button className="flex items-center gap-2 px-6 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-600/20 hover:bg-emerald-500 transition-all uppercase tracking-widest text-xs">
+            <Plus size={18} /> Nuevo Producto
+          </button>
+        </div>
       </div>
 
-      <GlassCard className="flex-1 flex flex-col overflow-hidden p-0 rounded-[40px]">
-        <div className="p-6 border-b border-slate-100 bg-white/50 backdrop-blur-md sticky top-0 z-10 flex gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre, categoría o código de barras..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-none rounded-2xl outline-none font-medium focus:ring-2 focus:ring-primary-500 transition-all"
-            />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <GlassCard className="p-6 border-emerald-500/10">
+          <div className="flex items-center gap-4">
+            <div className="bg-emerald-100 p-3 rounded-2xl text-emerald-600">
+              <Package size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Sku's</p>
+              <p className="text-2xl font-black text-slate-800">{products.length}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-3 bg-slate-100/50 px-4 rounded-2xl text-slate-500 font-bold text-sm">
-            <Package size={18} /> {filtered.length} Productos
+        </GlassCard>
+        
+        <GlassCard className="p-6 border-rose-500/10">
+          <div className="flex items-center gap-4">
+            <div className="bg-rose-100 p-3 rounded-2xl text-rose-600">
+              <AlertCircle size={24} />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bajo Stock</p>
+              <p className="text-2xl font-black text-slate-800">{products.filter(p => p.stock <= p.minStock).length}</p>
+            </div>
           </div>
-        </div>
+        </GlassCard>
 
-        <div className="flex-1 overflow-auto custom-scrollbar">
+        <GlassCard className="p-6 md:col-span-2">
+          <div className="flex items-center gap-4 h-full">
+            <div className="flex-1 relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input 
+                type="text"
+                placeholder="Buscar por nombre o código..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-100/50 border-2 border-transparent focus:border-emerald-500 rounded-xl outline-none transition-all font-bold"
+              />
+            </div>
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-4 py-3 bg-slate-100/50 border-2 border-transparent focus:border-emerald-500 rounded-xl outline-none font-bold text-slate-600"
+            >
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+        </GlassCard>
+      </div>
+
+      <div className="flex-1 bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+        <div className="overflow-x-auto overflow-y-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-slate-50/80 sticky top-0 z-10 text-slate-400 text-[10px] uppercase tracking-[0.2em] font-black border-b border-slate-100">
-              <tr>
-                <th className="p-6">Código / SKU</th>
-                <th className="p-6">Información del Producto</th>
-                <th className="p-6 text-right">Coste</th>
-                <th className="p-6 text-right">P. Venta</th>
-                <th className="p-6 text-center">Disponibilidad</th>
-                <th className="p-6 text-center">Acciones</th>
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Producto</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Categoría</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Costo</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Precio</th>
+                <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Stock</th>
+                <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filtered.map((p, idx) => {
-                const margin = (((p.price - p.cost) / p.cost) * 100).toFixed(0);
-                const isLowStock = p.stock <= p.minStock;
-                return (
-                  <motion.tr 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.03 }}
-                    key={p.id} 
-                    className="hover:bg-primary-50/30 transition-colors group"
-                  >
-                    <td className="p-6">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-100 rounded-lg text-slate-400">
-                          <Barcode size={16} />
-                        </div>
-                        <span className="font-mono text-sm font-bold text-slate-500">{p.barcode}</span>
+            <tbody>
+              {filteredProducts.map(product => (
+                <tr key={product.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
+                        <img src={`https://picsum.photos/seed/${product.barcode}/100/100`} alt="" className="w-full h-full object-cover" />
                       </div>
-                    </td>
-                    <td className="p-6">
-                      <p className="font-black text-slate-800 text-lg group-hover:text-primary-600 transition-colors">{p.name}</p>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">{p.category}</span>
-                    </td>
-                    <td className="p-6 text-right text-slate-500 font-bold">{formatCurrency(p.cost)}</td>
-                    <td className="p-6 text-right">
-                      <div className="font-black text-slate-800 text-lg">{formatCurrency(p.price)}</div>
-                      <div className="flex items-center justify-end gap-1 text-[10px] text-emerald-600 font-black uppercase mt-1">
-                        <TrendingUp size={10} /> {margin}% Margen
+                      <div>
+                        <p className="font-black text-slate-800 leading-none mb-1">{product.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">{product.barcode}</p>
                       </div>
-                    </td>
-                    <td className="p-6 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`inline-flex items-center justify-center min-w-[3.5rem] px-4 py-1.5 rounded-full font-black text-sm shadow-sm ${
-                          isLowStock 
-                            ? 'bg-rose-100 text-rose-700 ring-1 ring-rose-200' 
-                            : 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
-                        }`}>
-                          {p.stock}
-                        </span>
-                        {isLowStock && <span className="text-[9px] font-bold text-rose-500 uppercase">Reabastecer</span>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5">
+                    <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border border-emerald-100">
+                      {product.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-5 text-right font-bold text-slate-400">{formatCurrency(product.cost)}</td>
+                  <td className="px-6 py-5 text-right font-black text-emerald-600">{formatCurrency(product.price)}</td>
+                  <td className="px-6 py-5">
+                    <div className="flex flex-col items-center">
+                      <div className={`px-4 py-1 rounded-full text-xs font-black min-w-[60px] text-center border ${
+                        product.stock <= product.minStock 
+                          ? 'bg-rose-50 text-rose-600 border-rose-100 animate-pulse' 
+                          : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                      }`}>
+                        {product.stock}
                       </div>
-                    </td>
-                    <td className="p-6">
-                      <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => setIsEditing(p)} className="p-3 text-slate-400 hover:text-primary-600 hover:bg-primary-100 rounded-xl transition-all">
-                          <Edit size={20} />
-                        </button>
-                        <button onClick={() => handleDelete(p.id)} className="p-3 text-slate-400 hover:text-rose-600 hover:bg-rose-100 rounded-xl transition-all">
-                          <Trash2 size={20} />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                );
-              })}
+                      <p className="text-[8px] font-black text-slate-300 mt-1 uppercase tracking-tighter">Min: {product.minStock}</p>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                        <Edit3 size={18} />
+                      </button>
+                      <button className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-          {filtered.length === 0 && (
-            <div className="p-20 text-center text-slate-300">
-               <Package size={80} className="mx-auto opacity-10 mb-6" />
-               <p className="text-xl font-bold">No se encontraron productos</p>
+          
+          {filteredProducts.length === 0 && (
+            <div className="p-20 text-center text-slate-300 flex flex-col items-center gap-4">
+              <Package size={64} strokeWidth={1} className="opacity-20" />
+              <p className="font-black text-sm uppercase tracking-widest opacity-50">No se encontraron productos</p>
             </div>
           )}
         </div>
-      </GlassCard>
-
-      <AnimatePresence>
-        {isEditing && (
-          <ProductFormModal 
-            product={isEditing} 
-            onClose={() => setIsEditing(null)} 
-            onSave={handleSave} 
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-function ProductFormModal({ product, onClose, onSave }: any) {
-  const [formData, setFormData] = useState(product);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    await onSave({
-      ...formData,
-      cost: Number(formData.cost),
-      price: Number(formData.price),
-      stock: Number(formData.stock),
-      minStock: Number(formData.minStock)
-    });
-    setLoading(false);
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4"
-    >
-      <motion.div 
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        className="bg-white rounded-[40px] shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
-      >
-        <div className="flex justify-between items-center p-8 border-b border-slate-100">
-          <div>
-            <h2 className="text-2xl font-black text-slate-800">{product.id ? 'Editar Producto' : 'Nuevo Producto'}</h2>
-            <p className="text-sm text-slate-400 font-medium">Completa la información técnica del artículo.</p>
-          </div>
-          <button onClick={onClose} className="p-3 text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all">
-            <X size={24}/>
-          </button>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="p-8 overflow-y-auto space-y-8">
-          <div className="grid grid-cols-2 gap-8">
-            <FormField label="Código de Barras" icon={<Barcode size={18}/>}>
-              <input required type="text" value={formData.barcode || ''} onChange={e => setFormData({...formData, barcode: e.target.value})} className="form-input" />
-            </FormField>
-            <FormField label="Categoría" icon={<Package size={18}/>}>
-              <input required type="text" value={formData.category || ''} onChange={e => setFormData({...formData, category: e.target.value})} className="form-input" />
-            </FormField>
-            <div className="col-span-2">
-              <FormField label="Nombre Comercial" full>
-                <input required type="text" value={formData.name || ''} onChange={e => setFormData({...formData, name: e.target.value})} className="form-input font-bold text-xl" />
-              </FormField>
-            </div>
-            <FormField label="Costo de Adquisición" icon={<DollarSign size={18}/>}>
-              <input required type="number" step="0.01" value={formData.cost || ''} onChange={e => setFormData({...formData, cost: e.target.value})} className="form-input" />
-            </FormField>
-            <FormField label="Precio de Venta" icon={<TrendingUp size={18}/>}>
-              <input required type="number" step="0.01" value={formData.price || ''} onChange={e => setFormData({...formData, price: e.target.value})} className="form-input font-black text-primary-600" />
-            </FormField>
-            <FormField label="Stock Actual">
-              <input required type="number" value={formData.stock || 0} onChange={e => setFormData({...formData, stock: e.target.value})} className="form-input" />
-            </FormField>
-            <FormField label="Alerta Stock Mínimo">
-              <input required type="number" value={formData.minStock || 0} onChange={e => setFormData({...formData, minStock: e.target.value})} className="form-input" />
-            </FormField>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-8 py-4 font-black text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-2xl transition-all">CANCELAR</button>
-            <button type="submit" disabled={loading} className="px-8 py-4 font-black text-white bg-primary-600 hover:bg-primary-500 rounded-2xl flex items-center gap-3 shadow-xl shadow-primary-500/20 transition-all active:scale-95">
-              <Save size={24} /> {loading ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function FormField({ label, icon, children, full = false }: any) {
-  return (
-    <div className={full ? "w-full" : ""}>
-      <label className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-        {icon} {label}
-      </label>
-      {children}
+      </div>
     </div>
   );
 }

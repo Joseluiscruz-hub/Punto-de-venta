@@ -1,162 +1,152 @@
-import type { User, Product, Sale, StockMovement, Role } from '../models/types';
+import type { User, Product, Sale, Id, ProcessSaleInput, CreateProductInput } from '../models/types';
 
-// Simulador de latencia de red
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
-const STORAGE_KEY = 'minisuper_db';
-
-const DEFAULT_DB = {
-  users: [
-    { id: 'u1', username: 'admin', name: 'Administrador', role: 'ADMIN' as Role },
-    { id: 'u2', username: 'caja1', name: 'Juan Pérez (Caja 1)', role: 'CASHIER' as Role }
-  ],
-  products: [
-    { id: 'p1', barcode: '75010001', name: 'Leche Entera Alpura 1L', category: 'Lácteos', cost: 18.5, price: 25.0, stock: 45, minStock: 10 },
-    { id: 'p2', barcode: '75010002', name: 'Pan Bimbo Blanco', category: 'Panadería', cost: 30.0, price: 42.0, stock: 12, minStock: 15 },
-    { id: 'p3', barcode: '75010003', name: 'Coca-Cola 600ml', category: 'Bebidas', cost: 11.0, price: 18.0, stock: 120, minStock: 24 },
-  ],
-  sales: [] as Sale[],
-  movements: [] as StockMovement[]
-};
-
-const getDB = () => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) return JSON.parse(stored);
-  return DEFAULT_DB;
-};
-
-const saveDB = (db: any) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
+const STORAGE_KEYS = {
+  PRODUCTS: 'eltriunfo_products',
+  SALES: 'eltriunfo_sales',
+  USER: 'eltriunfo_current_user',
+  OFFLINE_QUEUE: 'eltriunfo_offline_queue'
 };
 
 export const BackendAPI = {
-  async login(username: string, pin: string): Promise<User> {
-    await delay(500);
-    const db = getDB();
-    const user = db.users.find((u: any) => u.username === username);
-    if (user && ((username === 'admin' && pin === '1234') || (username === 'caja1' && pin === '0000'))) {
+  // --- AUTH ---
+  async login(username: string, pin: string): Promise<User | null> {
+    await delay(800);
+    const users: User[] = [
+      { id: '1', username: 'admin', name: 'Dueño El Triunfo', role: 'ADMIN' },
+      { id: '2', username: 'caja1', name: 'Cajero Principal', role: 'CASHIER' }
+    ];
+    
+    const user = users.find(u => u.username === username && (pin === '1234' || pin === '0000'));
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user));
       return user;
     }
     throw new Error('Credenciales inválidas');
   },
 
+  async getCurrentUser(): Promise<User | null> {
+    const data = localStorage.getItem(STORAGE_KEYS.USER);
+    return data ? JSON.parse(data) : null;
+  },
+
+  async logout() {
+    localStorage.removeItem(STORAGE_KEYS.USER);
+  },
+
+  // --- PRODUCTS ---
   async getProducts(): Promise<Product[]> {
-    await delay(300);
-    return getDB().products;
+    const data = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+    if (!data) {
+      const initialProducts: Product[] = [
+        { id: '1', barcode: '7501055300074', name: 'Coca-Cola 600ml', price: 18.50, cost: 14.00, stock: 45, minStock: 10, category: 'Bebidas' },
+        { id: '2', barcode: '7501000111205', name: 'Sabritas Sal 45g', price: 17.00, cost: 12.50, stock: 20, minStock: 5, category: 'Botanas' },
+        { id: '3', barcode: '7501030497217', name: 'Leche Entera 1L', price: 26.00, cost: 21.00, stock: 12, minStock: 6, category: 'Lácteos' },
+        { id: '4', barcode: '0000000000004', name: 'Pan Blanco Grande', price: 45.00, cost: 38.00, stock: 8, minStock: 4, category: 'Panadería' },
+        { id: '5', barcode: '0000000000005', name: 'Huevo (Kg)', price: 42.00, cost: 35.00, stock: 15, minStock: 5, category: 'Básicos' }
+      ];
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(initialProducts));
+      return initialProducts;
+    }
+    return JSON.parse(data);
   },
 
-  async getSales(): Promise<Sale[]> {
-    await delay(300);
-    return [...getDB().sales].sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime());
+  async saveProducts(products: Product[]): Promise<void> {
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
   },
 
-  async saveProduct(product: Omit<Product, 'id'> | Product, userId: string): Promise<Product> {
-    await delay(400);
-    const db = getDB();
-    const isNew = !('id' in product) || !product.id;
-    let savedProduct: Product;
+  async importProducts(newProducts: CreateProductInput[]): Promise<void> {
+    const currentProducts = await this.getProducts();
+    const updatedProducts = [...currentProducts];
 
-    if (isNew) {
-      savedProduct = { ...product, id: `p${Date.now()}` } as Product;
-      db.products.push(savedProduct);
-      
-      if (savedProduct.stock > 0) {
-        db.movements.push({
-          id: `m${Date.now()}`, productId: savedProduct.id, userId, type: 'PURCHASE',
-          quantity: savedProduct.stock, date: new Date().toISOString(), reason: 'Inventario Inicial'
+    newProducts.forEach(input => {
+      const existingIndex = updatedProducts.findIndex(p => p.barcode === input.barcode);
+      if (existingIndex >= 0) {
+        // Actualizar stock si ya existe
+        updatedProducts[existingIndex] = {
+          ...updatedProducts[existingIndex],
+          stock: updatedProducts[existingIndex].stock + input.stock,
+          price: input.price || updatedProducts[existingIndex].price,
+          name: input.name || updatedProducts[existingIndex].name
+        };
+      } else {
+        // Crear nuevo
+        updatedProducts.push({
+          ...input,
+          id: Math.random().toString(36).substr(2, 9)
         });
       }
-    } else {
-      const index = db.products.findIndex((p: any) => p.id === product.id);
-      if (index === -1) throw new Error('Producto no encontrado');
-      
-      const oldProduct = db.products[index];
-      savedProduct = product as Product;
-      db.products[index] = savedProduct;
-
-      if (oldProduct.stock !== savedProduct.stock) {
-        const diff = savedProduct.stock - oldProduct.stock;
-        db.movements.push({
-          id: `m${Date.now()}`, productId: savedProduct.id, userId, type: 'ADJUSTMENT',
-          quantity: diff, date: new Date().toISOString(), reason: 'Ajuste manual'
-        });
-      }
-    }
-    saveDB(db);
-    return savedProduct;
-  },
-
-  async deleteProduct(productId: string): Promise<void> {
-    await delay(300);
-    const db = getDB();
-    db.products = db.products.filter((p: any) => p.id !== productId);
-    saveDB(db);
-  },
-
-  async processSale(saleData: Omit<Sale, 'id' | 'datetime'>): Promise<Sale> {
-    await delay(600);
-    const db = getDB();
-    
-    for (const item of saleData.items) {
-      const dbProduct = db.products.find((p: any) => p.id === item.id);
-      if (!dbProduct) throw new Error(`Producto ${item.name} no existe`);
-      if (dbProduct.stock < item.quantity) throw new Error(`Stock insuficiente para ${item.name}`);
-    }
-
-    const newSale: Sale = {
-      ...saleData,
-      id: `TRX-${Date.now().toString().slice(-6)}`,
-      datetime: new Date().toISOString(),
-    };
-    db.sales.push(newSale);
-
-    saleData.items.forEach(item => {
-      const prodIndex = db.products.findIndex((p: any) => p.id === item.id);
-      db.products[prodIndex].stock -= item.quantity;
-
-      db.movements.push({
-        id: `m${Date.now()}-${item.id}`,
-        productId: item.id,
-        userId: saleData.cashierId,
-        type: 'SALE',
-        quantity: -item.quantity,
-        date: newSale.datetime,
-        reason: `Venta ${newSale.id}`
-      });
     });
 
-    saveDB(db);
+    await this.saveProducts(updatedProducts);
+  },
+
+  // --- SALES ---
+  async getSales(): Promise<Sale[]> {
+    const data = localStorage.getItem(STORAGE_KEYS.SALES);
+    return data ? JSON.parse(data) : [];
+  },
+
+  async processSale(input: ProcessSaleInput): Promise<Sale> {
+    await delay(500);
+    const products = await this.getProducts();
+    const user = await this.getCurrentUser();
+
+    if (!user) throw new Error('No hay sesión activa');
+
+    // Validar stock (Bypass si es sincronización offline)
+    if (!input.isOfflineSync) {
+      for (const item of input.items) {
+        const product = products.find(p => p.id === item.productId);
+        if (!product || product.stock < item.quantity) {
+          throw new Error(`Stock insuficiente para: ${item.name}`);
+        }
+      }
+    }
+
+    // Actualizar stock
+    const updatedProducts = products.map(p => {
+      const saleItem = input.items.find(item => item.productId === p.id);
+      if (saleItem) {
+        return { ...p, stock: p.stock - saleItem.quantity };
+      }
+      return p;
+    });
+    await this.saveProducts(updatedProducts);
+
+    // Crear venta
+    const total = input.items.reduce((sum, item) => sum + item.subtotal, 0);
+    const newSale: Sale = {
+      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      date: input.offlineDate || new Date().toISOString(),
+      items: input.items,
+      total,
+      paymentMethod: input.paymentMethod,
+      cashReceived: input.cashReceived,
+      change: input.cashReceived ? input.cashReceived - total : 0,
+      userId: user.id,
+      isOfflineSync: input.isOfflineSync
+    };
+
+    const sales = await this.getSales();
+    localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([newSale, ...sales]));
+
     return newSale;
   },
 
-  async getStats() {
-    await delay(300);
-    const db = getDB();
-    const totalSales = db.sales.reduce((acc: number, s: Sale) => acc + s.total, 0);
-    const totalProducts = db.products.length;
-    const lowStockCount = db.products.filter((p: Product) => p.stock <= p.minStock).length;
-    const salesCount = db.sales.length;
+  // --- OFFLINE QUEUE ---
+  async getOfflineQueue(): Promise<ProcessSaleInput[]> {
+    const data = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+    return data ? JSON.parse(data) : [];
+  },
 
-    // Sales by day (last 7 days)
-    const last7Days = Array.from({length: 7}, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split('T')[0];
-    }).reverse();
+  async addToOfflineQueue(sale: ProcessSaleInput): Promise<void> {
+    const queue = await this.getOfflineQueue();
+    localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify([...queue, sale]));
+  },
 
-    const salesByDay = last7Days.map(date => ({
-      date,
-      total: db.sales
-        .filter((s: Sale) => s.datetime.split('T')[0] === date)
-        .reduce((acc: number, s: Sale) => acc + s.total, 0)
-    }));
-
-    return {
-      totalSales,
-      totalProducts,
-      lowStockCount,
-      salesCount,
-      salesByDay
-    };
+  async clearOfflineQueue(): Promise<void> {
+    localStorage.removeItem(STORAGE_KEYS.OFFLINE_QUEUE);
   }
 };

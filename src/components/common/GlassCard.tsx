@@ -1,28 +1,24 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-interface GlassCardProps {
+interface SurfaceCardProps {
   children: React.ReactNode;
   className?: string;
-  delay?: number;
+  onClick?: () => void;
+  level?: 1 | 2;
 }
 
-export default function GlassCard({ children, className, delay = 0 }: GlassCardProps) {
+export default function SurfaceCard({ children, className = '', onClick, level = 1 }: SurfaceCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={cn(
-        "glass rounded-3xl p-6 shadow-xl",
-        className
-      )}
+      whileHover={onClick ? { y: -2, borderColor: 'rgba(24, 179, 167, 0.4)' } : {}}
+      onClick={onClick}
+      className={`
+        ${level === 1 ? 'bg-surface-1' : 'bg-surface-2'}
+        border border-border-subtle rounded-2xl
+        transition-enterprise
+        ${onClick ? 'cursor-pointer' : ''}
+        ${className}
+      `}
     >
       {children}
     </motion.div>
