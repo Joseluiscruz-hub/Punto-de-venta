@@ -1,5 +1,5 @@
 import {
-  ShoppingCart, PackageSearch, ShoppingBag, Users, 
+  ShoppingCart, PackageSearch, ShoppingBag, Users,
   Tags, BarChart3, Settings, LogOut, Store
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
