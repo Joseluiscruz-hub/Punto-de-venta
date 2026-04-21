@@ -1,4 +1,3 @@
-// Tipos y modelos base para el punto de venta
 export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type PaymentMethod = 'CASH' | 'CARD';
 export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT';
