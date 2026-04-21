@@ -1,6 +1,6 @@
-import { 
-  LayoutDashboard, ShoppingCart, PackageSearch, ShoppingBag, Users, 
-  Tags, BarChart3, Settings, LogOut, Store 
+import {
+  ShoppingCart, PackageSearch, ShoppingBag, Users, 
+  Tags, BarChart3, Settings, LogOut, Store
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import NavItem from './NavItem';
@@ -16,18 +16,23 @@ export default function Sidebar({ currentView, setCurrentView }: SidebarProps) {
 
   const menuGroups = [
     {
+      label: 'Operación',
       items: [
-        { id: 'dashboard', label: 'Inicio', icon: <LayoutDashboard size={18} /> },
         { id: 'pos', label: 'Caja', icon: <ShoppingCart size={18} /> },
-        { id: 'inventory', label: 'Inventario', icon: <PackageSearch size={18} /> },
+        { id: 'clients', label: 'Clientes', icon: <Users size={18} /> },
       ]
     },
     {
-      label: 'Operación',
+      label: 'Catálogo',
+      items: [
+        { id: 'inventory', label: 'Inventario', icon: <PackageSearch size={18} /> },
+        { id: 'prices', label: 'Precios', icon: <Tags size={18} /> },
+      ]
+    },
+    {
+      label: 'Abasto',
       items: [
         { id: 'purchases', label: 'Compras', icon: <ShoppingBag size={18} /> },
-        { id: 'clients', label: 'Clientes', icon: <Users size={18} /> },
-        { id: 'prices', label: 'Precios', icon: <Tags size={18} /> },
       ]
     },
     {
@@ -57,7 +62,7 @@ export default function Sidebar({ currentView, setCurrentView }: SidebarProps) {
               </p>
             )}
             {group.items.map(item => (
-              <NavItem 
+              <NavItem
                 key={item.id}
                 icon={item.icon}
                 label={item.label}
@@ -70,13 +75,13 @@ export default function Sidebar({ currentView, setCurrentView }: SidebarProps) {
       </nav>
 
       <div className="p-4 border-t border-border-subtle">
-        <NavItem 
-          icon={<Settings size={18} />} 
-          label="Configuración" 
-          active={currentView === 'config'} 
-          onClick={() => setCurrentView('config')} 
+        <NavItem
+          icon={<Settings size={18} />}
+          label="Configuración"
+          active={currentView === 'config'}
+          onClick={() => setCurrentView('config')}
         />
-        <button 
+        <button
           onClick={logout}
           className="flex items-center gap-3 w-full p-3 rounded-xl text-text-secondary hover:text-error hover:bg-error/5 transition-enterprise mt-2 group"
         >
