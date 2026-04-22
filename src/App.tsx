@@ -6,7 +6,7 @@ import {
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
   Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon,
-  Wallet, Landmark, ArrowDownCircle, Users, Mail, Phone, Hash
+  Wallet, Landmark, ArrowDownCircle, Users, Mail, Phone
 } from 'lucide-react';
 
 import {
@@ -18,7 +18,7 @@ import {
   Tenant, Store, User, Product, StoreProduct, SaleItem, Sale, StockMovement,
   ProductView, StockMovementView, RequestContext,
   CreateProductInput, UpdateProductInput, ProcessSaleInput, LoginResponse,
-  Feature, Role, PaymentMethod, Shift
+  Feature, Role, PaymentMethod, Shift, Client
 } from './models/types';
 
 // ============================================================================

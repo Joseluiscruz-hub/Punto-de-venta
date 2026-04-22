@@ -166,6 +166,7 @@ export interface ProcessSaleInput {
   items: CartItem[];
   paymentMethod: PaymentMethod;
   amountTendered: Money;
+  clientId?: Id;
   isOfflineSync?: boolean;
   offlineDate?: ISODateString;
 }
