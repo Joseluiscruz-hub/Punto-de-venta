@@ -1,6 +1,6 @@
 import {
   ShoppingCart, PackageSearch, ShoppingBag, Users,
-  Tags, BarChart3, Settings, LogOut, Store
+  Tags, BarChart3, Settings, LogOut, Store, LayoutDashboard, History
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import NavItem from './NavItem';
@@ -15,6 +15,12 @@ export default function Sidebar({ currentView, setCurrentView }: SidebarProps) {
   const { logout } = useAuth();
 
   const menuGroups = [
+    {
+      label: null,
+      items: [
+        { id: 'dashboard', label: 'Inicio', icon: <LayoutDashboard size={18} /> },
+      ]
+    },
     {
       label: 'Operación',
       items: [
@@ -38,7 +44,7 @@ export default function Sidebar({ currentView, setCurrentView }: SidebarProps) {
     {
       label: 'Análisis',
       items: [
-        { id: 'sales', label: 'Auditoría', icon: <BarChart3 size={18} /> },
+        { id: 'sales', label: 'Auditoría', icon: <History size={18} /> },
         { id: 'reports', label: 'Reportes', icon: <BarChart3 size={18} /> },
       ]
     }

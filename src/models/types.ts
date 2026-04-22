@@ -23,6 +23,33 @@ export interface Product {
   imageUrl?: string;
 }
 
+export interface Customer {
+  id: Id;
+  name: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  totalSpent: Money;
+  lastVisit: ISODateString;
+}
+
+export interface PurchaseItem {
+  productId: Id;
+  name: string;
+  cost: Money;
+  quantity: number;
+  subtotal: Money;
+}
+
+export interface Purchase {
+  id: Id;
+  date: ISODateString;
+  provider: string;
+  items: PurchaseItem[];
+  total: Money;
+  status: 'COMPLETED' | 'PENDING';
+}
+
 export interface SaleItem {
   productId: Id;
   name: string;
@@ -31,7 +58,7 @@ export interface SaleItem {
   subtotal: Money;
 }
 
-export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED' | 'CREDIT';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
 
 export interface Sale {
   id: Id;
@@ -42,15 +69,28 @@ export interface Sale {
   cashReceived?: Money;
   change?: Money;
   userId: Id;
+  customerId?: Id;
   isOfflineSync?: boolean;
+}
+
+export interface StoreConfig {
+  name: string;
+  address: string;
+  phone: string;
+  taxId: string;
+  currency: string;
+  taxRate: number;
 }
 
 export interface ProcessSaleInput {
   items: SaleItem[];
   paymentMethod: PaymentMethod;
   cashReceived?: Money;
+  customerId?: Id;
   isOfflineSync?: boolean;
   offlineDate?: ISODateString;
 }
 
 export interface CreateProductInput extends Omit<Product, 'id'> {}
+export interface CreateCustomerInput extends Omit<Customer, 'id' | 'totalSpent' | 'lastVisit'> {}
+export interface CreatePurchaseInput extends Omit<Purchase, 'id'> {}
