@@ -5,8 +5,13 @@ import {
   Plus, Search, Trash2, Edit, Barcode, Banknote,
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
-  Printer, QrCode, CloudUpload, WifiOff
+  Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon
 } from 'lucide-react';
+
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  BarChart, Bar, Cell, PieChart, Pie, Legend
+} from 'recharts';
 
 import {
   Tenant, Store, User, Product, StoreProduct, SaleItem, Sale, StockMovement,
@@ -1161,10 +1166,30 @@ function DashboardView() {
   const totalProfit = totalRevenue - totalCost;
   const iv = products.reduce((sum, p) => sum + (p.cost * p.stock), 0);
 
+  // Data processing for Charts
+  const salesByDate = useMemo(() => {
+    const groups: any = {};
+    sales.forEach(s => {
+      const date = new Date(s.datetime).toLocaleDateString();
+      groups[date] = (groups[date] || 0) + s.total;
+    });
+    return Object.entries(groups).map(([date, total]) => ({ date, total })).reverse();
+  }, [sales]);
+
+  const categoryMix = useMemo(() => {
+    const cats: any = {};
+    products.forEach(p => {
+      cats[p.category] = (cats[p.category] || 0) + (p.stock * p.price);
+    });
+    return Object.entries(cats).map(([name, value]) => ({ name, value }));
+  }, [products]);
+
+  const COLORS = ['#0070b2', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+
   return (
     <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
       <div className="flex justify-between items-center bg-white dark:bg-[#232a31] p-4 rounded border border-[#d9d9d9] dark:border-[#3a414a] shadow-sm">
-        <h2 className="text-lg font-bold tracking-tight text-[#0070b2] uppercase">Panel de Control Ejecutivo (Analytical)</h2>
+        <h2 className="text-lg font-bold tracking-tight text-[#0070b2] uppercase">Panel de Inteligencia de Negocio</h2>
         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
            <TrendingUp size={12} /> Live Sync Active
         </div>
@@ -1174,19 +1199,87 @@ function DashboardView() {
         <StatCard title="Ingresos Brutos" value={formatCurrency(totalRevenue)} icon={<Banknote size={24}/>} />
         <StatCard title="Margen de Utilidad" value={formatCurrency(totalProfit)} icon={<TrendingUp size={24}/>} />
         <StatCard title="Valuación Maestro" value={formatCurrency(iv)} icon={<PackageSearch size={24}/>} />
-        <StatCard title="Volumen de Transacción" value={sales.length} icon={<Receipt size={24}/>} />
+        <StatCard title="Transacciones" value={sales.length} icon={<Receipt size={24}/>} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Trend Chart */}
+        <div className="xl:col-span-2 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Tendencia de Ingresos</h3>
+            <BarChart3 size={18} className="text-slate-400" />
+          </div>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={salesByDate}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
+                <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1a2026', border: 'none', borderRadius: '8px', color: '#fff' }}
+                  itemStyle={{ color: '#60a5fa' }}
+                />
+                <Line type="monotone" dataKey="total" stroke="#0070b2" strokeWidth={3} dot={{ fill: '#0070b2', r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Category Mix */}
+        <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Distribución de Inventario</h3>
+            <PieIcon size={18} className="text-slate-400" />
+          </div>
+          <div className="h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryMix}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {categoryMix.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] font-bold text-xs uppercase bg-slate-50 dark:bg-black/10">Estado del Sistema Maestro</div>
-            <div className="p-10 flex flex-col items-center justify-center text-center gap-4">
+            <div className="p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] font-bold text-xs uppercase bg-slate-50 dark:bg-black/10">Salud Operativa del Sistema</div>
+            <div className="p-8 flex items-center gap-6">
                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-[#0070b2]">
                   <ShieldCheck size={32} />
                </div>
                <div>
                   <h5 className="font-bold text-slate-800 dark:text-white uppercase tracking-tight">Núcleo Centralizado Activo</h5>
-                  <p className="text-xs text-slate-500 mt-1">Sincronizado con sucursal: <span className="font-bold">{reqContext.storeId}</span></p>
+                  <p className="text-xs text-slate-500 mt-1">Sucursal: <span className="font-bold">{reqContext.storeId}</span>. Todos los servicios de auditoría y respaldo local están operativos.</p>
+               </div>
+            </div>
+         </div>
+         
+         <div className="bg-gradient-to-br from-[#0070b2] to-[#005a8f] rounded p-6 text-white shadow-lg flex flex-col justify-between">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-widest opacity-80">Rendimiento Estimado</h4>
+              <p className="text-3xl font-black mt-2 tracking-tighter">
+                {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0'}%
+              </p>
+              <p className="text-[10px] uppercase font-bold mt-1 opacity-70">Margen Bruto de Operación</p>
+            </div>
+            <div className="mt-4 flex gap-2">
+               <div className="h-1 flex-1 bg-white/20 rounded overflow-hidden">
+                  <div className="h-full bg-white rounded" style={{ width: `${totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0}%` }}></div>
                </div>
             </div>
          </div>
