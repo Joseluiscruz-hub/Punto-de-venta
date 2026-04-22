@@ -5,7 +5,7 @@ import {
 import { motion } from 'framer-motion';
 import { BackendAPI } from '../../api/backend';
 import { useAuth } from '../../contexts/AuthContext';
-import type { Product, SaleItem } from '../../models/types';
+import type { Product, SaleItem, PaymentMethod } from '../../models/types';
 import { formatCurrency } from '../../utils/formatters';
 
 export default function POSView() {
@@ -15,6 +15,9 @@ export default function POSView() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Todas');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CASH');
+  const [cashReceived, setCashReceived] = useState<number>(0);
+  const [discountRate, setDiscountRate] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -89,8 +92,11 @@ export default function POSView() {
   }, []);
 
   const subtotal = useMemo(() => cart.reduce((sum, item) => sum + item.subtotal, 0), [cart]);
-  const taxes = useMemo(() => subtotal * 0.16, [subtotal]);
-  const total = useMemo(() => subtotal + taxes, [subtotal, taxes]);
+  const discount = useMemo(() => subtotal * (discountRate / 100), [subtotal, discountRate]);
+  const taxedSubtotal = useMemo(() => subtotal - discount, [subtotal, discount]);
+  const taxes = useMemo(() => taxedSubtotal * 0.16, [taxedSubtotal]);
+  const total = useMemo(() => taxedSubtotal + taxes, [taxedSubtotal, taxes]);
+  const change = useMemo(() => Math.max(0, cashReceived - total), [cashReceived, total]);
 
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0) return;
@@ -98,17 +104,19 @@ export default function POSView() {
     try {
       await BackendAPI.processSale({
         items: cart,
-        paymentMethod: 'CASH',
-        cashReceived: total,
+        paymentMethod,
+        cashReceived: paymentMethod === 'CASH' || paymentMethod === 'MIXED' ? cashReceived : undefined,
       });
       setCart([]);
+      setCashReceived(0);
+      setDiscountRate(0);
       await loadProducts();
     } catch (error: any) {
       alert(error.message);
     } finally {
       setIsProcessing(false);
     }
-  }, [cart, total]);
+  }, [cart, paymentMethod, cashReceived, total]);
 
   if (error) {
     return (
@@ -322,14 +330,46 @@ export default function POSView() {
                 <p className="text-[10px] uppercase tracking-[0.3em] text-text-secondary">Total</p>
                 <p className="text-2xl font-black text-text-strong">{formatCurrency(total)}</p>
               </div>
-              <p className="text-[11px] text-text-secondary">Métodos: Efectivo, Tarjeta, Mixto.</p>
+              <p className="text-[11px] text-text-secondary">Método: {paymentMethod === 'CASH' ? 'Efectivo' : paymentMethod === 'CARD' ? 'Tarjeta' : paymentMethod === 'MIXED' ? 'Mixto' : 'Crédito'}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <button className="px-4 py-4 rounded-3xl bg-slate-50 border border-border-subtle text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary hover:bg-slate-100 transition-all">Efectivo</button>
-              <button className="px-4 py-4 rounded-3xl bg-slate-50 border border-border-subtle text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary hover:bg-slate-100 transition-all">Tarjeta</button>
-              <button className="px-4 py-4 rounded-3xl bg-slate-50 border border-border-subtle text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary hover:bg-slate-100 transition-all">Mixto</button>
-              <button className="px-4 py-4 rounded-3xl bg-slate-50 border border-border-subtle text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary hover:bg-slate-100 transition-all">Crédito</button>
+              {(['CASH', 'CARD', 'MIXED', 'CREDIT'] as PaymentMethod[]).map(method => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  className={`px-4 py-4 rounded-3xl border text-[10px] font-black uppercase tracking-[0.3em] transition-all ${paymentMethod === method ? 'bg-primary text-bg border-primary' : 'bg-slate-50 border-border-subtle text-text-secondary hover:bg-slate-100'}`}
+                >
+                  {method === 'CASH' ? 'Efectivo' : method === 'CARD' ? 'Tarjeta' : method === 'MIXED' ? 'Mixto' : 'Crédito'}
+                </button>
+              ))}
+            </div>
+
+            {(paymentMethod === 'CASH' || paymentMethod === 'MIXED') && (
+              <div className="mt-4 rounded-3xl bg-white border border-border-subtle p-4">
+                <label className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">Recibido</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={cashReceived}
+                  onChange={(e) => setCashReceived(Number(e.target.value))}
+                  className="mt-2 w-full rounded-2xl border border-border-subtle px-4 py-3 text-sm font-bold text-text-strong outline-none focus:border-primary"
+                />
+                <p className="mt-2 text-[11px] text-text-secondary">Cambio estimado: {formatCurrency(change)}</p>
+              </div>
+            )}
+
+            <div className="mt-4 rounded-3xl bg-white border border-border-subtle p-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-text-secondary">Descuento %</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={discountRate}
+                onChange={(e) => setDiscountRate(Number(e.target.value))}
+                className="mt-2 w-full rounded-2xl border border-border-subtle px-4 py-3 text-sm font-bold text-text-strong outline-none focus:border-primary"
+              />
             </div>
 
             <button

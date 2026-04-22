@@ -31,7 +31,7 @@ export interface SaleItem {
   subtotal: Money;
 }
 
-export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED' | 'CREDIT';
 
 export interface Sale {
   id: Id;
