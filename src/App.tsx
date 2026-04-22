@@ -10,7 +10,7 @@ import {
 
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Cell, PieChart, Pie, Legend
+  Cell, PieChart, Pie, Legend
 } from 'recharts';
 
 import {
@@ -1243,7 +1243,7 @@ function DashboardView() {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {categoryMix.map((entry, index) => (
+                  {categoryMix.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
