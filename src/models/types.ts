@@ -5,8 +5,26 @@ export type ISODateString = string;
 export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type Plan = 'BASIC' | 'PRO' | 'PREMIUM';
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
-export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN';
-export type Feature = 'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API';
+export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH_IN' | 'CASH_OUT';
+export type Feature = 'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
+export type ShiftStatus = 'OPEN' | 'CLOSED';
+
+export interface Shift {
+  id: Id;
+  tenantId: Id;
+  storeId: Id;
+  userId: Id;
+  startTime: ISODateString;
+  endTime?: ISODateString;
+  initialCash: Money;
+  expectedCash: Money;
+  actualCash?: Money;
+  difference?: Money;
+  status: ShiftStatus;
+  salesCash: Money;
+  salesCard: Money;
+  cashOut: Money; // Gastos o retiros durante el turno
+}
 
 export interface Tenant {
   id: Id;

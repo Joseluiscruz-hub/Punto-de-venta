@@ -5,7 +5,8 @@ import {
   Plus, Search, Trash2, Edit, Barcode, Banknote,
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
-  Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon
+  Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon,
+  Wallet, Landmark, ArrowDownCircle, ArrowUpCircle
 } from 'lucide-react';
 
 import {
@@ -17,7 +18,7 @@ import {
   Tenant, Store, User, Product, StoreProduct, SaleItem, Sale, StockMovement,
   ProductView, StockMovementView, RequestContext,
   CreateProductInput, UpdateProductInput, ProcessSaleInput, LoginResponse,
-  Feature, Role, PaymentMethod
+  Feature, Role, PaymentMethod, Shift
 } from './models/types';
 
 // ============================================================================
@@ -62,7 +63,8 @@ let DB = {
   ] as StoreProduct[],
   sales: [] as Sale[],
   saleItems: [] as SaleItem[],
-  movements: [] as StockMovement[]
+  movements: [] as StockMovement[],
+  shifts: [] as Shift[]
 };
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -233,7 +235,62 @@ const BackendAPI = {
       });
     });
 
+    // Update Shift Totals
+    const activeShift = DB.shifts.find(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId);
+    if (activeShift) {
+      if (saleData.paymentMethod === 'CASH') {
+        activeShift.salesCash += total;
+        activeShift.expectedCash += total;
+      } else {
+        activeShift.salesCard += total;
+      }
+    }
+
     return newSale;
+  },
+
+  async getActiveShift(context: RequestContext): Promise<Shift | null> {
+    await delay(100);
+    return DB.shifts.find(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId) || null;
+  },
+
+  async openShift(context: RequestContext, initialCash: number): Promise<Shift> {
+    await delay(200);
+    const newShift: Shift = {
+      id: `SHIFT-${Date.now().toString().slice(-6)}`,
+      tenantId: context.tenantId,
+      storeId: context.storeId,
+      userId: context.userId,
+      startTime: new Date().toISOString(),
+      initialCash,
+      expectedCash: initialCash,
+      status: 'OPEN',
+      salesCash: 0,
+      salesCard: 0,
+      cashOut: 0
+    };
+    DB.shifts.push(newShift);
+    return newShift;
+  },
+
+  async closeShift(context: RequestContext, actualCash: number): Promise<Shift> {
+    await delay(300);
+    const shiftIndex = DB.shifts.findIndex(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId);
+    if (shiftIndex === -1) throw new Error('No hay un turno activo para cerrar');
+
+    const shift = DB.shifts[shiftIndex];
+    shift.status = 'CLOSED';
+    shift.endTime = new Date().toISOString();
+    shift.actualCash = actualCash;
+    shift.difference = actualCash - shift.expectedCash;
+
+    return shift;
+  },
+
+  async getShifts(context: RequestContext): Promise<Shift[]> {
+    await delay(200);
+    return DB.shifts.filter(s => s.tenantId === context.tenantId && s.storeId === context.storeId)
+             .sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   },
 
   async getSales(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<Sale[]> {
@@ -452,10 +509,19 @@ function SyncManager() {
 }
 
 function MainLayout() {
-  const { user, tenant, store, logout, hasPermission } = useAuth();
-  const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements'>('pos');
+  const { user, tenant, store, logout, hasPermission, reqContext } = useAuth();
+  const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte'>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   
+  useEffect(() => {
+    BackendAPI.getActiveShift(reqContext).then(shift => {
+      if (!shift) setShowOpenShiftModal(true);
+      else setActiveShift(shift);
+    });
+  }, [reqContext]);
+
   const auditEnabled = hasFeature(tenant, 'AUDIT');
 
   const navItemClick = (view: any) => {
@@ -508,6 +574,7 @@ function MainLayout() {
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto flex flex-col gap-0.5">
           <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Capa de Operaciones</div>
           <NavItem icon={<ShoppingCart size={18} />} label="Ventas & Punto de Venta" active={currentView === 'pos'} onClick={() => navItemClick('pos')} />
+          <NavItem icon={<Wallet size={18} />} label="Corte de Caja & Turnos" active={currentView === 'corte'} onClick={() => navItemClick('corte')} />
           
           {hasPermission(['ADMIN', 'MANAGER']) && (
             <>
@@ -556,7 +623,9 @@ function MainLayout() {
           {currentView === 'inventory' && <InventoryView />}
           {currentView === 'sales' && <SalesView />}
           {currentView === 'movements' && <MovementsView />}
+          {currentView === 'corte' && <CorteCajaView onShiftClosed={() => { setActiveShift(null); setShowOpenShiftModal(true); setCurrentView('pos'); }} />}
         </div>
+        {showOpenShiftModal && <OpenShiftModal onOpen={(shift) => { setActiveShift(shift); setShowOpenShiftModal(false); }} />}
       </main>
     </div>
   );
@@ -1465,6 +1534,209 @@ function ThemeToggle() {
     <button onClick={theme.toggleTheme} className="px-4 py-3 rounded-lg bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors">
       {theme.isDark ? <Sun size={20}/> : <Moon size={20}/>}
     </button>
+  );
+}
+
+function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
+  const { reqContext } = useAuth();
+  const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [countedCash, setCountedCash] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const loadData = async () => {
+    const [active, history] = await Promise.all([
+      BackendAPI.getActiveShift(reqContext),
+      BackendAPI.getShifts(reqContext)
+    ]);
+    setActiveShift(active);
+    setShifts(history);
+  };
+
+  useEffect(() => { loadData(); }, [reqContext]);
+
+  const handleClose = async () => {
+    if (!activeShift) return;
+    setLoading(true);
+    try {
+      await BackendAPI.closeShift(reqContext, parseFloat(countedCash) || 0);
+      onShiftClosed();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">Control de Efectivo y Turnos</h2>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Active Shift Card */}
+        <div className="xl:col-span-2 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-[#0070b2]">Turno Actual en Operación</h3>
+            <span className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded uppercase">Activo</span>
+          </div>
+          
+          {activeShift ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Fondo Inicial</p>
+                <p className="text-2xl font-mono font-bold">{formatCurrency(activeShift.initialCash)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Ventas Efectivo (+)</p>
+                <p className="text-2xl font-mono font-bold text-emerald-600">+{formatCurrency(activeShift.salesCash)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Ventas Tarjeta (Ref)</p>
+                <p className="text-2xl font-mono font-bold text-blue-500">{formatCurrency(activeShift.salesCard)}</p>
+              </div>
+              
+              <div className="md:col-span-3 pt-6 border-t border-dashed border-slate-200 dark:border-white/5 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="text-center md:text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Efectivo Esperado en Caja</p>
+                  <p className="text-4xl font-black tracking-tighter text-[#0070b2] dark:text-blue-400">{formatCurrency(activeShift.expectedCash)}</p>
+                </div>
+                
+                <div className="flex flex-col gap-3 w-full md:w-auto">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                    <input 
+                      type="number" 
+                      placeholder="Dinero físico contado..." 
+                      className="w-full md:w-64 pl-8 pr-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold text-lg outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                      value={countedCash}
+                      onChange={e => setCountedCash(e.target.value)}
+                    />
+                  </div>
+                  <button 
+                    onClick={handleClose}
+                    disabled={loading || !countedCash}
+                    className="w-full bg-[#ba1c1c] hover:bg-red-700 text-white font-bold py-3 rounded shadow-md uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                  >
+                    {loading ? 'Procesando...' : 'Cerrar Turno y Arqueo'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="py-10 text-center opacity-50">Cargando datos del turno...</div>
+          )}
+        </div>
+
+        {/* Quick Info */}
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+             <div className="flex items-center gap-3 mb-4">
+                <Landmark className="text-[#0070b2]" />
+                <h4 className="font-bold text-xs uppercase">Resumen de Seguridad</h4>
+             </div>
+             <p className="text-xs text-slate-500 leading-relaxed">
+               El cierre de turno es una operación crítica. Asegúrate de contar todas las denominaciones antes de ingresar el monto final. Las diferencias mayores a $50.00 dispararán una alerta administrativa.
+             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* History */}
+      <div className="bg-white dark:bg-[#232a31] rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] font-bold text-xs uppercase bg-slate-50 dark:bg-black/10">Historial de Cortes de Caja</div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
+            <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
+              <tr>
+                <th className="px-6 py-4">ID TURNO</th>
+                <th className="px-6 py-4">APERTURA</th>
+                <th className="px-6 py-4">CIERRE</th>
+                <th className="px-6 py-4 text-right">ESPERADO</th>
+                <th className="px-6 py-4 text-right">REAL</th>
+                <th className="px-6 py-4 text-center">DIFERENCIA</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#d9d9d9] dark:divide-[#3a414a]">
+              {shifts.filter(s => s.status === 'CLOSED').map(s => (
+                <tr key={s.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-300">
+                  <td className="px-6 py-4 font-mono text-slate-500">{s.id}</td>
+                  <td className="px-6 py-4">{new Date(s.startTime).toLocaleString()}</td>
+                  <td className="px-6 py-4">{s.endTime ? new Date(s.endTime).toLocaleString() : '-'}</td>
+                  <td className="px-6 py-4 text-right font-bold">{formatCurrency(s.expectedCash)}</td>
+                  <td className="px-6 py-4 text-right font-bold">{formatCurrency(s.actualCash || 0)}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className={`px-2 py-1 rounded-sm font-bold shadow-sm ${Math.abs(s.difference || 0) < 1 ? 'bg-emerald-500 text-white' : 'bg-red-600 text-white'}`}>
+                      {formatCurrency(s.difference || 0)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
+  const { reqContext } = useAuth();
+  const [initialCash, setInitialCash] = useState('500');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: any) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const shift = await BackendAPI.openShift(reqContext, parseFloat(initialCash) || 0);
+      onOpen(shift);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-[#0070b2]/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] p-8 rounded-2xl w-full max-w-md shadow-2xl transition-colors">
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="w-16 h-16 bg-[#0070b2]/10 text-[#0070b2] rounded-full flex items-center justify-center mb-4">
+            <ArrowDownCircle size={32} />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Apertura de Turno SAP</h2>
+          <p className="text-sm text-slate-500 mt-2">No hay un turno activo para tu usuario. Ingresa el fondo de caja inicial para comenzar a operar.</p>
+        </div>
+        
+        <div className="space-y-4 mb-8">
+           <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Fondo de Caja (MXN)</label>
+           <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-slate-300">$</span>
+              <input 
+                required 
+                type="number" 
+                className="w-full pl-10 pr-4 py-4 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded-xl text-3xl font-mono font-bold text-[#0070b2] outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                value={initialCash}
+                onChange={e => setInitialCash(e.target.value)}
+                autoFocus
+                onFocus={e => e.target.select()}
+              />
+           </div>
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={loading}
+          className="w-full bg-[#0070b2] hover:bg-[#005a8f] text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
+        >
+          {loading ? 'Iniciando Turno...' : 'Comenzar Operaciones'}
+        </button>
+        
+        <div className="mt-6 text-center">
+           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Protocolo de Seguridad Financiera v2.0</p>
+        </div>
+      </form>
+    </div>
   );
 }
 
