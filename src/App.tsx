@@ -6,7 +6,7 @@ import {
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
   Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon,
-  Wallet, Landmark, ArrowDownCircle, ArrowUpCircle
+  Wallet, Landmark, ArrowDownCircle
 } from 'lucide-react';
 
 import {
@@ -512,7 +512,7 @@ function MainLayout() {
   const { user, tenant, store, logout, hasPermission, reqContext } = useAuth();
   const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte'>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeShift, setActiveShift] = useState<Shift | null>(null);
+  const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   
   useEffect(() => {
