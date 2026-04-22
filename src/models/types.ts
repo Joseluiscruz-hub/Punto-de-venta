@@ -48,6 +48,18 @@ export interface User {
   role: Role;
 }
 
+export interface Client {
+  id: Id;
+  tenantId: Id;
+  name: string;
+  email?: string;
+  phone?: string;
+  taxId?: string; // RFC o similar
+  points: number;
+  totalSpent: Money;
+  lastVisit?: ISODateString;
+}
+
 export interface Product {
   id: Id;
   tenantId: Id;
@@ -82,6 +94,7 @@ export interface Sale {
   tenantId: Id;
   storeId: Id;
   cashierId: Id;
+  clientId?: Id;
   datetime: ISODateString;
   total: Money;
   paymentMethod: PaymentMethod;

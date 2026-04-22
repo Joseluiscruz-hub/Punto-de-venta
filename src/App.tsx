@@ -6,7 +6,7 @@ import {
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
   Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon,
-  Wallet, Landmark, ArrowDownCircle
+  Wallet, Landmark, ArrowDownCircle, Users, Mail, Phone, Hash
 } from 'lucide-react';
 
 import {
@@ -64,7 +64,11 @@ let DB = {
   sales: [] as Sale[],
   saleItems: [] as SaleItem[],
   movements: [] as StockMovement[],
-  shifts: [] as Shift[]
+  shifts: [] as Shift[],
+  clients: [
+    { id: 'c1', tenantId: 't1', name: 'Publico General', points: 0, totalSpent: 0 },
+    { id: 'c2', tenantId: 't1', name: 'Juan Cliente Especial', email: 'juan@mail.com', points: 150, totalSpent: 1250 }
+  ] as Client[]
 };
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -198,6 +202,7 @@ const BackendAPI = {
       tenantId: context.tenantId,
       storeId: context.storeId,
       cashierId: context.userId,
+      clientId: saleData.clientId,
       datetime: saleData.offlineDate || new Date().toISOString(),
       total,
       paymentMethod: saleData.paymentMethod,
@@ -206,6 +211,16 @@ const BackendAPI = {
       itemsCount: saleData.items.reduce((acc, i) => acc + i.quantity, 0)
     };
     DB.sales.push(newSale);
+
+    // Update Client Loyalty
+    if (saleData.clientId) {
+      const client = DB.clients.find(c => c.id === saleData.clientId && c.tenantId === context.tenantId);
+      if (client) {
+        client.points += Math.floor(total * 0.01); // 1% points
+        client.totalSpent += total;
+        client.lastVisit = newSale.datetime;
+      }
+    }
 
     saleData.items.forEach(item => {
       const saleItem: SaleItem = {
@@ -291,6 +306,39 @@ const BackendAPI = {
     await delay(200);
     return DB.shifts.filter(s => s.tenantId === context.tenantId && s.storeId === context.storeId)
              .sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+  },
+
+  async getClients(context: Pick<RequestContext, 'tenantId'>): Promise<Client[]> {
+    await delay(200);
+    return DB.clients.filter(c => c.tenantId === context.tenantId);
+  },
+
+  async saveClient(context: Pick<RequestContext, 'tenantId'>, clientData: Partial<Client>): Promise<Client> {
+    await delay(300);
+    if (clientData.id) {
+      const idx = DB.clients.findIndex(c => c.id === clientData.id && c.tenantId === context.tenantId);
+      if (idx === -1) throw new Error('Cliente no encontrado');
+      DB.clients[idx] = { ...DB.clients[idx], ...clientData };
+      return DB.clients[idx];
+    } else {
+      const newClient: Client = {
+        id: `c${Date.now()}`,
+        tenantId: context.tenantId,
+        name: clientData.name!,
+        email: clientData.email,
+        phone: clientData.phone,
+        taxId: clientData.taxId,
+        points: 0,
+        totalSpent: 0
+      };
+      DB.clients.push(newClient);
+      return newClient;
+    }
+  },
+
+  async deleteClient(context: Pick<RequestContext, 'tenantId'>, clientId: string): Promise<void> {
+    await delay(200);
+    DB.clients = DB.clients.filter(c => !(c.id === clientId && c.tenantId === context.tenantId));
   },
 
   async getSales(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<Sale[]> {
@@ -510,7 +558,7 @@ function SyncManager() {
 
 function MainLayout() {
   const { user, tenant, store, logout, hasPermission, reqContext } = useAuth();
-  const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte'>('pos');
+  const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients'>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
@@ -575,6 +623,7 @@ function MainLayout() {
           <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Capa de Operaciones</div>
           <NavItem icon={<ShoppingCart size={18} />} label="Ventas & Punto de Venta" active={currentView === 'pos'} onClick={() => navItemClick('pos')} />
           <NavItem icon={<Wallet size={18} />} label="Corte de Caja & Turnos" active={currentView === 'corte'} onClick={() => navItemClick('corte')} />
+          <NavItem icon={<Users size={18} />} label="Directorio de Clientes" active={currentView === 'clients'} onClick={() => navItemClick('clients')} />
           
           {hasPermission(['ADMIN', 'MANAGER']) && (
             <>
@@ -624,6 +673,7 @@ function MainLayout() {
           {currentView === 'sales' && <SalesView />}
           {currentView === 'movements' && <MovementsView />}
           {currentView === 'corte' && <CorteCajaView onShiftClosed={() => { setActiveShift(null); setShowOpenShiftModal(true); setCurrentView('pos'); }} />}
+          {currentView === 'clients' && <ClientsView />}
         </div>
         {showOpenShiftModal && <OpenShiftModal onOpen={(shift) => { setActiveShift(shift); setShowOpenShiftModal(false); }} />}
       </main>
@@ -718,9 +768,21 @@ function POSView() {
   const [alertInfo, setAlertInfo] = useState<any>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  // CRM State
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
+  const [clientSearch, setClientSearch] = useState('');
+
   useEffect(() => {
     BackendAPI.getStoreProducts(reqContext).then(setProducts);
+    BackendAPI.getClients(reqContext).then(setClients);
   }, [reqContext]);
+
+  const filteredClients = useMemo(() => clients.filter(c => 
+    c.name.toLowerCase().includes(clientSearch.toLowerCase()) || c.phone?.includes(clientSearch)
+  ), [clients, clientSearch]);
+
+  const selectedClient = clients.find(c => c.id === selectedClientId);
 
   const filteredProducts = useMemo(() => products.filter(p => 
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.barcode.includes(searchQuery)
@@ -762,6 +824,7 @@ function POSView() {
             items: cart,
             paymentMethod: confirmSaleInfo.paymentMethod,
             amountTendered: confirmSaleInfo.amountTendered,
+            clientId: selectedClientId,
             isOfflineSync: true,
             offlineDate: new Date().toISOString()
           }
@@ -801,11 +864,13 @@ function POSView() {
         const sale = await BackendAPI.processSale(reqContext, {
           items: cart as any[],
           paymentMethod: confirmSaleInfo.paymentMethod,
-          amountTendered: confirmSaleInfo.amountTendered
+          amountTendered: confirmSaleInfo.amountTendered,
+          clientId: selectedClientId
         });
         setCart([]);
         setShowPaymentModal(false);
         setConfirmSaleInfo(null);
+        setSelectedClientId(undefined);
         const updated = await BackendAPI.getStoreProducts(reqContext);
         setProducts(updated);
         setAlertInfo({ 
@@ -922,6 +987,54 @@ function POSView() {
           ))}
           {!cart.length && <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50 p-10 uppercase font-bold tracking-widest text-xs"><ShoppingCart size={32} /> Carrito Vacío</div>}
         </div>
+
+        {/* CRM Selector */}
+        <div className="p-4 bg-white dark:bg-[#232a31] border-t border-[#d9d9d9] dark:border-[#3a414a] space-y-3">
+           <div className="flex items-center justify-between">
+              <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Vinculación CRM</h4>
+              {selectedClient && (
+                <button onClick={() => setSelectedClientId(undefined)} className="text-[9px] font-bold text-red-500 hover:underline uppercase">Quitar</button>
+              )}
+           </div>
+           
+           {!selectedClient ? (
+              <div className="relative">
+                <Users size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Vincular cliente (Nombre/Tel)..." 
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded text-[11px] font-bold outline-none focus:ring-1 focus:ring-[#0070b2]"
+                  value={clientSearch}
+                  onChange={e => setClientSearch(e.target.value)}
+                />
+                {clientSearch && filteredClients.length > 0 && (
+                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-2xl z-50 max-h-48 overflow-y-auto">
+                    {filteredClients.map(c => (
+                      <div 
+                        key={c.id} 
+                        onClick={() => { setSelectedClientId(c.id); setClientSearch(''); }}
+                        className="p-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer border-b last:border-0 border-slate-100 dark:border-white/5"
+                      >
+                        <p className="font-bold text-xs">{c.name}</p>
+                        <p className="text-[9px] text-slate-500 uppercase">★ {c.points} Puntos acumulados</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+           ) : (
+              <div className="flex items-center gap-3 bg-[#0070b2]/5 dark:bg-[#0070b2]/10 p-2.5 rounded border border-[#0070b2]/20">
+                 <div className="w-8 h-8 rounded-full bg-[#0070b2] text-white flex items-center justify-center font-bold text-xs">
+                    {selectedClient.name[0]}
+                 </div>
+                 <div className="flex-1 min-w-0">
+                    <p className="font-bold text-xs text-[#0070b2] truncate">{selectedClient.name}</p>
+                    <p className="text-[9px] font-bold text-emerald-600 uppercase">★ Fidelidad: {selectedClient.points} pts</p>
+                 </div>
+              </div>
+           )}
+        </div>
+
         <div className="p-5 bg-white dark:bg-[#232a31] border-t border-[#d9d9d9] dark:border-[#3a414a] shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
           <div className="flex justify-between items-baseline mb-4 text-slate-800 dark:text-white">
             <span className="text-[10px] uppercase font-black tracking-widest opacity-50">VALOR TOTAL NETO</span>
@@ -1736,6 +1849,205 @@ function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Protocolo de Seguridad Financiera v2.0</p>
         </div>
       </form>
+    </div>
+  );
+}
+
+function ClientsView() {
+  const { reqContext } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [search, setSearch] = useState('');
+  const [editingClient, setEditingClient] = useState<Partial<Client> | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadClients = async () => {
+    const data = await BackendAPI.getClients(reqContext);
+    setClients(data);
+  };
+
+  useEffect(() => { loadClients(); }, [reqContext]);
+
+  const filtered = clients.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    c.taxId?.toLowerCase().includes(search.toLowerCase()) ||
+    c.phone?.includes(search)
+  );
+
+  const handleSave = async (e: any) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await BackendAPI.saveClient(reqContext, editingClient!);
+      setEditingClient(null);
+      loadClients();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Eliminar este cliente?')) return;
+    await BackendAPI.deleteClient(reqContext, id);
+    loadClients();
+  };
+
+  return (
+    <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">
+            <Users className="text-[#0070b2]" /> Directorio de Clientes
+          </h2>
+          <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-widest">Gestión de cartera y lealtad</p>
+        </div>
+        <button 
+          onClick={() => setEditingClient({ name: '', email: '', phone: '', taxId: '' })}
+          className="bg-[#0070b2] hover:bg-[#005a8f] text-white px-6 py-3 rounded shadow-md font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+        >
+          <Plus size={16} /> Nuevo Cliente
+        </button>
+      </div>
+
+      <div className="bg-white dark:bg-[#232a31] p-4 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a]">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Buscar por nombre, RFC o teléfono..." 
+            className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/10 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold text-sm outline-none focus:ring-2 focus:ring-[#0070b2]/50 transition-all"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-[#232a31] rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[800px]">
+            <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
+              <tr>
+                <th className="px-6 py-4">CLIENTE</th>
+                <th className="px-6 py-4">CONTACTO</th>
+                <th className="px-6 py-4">RFC / TAX ID</th>
+                <th className="px-6 py-4 text-center">PUNTOS</th>
+                <th className="px-6 py-4 text-right">TOTAL COMPRADO</th>
+                <th className="px-6 py-4 text-center">ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#d9d9d9] dark:divide-[#3a414a]">
+              {filtered.map(c => (
+                <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors text-slate-700 dark:text-slate-300">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center font-bold text-[#0070b2]">
+                        {c.name[0]}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white uppercase">{c.name}</p>
+                        <p className="text-[9px] text-slate-400">ID: {c.id}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="space-y-1">
+                      {c.email && <div className="flex items-center gap-1"><Mail size={10} className="text-slate-400" /> {c.email}</div>}
+                      {c.phone && <div className="flex items-center gap-1"><Phone size={10} className="text-slate-400" /> {c.phone}</div>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 font-mono font-bold text-slate-500">
+                    {c.taxId || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-[#0070b2] rounded font-bold">
+                      {c.points} pts
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right font-bold text-emerald-600">
+                    {formatCurrency(c.totalSpent)}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button onClick={() => setEditingClient(c)} className="p-2 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 rounded transition-all">
+                        <Edit size={14} />
+                      </button>
+                      <button onClick={() => handleDelete(c.id)} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 rounded transition-all">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Editor Modal */}
+      {editingClient && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#1a2026] w-full max-w-md rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-[#3a414a]">
+            <div className="p-6 border-b border-slate-100 dark:border-[#3a414a] flex justify-between items-center bg-slate-50 dark:bg-black/20">
+              <h3 className="font-bold text-sm uppercase tracking-widest text-[#0070b2]">
+                {editingClient.id ? 'Editar Cliente' : 'Nuevo Cliente CRM'}
+              </h3>
+              <button onClick={() => setEditingClient(null)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleSave} className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Nombre Completo</label>
+                <div className="relative">
+                   <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+                   <input 
+                     required 
+                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                     value={editingClient.name}
+                     onChange={e => setEditingClient({...editingClient, name: e.target.value})}
+                   />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">RFC / TAX ID</label>
+                  <input 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                    value={editingClient.taxId}
+                    onChange={e => setEditingClient({...editingClient, taxId: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Teléfono</label>
+                  <input 
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                    value={editingClient.phone}
+                    onChange={e => setEditingClient({...editingClient, phone: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Email</label>
+                <input 
+                  type="email"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                  value={editingClient.email}
+                  onChange={e => setEditingClient({...editingClient, email: e.target.value})}
+                />
+              </div>
+
+              <div className="pt-4">
+                <button 
+                  type="submit" 
+                  disabled={loading}
+                  className="w-full bg-[#0070b2] hover:bg-[#005a8f] text-white font-bold py-4 rounded shadow-lg uppercase tracking-widest text-xs transition-all"
+                >
+                  {loading ? 'Guardando...' : 'Guardar Cliente'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
