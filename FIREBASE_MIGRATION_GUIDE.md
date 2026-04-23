@@ -20,7 +20,7 @@ npm install firebase
 ### 2. Crear `.env.local` en la raíz
 
 ```env
-VITE_FIREBASE_API_KEY=AIzaSyAliLc5bsB-eEom9xqB82zTCBsmJuJIzcE
+VITE_FIREBASE_API_KEY=a"aqui va la api key de gemini(consigue una en google IA estudio)"
 VITE_FIREBASE_AUTH_DOMAIN=punto-de-venta-8c638.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=punto-de-venta-8c638
 VITE_FIREBASE_STORAGE_BUCKET=punto-de-venta-8c638.firebasestorage.app
