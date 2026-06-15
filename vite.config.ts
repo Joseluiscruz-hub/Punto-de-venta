@@ -3,20 +3,10 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-const ReactCompilerConfig = {
-  // Configuración opcional para el compilador
-};
-
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          ["babel-plugin-react-compiler", ReactCompilerConfig],
-        ],
-      },
-    }),
+    react(),
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -47,5 +37,10 @@ export default defineConfig({
       }
     })
   ],
-  base: '/Punto-de-venta/',
+  base: process.env.VITE_BASE_PATH || '/',
+  server: {
+    proxy: {
+      '/api': 'http://127.0.0.1:3001',
+    },
+  },
 })

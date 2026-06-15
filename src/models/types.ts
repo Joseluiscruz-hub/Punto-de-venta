@@ -13,6 +13,7 @@ export interface Shift {
   id: Id;
   tenantId: Id;
   storeId: Id;
+  registerId?: Id;
   userId: Id;
   startTime: ISODateString;
   endTime?: ISODateString;
@@ -91,6 +92,7 @@ export interface SaleItem {
 
 export interface Sale {
   id: Id;
+  externalId?: Id;
   tenantId: Id;
   storeId: Id;
   cashierId: Id;
@@ -134,6 +136,7 @@ export interface Session {
   user: User;
   tenant: Tenant;
   store: Store;
+  register?: CashRegister;
   token: string;
 }
 
@@ -169,6 +172,14 @@ export interface ProcessSaleInput {
   clientId?: Id;
   isOfflineSync?: boolean;
   offlineDate?: ISODateString;
+  externalId?: Id;
+}
+
+export interface CashRegister {
+  id: Id;
+  storeId: Id;
+  code: string;
+  name: string;
 }
 
 export interface LoginInput {
@@ -180,5 +191,6 @@ export interface LoginResponse {
   user: User;
   tenant: Tenant;
   store: Store;
+  register?: CashRegister;
   token: string;
 }

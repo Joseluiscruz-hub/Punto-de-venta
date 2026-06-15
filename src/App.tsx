@@ -1,5 +1,5 @@
-import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
-import * as XLSX from 'xlsx';
+import React, { useState, useEffect, createContext, useContext, useMemo, useCallback, useRef } from 'react';
+import readXlsxFile from 'read-excel-file/browser';
 import { 
   ShoppingCart, LayoutDashboard, PackageSearch, Receipt, LogOut, 
   Plus, Search, Trash2, Edit, Barcode, Banknote,
@@ -15,11 +15,11 @@ import {
 } from 'recharts';
 
 import {
-  Tenant, Store, User, Product, StoreProduct, SaleItem, Sale, StockMovement,
-  ProductView, StockMovementView, RequestContext,
-  CreateProductInput, UpdateProductInput, ProcessSaleInput, LoginResponse,
-  Feature, Role, PaymentMethod, Shift, Client
+  Tenant, Store, User, Sale, ProductView, RequestContext,
+  Feature, Role, PaymentMethod, Shift, Client, CreateProductInput, Session, ProcessSaleInput,
+  UpdateProductInput, StockMovementView
 } from './models/types';
+import { BackendAPI } from './data/backend';
 
 // ============================================================================
 // 1. UTILIDADES Y CONSTANTES
@@ -27,346 +27,34 @@ import {
 
 function hasFeature(tenant: Tenant | null, feature: Feature) {
   if (!tenant) return false;
-  const planFeatures = {
+  const planFeatures: Record<Tenant['plan'], Feature[]> = {
     BASIC: ['POS', 'INVENTORY'],
     PRO: ['POS', 'INVENTORY', 'MULTISTORE', 'AUDIT'],
     PREMIUM: ['POS', 'INVENTORY', 'MULTISTORE', 'AUDIT', 'OFFLINE', 'API'],
   };
-  return (planFeatures[tenant.plan] as any)?.includes(feature) ?? false;
+  return planFeatures[tenant.plan].includes(feature);
 }
 
-// ============================================================================
-// 2. CAPA DE INFRAESTRUCTURA (Simulación de Backend)
-// ============================================================================
+const SESSION_KEY = 'el-triunfo.enterprise-session.v2';
+const THEME_KEY = 'el-triunfo.theme';
 
-let DB = {
-  tenants: [
-    { id: 't1', name: 'Mi Empresa SA', plan: 'PREMIUM' } as Tenant
-  ],
-  stores: [
-    { id: 's1', tenantId: 't1', name: 'Sucursal Principal', address: 'Centro' } as Store,
-    { id: 's2', tenantId: 't1', name: 'Sucursal Norte', address: 'Norte' } as Store,
-  ],
-  users: [
-    { id: 'u1', tenantId: 't1', storeId: 's1', username: 'admin', name: 'Administrador', role: 'ADMIN' },
-    { id: 'u2', tenantId: 't1', storeId: 's1', username: 'caja1', name: 'Juan Pérez', role: 'CASHIER' }
-  ] as User[],
-  products: [
-    { id: 'p1', tenantId: 't1', barcode: '75010001', name: 'Leche Entera Alpura 1L', category: 'Lácteos', cost: 18.5, price: 25.0 },
-    { id: 'p2', tenantId: 't1', barcode: '75010002', name: 'Pan Bimbo Blanco', category: 'Panadería', cost: 30.0, price: 42.0 },
-    { id: 'p3', tenantId: 't1', barcode: '75010003', name: 'Coca-Cola 600ml', category: 'Bebidas', cost: 11.0, price: 18.0 },
-  ] as Product[],
-  storeProducts: [
-    { id: 'sp1', tenantId: 't1', storeId: 's1', productId: 'p1', stock: 45, minStock: 10 },
-    { id: 'sp2', tenantId: 't1', storeId: 's1', productId: 'p2', stock: 12, minStock: 15 },
-    { id: 'sp3', tenantId: 't1', storeId: 's1', productId: 'p3', stock: 120, minStock: 24 },
-  ] as StoreProduct[],
-  sales: [] as Sale[],
-  saleItems: [] as SaleItem[],
-  movements: [] as StockMovement[],
-  shifts: [] as Shift[],
-  clients: [
-    { id: 'c1', tenantId: 't1', name: 'Publico General', points: 0, totalSpent: 0 },
-    { id: 'c2', tenantId: 't1', name: 'Juan Cliente Especial', email: 'juan@mail.com', points: 150, totalSpent: 1250 }
-  ] as Client[]
-};
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
 
-const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+function createOfflineId() {
+  return `OFF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+}
 
-const BackendAPI = {
-  async login(username: string, pin: string): Promise<LoginResponse> {
-    await delay(300);
-    const user = DB.users.find(u => u.username === username);
-    if (user && ((username === 'admin' && pin === '1234') || (username === 'caja1' && pin === '0000'))) {
-      const tenant = DB.tenants.find(t => t.id === user.tenantId)!;
-      const store = DB.stores.find(s => s.id === user.storeId)!;
-      return { user, tenant, store, token: 'simulated_jwt_token' };
-    }
-    throw new Error('Credenciales inválidas');
-  },
-
-  async deleteProduct(context: RequestContext, productId: string): Promise<void> {
-    await delay(300);
-    DB.products = DB.products.filter(p => !(p.id === productId && p.tenantId === context.tenantId));
-    DB.storeProducts = DB.storeProducts.filter(sp => !(sp.productId === productId && sp.tenantId === context.tenantId));
-  },
-
-  async getStoreProducts(context: RequestContext): Promise<ProductView[]> {
-    await delay(200);
-    const tProducts = DB.products.filter(p => p.tenantId === context.tenantId);
-    const sproducts = DB.storeProducts.filter(sp => sp.tenantId === context.tenantId && sp.storeId === context.storeId);
-    
-    return tProducts.map(p => {
-      const sp = sproducts.find(s => s.productId === p.id);
-      return {
-        ...p,
-        stock: sp ? sp.stock : 0,
-        minStock: sp ? sp.minStock : 0
-      };
-    });
-  },
-
-  async saveProduct(context: RequestContext, productData: CreateProductInput | UpdateProductInput): Promise<ProductView> {
-    await delay(300);
-    const isNew = !('id' in productData) || !productData.id;
-    
-    if (isNew) {
-      const newProduct: Product = {
-        id: `p${Date.now()}`,
-        tenantId: context.tenantId,
-        barcode: productData.barcode,
-        name: productData.name,
-        category: productData.category,
-        cost: productData.cost,
-        price: productData.price
-      };
-      DB.products.push(newProduct);
-      
-      const newSp: StoreProduct = {
-        id: `sp${Date.now()}`,
-        tenantId: context.tenantId,
-        storeId: context.storeId,
-        productId: newProduct.id,
-        stock: productData.stock,
-        minStock: productData.minStock
-      };
-      DB.storeProducts.push(newSp);
-
-      if (newSp.stock > 0) {
-        DB.movements.push({
-          id: `m${Date.now()}`, tenantId: context.tenantId, storeId: context.storeId,
-          productId: newProduct.id, userId: context.userId, type: 'PURCHASE',
-          quantity: newSp.stock, date: new Date().toISOString(), reason: 'Inventario Inicial'
-        });
-      }
-      return { ...newProduct, stock: newSp.stock, minStock: newSp.minStock };
-    } else {
-      const pId = (productData as any).id;
-      const indexP = DB.products.findIndex(p => p.id === pId && p.tenantId === context.tenantId);
-      if (indexP === -1) throw new Error('Producto no encontrado');
-      
-      DB.products[indexP] = { 
-        ...DB.products[indexP], 
-        barcode: productData.barcode, name: productData.name, category: productData.category,
-        cost: productData.cost, price: productData.price
-      };
-
-      let spIndex = DB.storeProducts.findIndex(sp => sp.productId === pId && sp.storeId === context.storeId && sp.tenantId === context.tenantId);
-      
-      if (spIndex === -1) {
-         // Create if missing for this store
-         const newSp: StoreProduct = {
-          id: `sp${Date.now()}`, tenantId: context.tenantId, storeId: context.storeId,
-          productId: pId, stock: productData.stock, minStock: productData.minStock
-        };
-        DB.storeProducts.push(newSp);
-        spIndex = DB.storeProducts.length - 1;
-      }
-      
-      const oldStock = DB.storeProducts[spIndex].stock;
-      DB.storeProducts[spIndex] = { ...DB.storeProducts[spIndex], stock: productData.stock, minStock: productData.minStock };
-
-      if (oldStock !== productData.stock) {
-        DB.movements.push({
-          id: `m${Date.now()}`, tenantId: context.tenantId, storeId: context.storeId,
-          productId: pId, userId: context.userId, type: 'ADJUSTMENT',
-          quantity: productData.stock - oldStock, date: new Date().toISOString(), reason: 'Ajuste manual'
-        });
-      }
-
-      return { ...DB.products[indexP], stock: productData.stock, minStock: productData.minStock };
-    }
-  },
-
-  async saveProductsBulk(context: RequestContext, productsData: CreateProductInput[]): Promise<void> {
-    await delay(500);
-    for (const data of productsData) {
-      await this.saveProduct(context, data);
-    }
-  },
-
-  async processSale(context: RequestContext, saleData: ProcessSaleInput): Promise<Sale> {
-    await delay(400);
-    
-    if (!saleData.isOfflineSync) {
-      for (const item of saleData.items) {
-        const sp = DB.storeProducts.find(sp => sp.productId === item.id && sp.storeId === context.storeId && sp.tenantId === context.tenantId);
-        if (!sp || sp.stock < item.quantity) throw new Error(`Stock insuficiente para ${item.name}`);
-      }
-    }
-
-    const total = saleData.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-    
-    const newSale: Sale = {
-      id: `TRX-${Date.now().toString().slice(-6)}`,
-      tenantId: context.tenantId,
-      storeId: context.storeId,
-      cashierId: context.userId,
-      clientId: saleData.clientId,
-      datetime: saleData.offlineDate || new Date().toISOString(),
-      total,
-      paymentMethod: saleData.paymentMethod,
-      amountTendered: saleData.amountTendered,
-      changeAmount: saleData.amountTendered - total,
-      itemsCount: saleData.items.reduce((acc, i) => acc + i.quantity, 0)
-    };
-    DB.sales.push(newSale);
-
-    // Update Client Loyalty
-    if (saleData.clientId) {
-      const client = DB.clients.find(c => c.id === saleData.clientId && c.tenantId === context.tenantId);
-      if (client) {
-        client.points += Math.floor(total * 0.01); // 1% points
-        client.totalSpent += total;
-        client.lastVisit = newSale.datetime;
-      }
-    }
-
-    saleData.items.forEach(item => {
-      const saleItem: SaleItem = {
-        id: `si${Date.now()}${Math.random()}`,
-        saleId: newSale.id,
-        productId: item.id,
-        quantity: item.quantity,
-        price: item.price,
-        cost: item.cost,
-        subtotal: item.price * item.quantity
-      };
-      DB.saleItems.push(saleItem);
-
-      const sp = DB.storeProducts.find(sp => sp.productId === item.id && sp.storeId === context.storeId && sp.tenantId === context.tenantId)!;
-      sp.stock -= item.quantity;
-
-      DB.movements.push({
-        id: `m${Date.now()}-${item.id}`,
-        tenantId: context.tenantId,
-        storeId: context.storeId,
-        productId: item.id,
-        userId: context.userId,
-        type: 'SALE',
-        quantity: -item.quantity,
-        date: newSale.datetime,
-        reason: `Venta ${newSale.id}`
-      });
-    });
-
-    // Update Shift Totals
-    const activeShift = DB.shifts.find(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId);
-    if (activeShift) {
-      if (saleData.paymentMethod === 'CASH') {
-        activeShift.salesCash += total;
-        activeShift.expectedCash += total;
-      } else {
-        activeShift.salesCard += total;
-      }
-    }
-
-    return newSale;
-  },
-
-  async getActiveShift(context: RequestContext): Promise<Shift | null> {
-    await delay(100);
-    return DB.shifts.find(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId) || null;
-  },
-
-  async openShift(context: RequestContext, initialCash: number): Promise<Shift> {
-    await delay(200);
-    const newShift: Shift = {
-      id: `SHIFT-${Date.now().toString().slice(-6)}`,
-      tenantId: context.tenantId,
-      storeId: context.storeId,
-      userId: context.userId,
-      startTime: new Date().toISOString(),
-      initialCash,
-      expectedCash: initialCash,
-      status: 'OPEN',
-      salesCash: 0,
-      salesCard: 0,
-      cashOut: 0
-    };
-    DB.shifts.push(newShift);
-    return newShift;
-  },
-
-  async closeShift(context: RequestContext, actualCash: number): Promise<Shift> {
-    await delay(300);
-    const shiftIndex = DB.shifts.findIndex(s => s.status === 'OPEN' && s.userId === context.userId && s.storeId === context.storeId);
-    if (shiftIndex === -1) throw new Error('No hay un turno activo para cerrar');
-
-    const shift = DB.shifts[shiftIndex];
-    shift.status = 'CLOSED';
-    shift.endTime = new Date().toISOString();
-    shift.actualCash = actualCash;
-    shift.difference = actualCash - shift.expectedCash;
-
-    return shift;
-  },
-
-  async getShifts(context: RequestContext): Promise<Shift[]> {
-    await delay(200);
-    return DB.shifts.filter(s => s.tenantId === context.tenantId && s.storeId === context.storeId)
-             .sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
-  },
-
-  async getClients(context: Pick<RequestContext, 'tenantId'>): Promise<Client[]> {
-    await delay(200);
-    return DB.clients.filter(c => c.tenantId === context.tenantId);
-  },
-
-  async saveClient(context: Pick<RequestContext, 'tenantId'>, clientData: Partial<Client>): Promise<Client> {
-    await delay(300);
-    if (clientData.id) {
-      const idx = DB.clients.findIndex(c => c.id === clientData.id && c.tenantId === context.tenantId);
-      if (idx === -1) throw new Error('Cliente no encontrado');
-      DB.clients[idx] = { ...DB.clients[idx], ...clientData };
-      return DB.clients[idx];
-    } else {
-      const newClient: Client = {
-        id: `c${Date.now()}`,
-        tenantId: context.tenantId,
-        name: clientData.name!,
-        email: clientData.email,
-        phone: clientData.phone,
-        taxId: clientData.taxId,
-        points: 0,
-        totalSpent: 0
-      };
-      DB.clients.push(newClient);
-      return newClient;
-    }
-  },
-
-  async deleteClient(context: Pick<RequestContext, 'tenantId'>, clientId: string): Promise<void> {
-    await delay(200);
-    DB.clients = DB.clients.filter(c => !(c.id === clientId && c.tenantId === context.tenantId));
-  },
-
-  async getSales(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<Sale[]> {
-    await delay(200);
-    let s = DB.sales.filter(s => s.tenantId === context.tenantId);
-    if (context.storeId) s = s.filter(x => x.storeId === context.storeId);
-    
-    return s.sort((a,b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()).map(sale => {
-      const items = DB.saleItems.filter(si => si.saleId === sale.id).map(si => ({
-        ...si,
-        name: DB.products.find(p => p.id === si.productId)?.name || 'Desconocido'
-      }));
-      return { ...sale, items };
-    });
-  },
-
-  async getStockMovements(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<StockMovementView[]> {
-    await delay(200);
-    let m = DB.movements.filter(m => m.tenantId === context.tenantId);
-    if (context.storeId) m = m.filter(x => x.storeId === context.storeId);
-    
-    return m.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(mov => ({
-      ...mov,
-      productName: DB.products.find(p => p.id === mov.productId)?.name || 'N/A',
-      userName: DB.users.find(u => u.id === mov.userId)?.name || 'N/A'
-    }));
+function loadSession(): Session | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? JSON.parse(raw) as Session : null;
+  } catch {
+    localStorage.removeItem(SESSION_KEY);
+    return null;
   }
-};
+}
 
 // ============================================================================
 // 3. ESTADO GLOBAL (AuthContext)
@@ -402,7 +90,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | null>(null);
 
 function useThemeProvider() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem(THEME_KEY) !== 'light');
   
   useEffect(() => {
     if (isDark) {
@@ -410,6 +98,7 @@ function useThemeProvider() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
   }, [isDark]);
 
   return { isDark, toggleTheme: () => setIsDark(!isDark) };
@@ -426,15 +115,26 @@ function useAppTheme() {
 // ============================================================================
 
 export default function App() {
-  const [session, setSession] = useState<{ user: User, tenant: Tenant, store: Store, token: string } | null>(null);
+  const [session, setSession] = useState<Session | null>(loadSession);
   const themeData = useThemeProvider();
   
   const login = async (username: string, pin: string) => {
     const data = await BackendAPI.login(username, pin);
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, token: '' }));
     setSession(data);
   };
   
-  const logout = () => setSession(null);
+  const logout = () => {
+    void BackendAPI.logout();
+    localStorage.removeItem(SESSION_KEY);
+    setSession(null);
+  };
+
+  useEffect(() => {
+    const expireSession = () => setSession(null);
+    window.addEventListener('el-triunfo:session-expired', expireSession);
+    return () => window.removeEventListener('el-triunfo:session-expired', expireSession);
+  }, []);
   
   const hasPermission = (roles: Role[]) => {
     return session ? roles.includes(session.user.role) : false;
@@ -476,62 +176,74 @@ export default function App() {
 // 5. LAYOUT Y NAVEGACIÓN
 // ============================================================================
 
+interface OfflineSaleRecord {
+  saleId: string;
+  reqContext: RequestContext;
+  saleData: ProcessSaleInput;
+}
+
+function readOfflineSales(): OfflineSaleRecord[] {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem('offline_sales') ?? '[]');
+    return Array.isArray(parsed) ? parsed as OfflineSaleRecord[] : [];
+  } catch {
+    localStorage.setItem('offline_sales', '[]');
+    return [];
+  }
+}
+
 function SyncManager() {
   const { tenant } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(() => readOfflineSales().length);
+  const syncingRef = useRef(false);
 
-  const checkPending = () => {
-    const existingStr = localStorage.getItem('offline_sales') || '[]';
-    const existing = JSON.parse(existingStr);
-    setPendingCount(existing.length);
-  };
+  const syncSales = useCallback(async () => {
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    setIsSyncing(true);
+    try {
+      const failed: OfflineSaleRecord[] = [];
+      for (const record of readOfflineSales()) {
+        try {
+          await BackendAPI.processSale(record.reqContext, {
+            ...record.saleData,
+            externalId: record.saleId,
+          });
+        } catch (error) {
+          console.error('Error al sincronizar venta:', error);
+          failed.push(record);
+        }
+      }
+      localStorage.setItem('offline_sales', JSON.stringify(failed));
+      setPendingCount(failed.length);
+    } finally {
+      syncingRef.current = false;
+      setIsSyncing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    checkPending();
-    const handleOnline = () => { setIsOnline(true); checkPending(); };
+    const refresh = () => {
+      const count = readOfflineSales().length;
+      setPendingCount(count);
+      if (navigator.onLine && count > 0 && hasFeature(tenant, 'OFFLINE')) void syncSales();
+    };
+    const handleOnline = () => { setIsOnline(true); void syncSales(); };
     const handleOffline = () => setIsOnline(false);
-    
-    const interval = setInterval(checkPending, 5000);
+    const initialRefresh = window.setTimeout(refresh, 0);
+    const interval = window.setInterval(refresh, 5000);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      clearTimeout(initialRefresh);
       clearInterval(interval);
     };
-  }, []);
-
-  useEffect(() => {
-    if (isOnline && pendingCount > 0 && hasFeature(tenant, 'OFFLINE')) {
-      syncSales();
-    }
-  }, [isOnline, pendingCount, tenant]);
-
-  const syncSales = async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    try {
-      const existingStr = localStorage.getItem('offline_sales') || '[]';
-      const existing = JSON.parse(existingStr);
-      
-      const failed = [];
-      for (const record of existing) {
-         try {
-            await BackendAPI.processSale(record.reqContext, record.saleData);
-         } catch (e) {
-            console.error("Error syncing sale:", e);
-            failed.push(record);
-         }
-      }
-      localStorage.setItem('offline_sales', JSON.stringify(failed));
-      setPendingCount(failed.length);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  }, [syncSales, tenant]);
 
   if (!hasFeature(tenant, 'OFFLINE')) return null;
 
@@ -558,7 +270,8 @@ function SyncManager() {
 
 function MainLayout() {
   const { user, tenant, store, logout, hasPermission, reqContext } = useAuth();
-  const [currentView, setCurrentView] = useState<'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients'>('pos');
+  type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients';
+  const [currentView, setCurrentView] = useState<View>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
@@ -572,7 +285,7 @@ function MainLayout() {
 
   const auditEnabled = hasFeature(tenant, 'AUDIT');
 
-  const navItemClick = (view: any) => {
+  const navItemClick = (view: View) => {
     setCurrentView(view);
     setIsSidebarOpen(false);
   };
@@ -697,8 +410,8 @@ function LoginScreen() {
     setLoading(true); setError('');
     try {
       await login(username, pin);
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
+    } catch (error) {
+      setError(errorMessage(error, 'Error al iniciar sesión'));
     } finally {
       setLoading(false);
     }
@@ -745,7 +458,7 @@ function LoginScreen() {
 // ============================================================================
 
 function POSView() {
-  const { reqContext, tenant } = useAuth();
+  const { reqContext, tenant, store } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   useEffect(() => {
@@ -764,8 +477,8 @@ function POSView() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [confirmSaleInfo, setConfirmSaleInfo] = useState<any>(null);
-  const [alertInfo, setAlertInfo] = useState<any>(null);
+  const [confirmSaleInfo, setConfirmSaleInfo] = useState<{ paymentMethod: PaymentMethod; amountTendered: number } | null>(null);
+  const [alertInfo, setAlertInfo] = useState<{ title: string; message: string; saleData?: Sale } | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   // CRM State
@@ -816,7 +529,7 @@ function POSView() {
     setIsProcessing(true);
     try {
       if (!isOnline && hasFeature(tenant, 'OFFLINE')) {
-        const offlineId = `OFF-${Date.now().toString().slice(-6)}`;
+        const offlineId = createOfflineId();
         const offlineSale = {
           saleId: offlineId,
           reqContext,
@@ -826,12 +539,12 @@ function POSView() {
             amountTendered: confirmSaleInfo.amountTendered,
             clientId: selectedClientId,
             isOfflineSync: true,
-            offlineDate: new Date().toISOString()
+            offlineDate: new Date().toISOString(),
+            externalId: offlineId,
           }
-        };
+        } satisfies OfflineSaleRecord;
 
-        const existingStr = localStorage.getItem('offline_sales') || '[]';
-        const existing = JSON.parse(existingStr);
+        const existing = readOfflineSales();
         existing.push(offlineSale);
         localStorage.setItem('offline_sales', JSON.stringify(existing));
 
@@ -850,7 +563,16 @@ function POSView() {
            amountTendered: confirmSaleInfo.amountTendered,
            changeAmount: confirmSaleInfo.amountTendered - cartTotal,
            itemsCount: cart.reduce((s, i) => s + i.quantity, 0),
-           items: cart as any[]
+           items: cart.map((item) => ({
+             id: `${offlineId}-${item.id}`,
+             saleId: offlineId,
+             productId: item.id,
+             name: item.name,
+             quantity: item.quantity,
+             price: item.price,
+             cost: item.cost,
+             subtotal: item.subtotal,
+           })),
         };
 
         setAlertInfo({ 
@@ -862,7 +584,7 @@ function POSView() {
         throw new Error('No tienes conexión a internet y tu plan actual no soporta Modo Offline.');
       } else {
         const sale = await BackendAPI.processSale(reqContext, {
-          items: cart as any[],
+          items: cart,
           paymentMethod: confirmSaleInfo.paymentMethod,
           amountTendered: confirmSaleInfo.amountTendered,
           clientId: selectedClientId
@@ -879,8 +601,8 @@ function POSView() {
           saleData: sale 
         });
       }
-    } catch (error: any) {
-      setAlertInfo({ title: 'Error en la Venta', message: error.message });
+    } catch (error) {
+      setAlertInfo({ title: 'Error en la Venta', message: errorMessage(error, 'No se pudo procesar la venta') });
       setConfirmSaleInfo(null);
     } finally {
       setIsProcessing(false);
@@ -912,7 +634,7 @@ function POSView() {
       <div className="flex-1 flex flex-col p-4 lg:p-6 h-full overflow-hidden bg-[#f3f5f6] dark:bg-[#1a2026] transition-colors relative">
         {confirmSaleInfo && <ConfirmDialog title="Confirmar Movimiento" message={`¿Estás seguro de completar esta transacción por ${formatCurrency(cartTotal)}?`} onConfirm={executeCheckout} onCancel={() => setConfirmSaleInfo(null)} />}
         {alertInfo && !alertInfo.saleData && <AlertDialog title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo(null)} />}
-        {alertInfo?.saleData && <ReceiptModal sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} storeName={reqContext.storeId} />}
+        {alertInfo?.saleData && <ReceiptModal sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} storeName={store?.name ?? 'Sucursal'} />}
         
         <div className="bg-white dark:bg-[#232a31] p-3 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] mb-5 flex items-center gap-4 transition-colors">
           <Barcode size={24} className="text-slate-500 hidden sm:block" />
@@ -1052,7 +774,11 @@ function POSView() {
   );
 }
 
-function PaymentModal({ total, onClose, onComplete }: any) {
+function PaymentModal({ total, onClose, onComplete }: {
+  total: number;
+  onClose: () => void;
+  onComplete: (method: PaymentMethod, amountTendered: number) => void;
+}) {
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [tendered, setTendered] = useState(total.toString());
   const tenderNum = parseFloat(tendered) || 0;
@@ -1070,7 +796,7 @@ function PaymentModal({ total, onClose, onComplete }: any) {
           </div>
           {method === 'CASH' && (
             <div>
-              <input type="number" value={tendered} onChange={e => setTendered(e.target.value)} className="w-full text-right text-3xl font-mono p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] rounded-xl focus:border-blue-500 outline-none text-slate-900 dark:text-white transition-colors" onFocus={(e: any) => e.target.select()}/>
+              <input type="number" value={tendered} onChange={e => setTendered(e.target.value)} className="w-full text-right text-3xl font-mono p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] rounded-xl focus:border-blue-500 outline-none text-slate-900 dark:text-white transition-colors" onFocus={(e) => e.currentTarget.select()}/>
               <div className="flex justify-between mt-4"><span>Cambio</span><span className="font-mono text-2xl text-slate-900 dark:text-white">{formatCurrency(change>0?change:0)}</span></div>
             </div>
           )}
@@ -1092,22 +818,28 @@ function InventoryView() {
   const { reqContext } = useAuth();
   const [products, setProducts] = useState<ProductView[]>([]);
   const [search, setSearch] = useState('');
-  const [isEditing, setIsEditing] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState<ProductFormData | null>(null);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<ProductView | null>(null);
-  const [alertInfo, setAlertInfo] = useState<any>(null);
+  const [alertInfo, setAlertInfo] = useState<{ title: string; message: string } | null>(null);
 
-  const loadData = () => BackendAPI.getStoreProducts(reqContext).then(setProducts);
-  useEffect(() => { loadData(); }, []);
+  const loadData = useCallback(() => BackendAPI.getStoreProducts(reqContext).then(setProducts), [reqContext]);
+  useEffect(() => {
+    let active = true;
+    BackendAPI.getStoreProducts(reqContext).then((data) => {
+      if (active) setProducts(data);
+    });
+    return () => { active = false; };
+  }, [reqContext]);
 
-  const handleSave = async (data: any) => {
+  const handleSave = async (data: CreateProductInput | UpdateProductInput) => {
     try {
       await BackendAPI.saveProduct(reqContext, data);
       await loadData();
       setIsEditing(null);
       setAlertInfo({ title: 'Éxito', message: 'El producto se guardó correctamente.' });
-    } catch (e:any) { 
-      setAlertInfo({ title: 'Error', message: e.message });
+    } catch (error) {
+      setAlertInfo({ title: 'Error', message: errorMessage(error, 'No se pudo guardar el producto') });
     }
   };
 
@@ -1118,8 +850,8 @@ function InventoryView() {
       await loadData();
       setConfirmDelete(null);
       setAlertInfo({ title: 'Producto Eliminado', message: 'El producto fue eliminado permanentemente.' });
-    } catch (e:any) {
-      setAlertInfo({ title: 'Error', message: e.message });
+    } catch (error) {
+      setAlertInfo({ title: 'Error', message: errorMessage(error, 'No se pudo eliminar el producto') });
     }
   };
 
@@ -1194,12 +926,36 @@ function InventoryView() {
   );
 }
 
-function ProductFormModal({ product, onClose, onSave }: any) {
-  const [data, setData] = useState(product);
+interface ProductFormData {
+  id?: string;
+  barcode?: string;
+  name?: string;
+  category?: string;
+  cost?: number | string;
+  price?: number | string;
+  stock?: number | string;
+  minStock?: number | string;
+}
+
+function ProductFormModal({ product, onClose, onSave }: {
+  product: ProductFormData;
+  onClose: () => void;
+  onSave: (product: CreateProductInput | UpdateProductInput) => Promise<void>;
+}) {
+  const [data, setData] = useState<ProductFormData>(product);
   const [loading, setLoading] = useState(false);
-  const submit = async (e: any) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setLoading(true);
-    await onSave({ ...data, cost: Number(data.cost), price: Number(data.price), stock: Number(data.stock), minStock: Number(data.minStock) });
+    const normalized = {
+      barcode: data.barcode ?? '',
+      name: data.name ?? '',
+      category: data.category ?? '',
+      cost: Number(data.cost),
+      price: Number(data.price),
+      stock: Number(data.stock),
+      minStock: Number(data.minStock),
+    };
+    await onSave(data.id ? { ...normalized, id: data.id } : normalized);
     setLoading(false);
   }
   return (
@@ -1228,53 +984,45 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
   const { reqContext } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmData, setConfirmData] = useState<any[] | null>(null);
+  const [confirmData, setConfirmData] = useState<CreateProductInput[] | null>(null);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setLoading(true);
     setError(null);
+    try {
+      const [sheet] = await readXlsxFile(file);
+      const [headerRow, ...rows] = sheet?.data ?? [];
+      if (!headerRow || rows.length === 0) throw new Error('El archivo esta vacio o no contiene productos.');
+      const headers = headerRow.map((value) => String(value ?? '').trim());
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const bstr = evt.target?.result as string;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws);
-        
-        if (!data || data.length === 0) throw new Error("El archivo está vacío o no se pudo leer correctamente.");
+      const formattedProducts = rows.map((values, index): CreateProductInput => {
+        const row = Object.fromEntries(headers.map((header, column) => [header, values[column]]));
+        const name = String(row.producto ?? row.Producto ?? row.Name ?? '').trim();
+        const cost = Number(row['Costo proveedor'] ?? row.Costo ?? row.cost ?? 0);
+        const price = Number(row['Venta publico'] ?? row.Precio ?? row.price ?? 0);
+        const stock = Number(row.Items ?? row.Stock ?? row.stock ?? 0);
+        if (!name) throw new Error(`Fila ${index + 2}: El nombre del producto es obligatorio.`);
 
-        const formattedProducts = data.map((row: any, index: number) => {
-          const name = row['producto'] || row['Producto'] || row['Name'] || '';
-          const cost = Number(row['Costo proveedor'] || row['Costo'] || row['cost'] || 0);
-          const price = Number(row['Venta publico'] || row['Precio'] || row['price'] || 0);
-          const stock = Number(row['Items'] || row['Stock'] || row['stock'] || 0);
+        return {
+          name,
+          cost,
+          price,
+          stock,
+          minStock: 5,
+          category: 'General',
+          barcode: crypto.randomUUID().replaceAll('-', '').slice(0, 12),
+        };
+      });
 
-          if (!name) throw new Error(`Fila ${index + 1}: El nombre del producto es obligatorio.`);
-
-          return {
-            name,
-            cost,
-            price,
-            stock,
-            minStock: 5,
-            category: 'General',
-            barcode: Math.floor(100000000 + Math.random() * 900000000).toString(),
-          };
-        });
-
-        setConfirmData(formattedProducts);
-      } catch (err: any) {
-        setError(err.message || "Error al procesar el archivo Excel.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    reader.readAsBinaryString(file);
+      setConfirmData(formattedProducts);
+    } catch (uploadError) {
+      setError(errorMessage(uploadError, 'Error al procesar el archivo Excel.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const processImport = async () => {
@@ -1283,8 +1031,8 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
       setLoading(true);
       await BackendAPI.saveProductsBulk(reqContext, confirmData);
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Error al procesar el archivo Excel.");
+    } catch (importError) {
+      setError(errorMessage(importError, 'Error al procesar el archivo Excel.'));
       setLoading(false);
     }
   };
@@ -1350,7 +1098,7 @@ function DashboardView() {
 
   // Data processing for Charts
   const salesByDate = useMemo(() => {
-    const groups: any = {};
+    const groups: Record<string, number> = {};
     sales.forEach(s => {
       const date = new Date(s.datetime).toLocaleDateString();
       groups[date] = (groups[date] || 0) + s.total;
@@ -1359,7 +1107,7 @@ function DashboardView() {
   }, [sales]);
 
   const categoryMix = useMemo(() => {
-    const cats: any = {};
+    const cats: Record<string, number> = {};
     products.forEach(p => {
       cats[p.category] = (cats[p.category] || 0) + (p.stock * p.price);
     });
@@ -1471,7 +1219,7 @@ function DashboardView() {
 }
 
 function SalesView() {
-  const { reqContext } = useAuth();
+  const { reqContext, store } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Sale | null>(null);
 
@@ -1479,7 +1227,7 @@ function SalesView() {
 
   return (
     <div className="p-4 lg:p-8 h-full flex flex-col bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
-      {selectedReceipt && <ReceiptModal sale={selectedReceipt} onClose={() => setSelectedReceipt(null)} storeName={reqContext.storeId} />}
+      {selectedReceipt && <ReceiptModal sale={selectedReceipt} onClose={() => setSelectedReceipt(null)} storeName={store?.name ?? 'Sucursal'} />}
       <div className="flex justify-between items-center">
          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase">Histórico de Transacciones SAP</h2>
          <div className="bg-[#0070b2]/10 text-[#0070b2] text-[10px] font-bold px-3 py-1 rounded ring-1 ring-[#0070b2]/20 uppercase">Registros: {sales.length}</div>
@@ -1511,7 +1259,7 @@ function SalesView() {
 
 function MovementsView() {
   const { reqContext } = useAuth();
-  const [moves, setMoves] = useState<any[]>([]);
+  const [moves, setMoves] = useState<StockMovementView[]>([]);
   useEffect(() => { BackendAPI.getStockMovements({ tenantId: reqContext.tenantId, storeId: reqContext.storeId }).then(setMoves); }, [reqContext]);
   
   return (
@@ -1539,7 +1287,7 @@ function MovementsView() {
 // COMPONENTES COMUNES
 // ============================================================================
 
-function ReceiptModal({ sale, storeName, onClose }: any) {
+function ReceiptModal({ sale, storeName, onClose }: { sale: Sale; storeName: string; onClose: () => void }) {
   const handlePrint = () => window.print();
 
   return (
@@ -1565,8 +1313,8 @@ function ReceiptModal({ sale, storeName, onClose }: any) {
                 <table className="w-full text-sm font-mono leading-tight mb-4 text-slate-800">
                   <thead><tr className="border-b border-slate-800 text-left"><th className="pb-1 font-normal w-12">CANT</th><th className="pb-1 font-normal">ARTÍCULO</th><th className="pb-1 font-normal text-right">IMPORTE</th></tr></thead>
                   <tbody>
-                    {sale.items?.map((item: any, i: number) => (
-                      <tr key={i} className="align-top">
+                    {sale.items?.map((item) => (
+                      <tr key={item.id} className="align-top">
                         <td className="py-2 pr-2">{item.quantity}</td>
                         <td className="py-2 pr-2 uppercase">{item.name}</td>
                         <td className="py-2 text-right font-bold">{formatCurrency(item.subtotal)}</td>
@@ -1621,7 +1369,7 @@ function AlertDialog({ title, message, onClose }: { title: string, message: stri
   );
 }
 
-function NavItem({ icon, label, active, onClick }: any) {
+function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-semibold text-sm transition-all ${active ? 'bg-[#0070b2]/10 text-[#0070b2] dark:text-blue-400 border border-[#0070b2]/20 shadow-none' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/5 border border-transparent'}`}>
       {icon} {label}
@@ -1629,7 +1377,7 @@ function NavItem({ icon, label, active, onClick }: any) {
   );
 }
 
-function StatCard({ icon, title, value }: any) {
+function StatCard({ icon, title, value }: { icon: React.ReactNode; title: string; value: React.ReactNode }) {
   return (
     <div className="bg-white dark:bg-[#232a31] p-6 border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm flex flex-col justify-between transition-colors">
       <div className={`text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-2 flex items-center justify-between`}>
@@ -1657,16 +1405,15 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
   const [countedCash, setCountedCash] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const loadData = async () => {
-    const [active, history] = await Promise.all([
-      BackendAPI.getActiveShift(reqContext),
-      BackendAPI.getShifts(reqContext)
-    ]);
-    setActiveShift(active);
-    setShifts(history);
-  };
-
-  useEffect(() => { loadData(); }, [reqContext]);
+  useEffect(() => {
+    let active = true;
+    Promise.all([BackendAPI.getActiveShift(reqContext), BackendAPI.getShifts(reqContext)]).then(([current, history]) => {
+      if (!active) return;
+      setActiveShift(current);
+      setShifts(history);
+    });
+    return () => { active = false; };
+  }, [reqContext]);
 
   const handleClose = async () => {
     if (!activeShift) return;
@@ -1674,8 +1421,8 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
     try {
       await BackendAPI.closeShift(reqContext, parseFloat(countedCash) || 0);
       onShiftClosed();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (error) {
+      alert(errorMessage(error, 'No se pudo cerrar el turno'));
     } finally {
       setLoading(false);
     }
@@ -1797,14 +1544,14 @@ function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
   const [initialCash, setInitialCash] = useState('500');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
       const shift = await BackendAPI.openShift(reqContext, parseFloat(initialCash) || 0);
       onOpen(shift);
-    } catch (e: any) {
-      alert(e.message);
+    } catch (error) {
+      alert(errorMessage(error, 'No se pudo abrir el turno'));
     } finally {
       setLoading(false);
     }
@@ -1860,12 +1607,18 @@ function ClientsView() {
   const [editingClient, setEditingClient] = useState<Partial<Client> | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     const data = await BackendAPI.getClients(reqContext);
     setClients(data);
-  };
+  }, [reqContext]);
 
-  useEffect(() => { loadClients(); }, [reqContext]);
+  useEffect(() => {
+    let active = true;
+    BackendAPI.getClients(reqContext).then((data) => {
+      if (active) setClients(data);
+    });
+    return () => { active = false; };
+  }, [reqContext]);
 
   const filtered = clients.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -1873,15 +1626,15 @@ function ClientsView() {
     c.phone?.includes(search)
   );
 
-  const handleSave = async (e: any) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     try {
       await BackendAPI.saveClient(reqContext, editingClient!);
       setEditingClient(null);
       loadClients();
-    } catch (e: any) {
-      alert(e.message);
+    } catch (error) {
+      alert(errorMessage(error, 'No se pudo guardar el cliente'));
     } finally {
       setLoading(false);
     }
