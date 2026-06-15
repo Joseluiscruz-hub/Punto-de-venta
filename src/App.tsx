@@ -291,7 +291,7 @@ function MainLayout() {
   };
 
   return (
-    <div className="flex h-screen bg-[#f3f5f6] dark:bg-[#1a2026] font-sans text-slate-900 dark:text-[#E2E8F0] overflow-hidden transition-colors relative">
+    <div className="app-bg flex h-screen font-sans text-slate-900 dark:text-[#E2E8F0] overflow-hidden transition-colors relative">
       
       {isSidebarOpen && (
         <div 
@@ -300,15 +300,15 @@ function MainLayout() {
         />
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 lg:w-64 bg-[#f3f5f6] dark:bg-[#1a2026] border-r border-[#d9d9d9] dark:border-[#3a414a] flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 flex items-center justify-between border-b border-[#d9d9d9] dark:border-[#3a414a] bg-[#0070b2] text-white">
+      <aside className={`side-rail fixed inset-y-0 left-0 z-50 w-72 lg:w-72 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="brand-panel p-6 flex items-center justify-between text-white">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center font-bold text-white shrink-0">
+            <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 border border-white/20 shadow-lg shadow-black/10">
               <StoreIcon size={18} />
             </div>
             <div>
-              <h1 className="text-lg font-bold tracking-tight leading-tight uppercase">EL TRIUNFO</h1>
-              <p className="text-[10px] text-white/70 font-medium tracking-wide uppercase">Core ERP v2.0</p>
+              <h1 className="text-lg font-black tracking-tight leading-tight uppercase">EL TRIUNFO</h1>
+              <p className="text-[10px] text-white/75 font-bold tracking-[0.22em] uppercase">Retail Command</p>
             </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="p-2 lg:hidden text-white/70 hover:text-white">
@@ -316,18 +316,18 @@ function MainLayout() {
           </button>
         </div>
 
-        <div className="px-6 py-5 bg-white dark:bg-[#232a31] border-b border-[#d9d9d9] dark:border-[#3a414a] space-y-4">
+        <div className="side-profile mx-4 mt-4 p-4 space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 shadow-inner">
-              {user?.role === 'ADMIN' ? <ShieldCheck size={20} className="text-[#0070b2]"/> : <UserCog size={20} className="text-[#0070b2]"/>}
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/20 text-white">
+              {user?.role === 'ADMIN' ? <ShieldCheck size={20} className="text-white"/> : <UserCog size={20} className="text-white"/>}
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
-              <p className="text-[10px] uppercase font-bold text-slate-500">{user?.role}</p>
+              <p className="text-[10px] uppercase font-black tracking-[0.18em] text-teal-700 dark:text-teal-300">{user?.role}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-black/20 p-2 border border-slate-200 dark:border-white/5 rounded">
-            <StoreIcon size={14} className="text-[#0070b2] shrink-0" />
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white/55 dark:bg-black/20 p-3 border border-white/60 dark:border-white/5 rounded-2xl">
+            <StoreIcon size={14} className="text-teal-600 dark:text-teal-300 shrink-0" />
             <span className="truncate">{store?.name}</span>
           </div>
         </div>
@@ -355,8 +355,8 @@ function MainLayout() {
           )}
         </nav>
 
-        <div className="p-4 border-t border-[#d9d9d9] dark:border-[#3a414a] flex flex-col gap-2">
-          <button onClick={logout} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded hover:bg-slate-200 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 transition-all font-semibold border border-transparent active:scale-95">
+        <div className="p-4 border-t border-white/10 flex flex-col gap-3">
+          <button onClick={logout} className="btn-secondary flex items-center justify-center gap-2 px-4 py-3 text-xs active:scale-95">
             <LogOut size={18} />
             <span>Cerrar Sesión</span>
           </button>
@@ -366,10 +366,10 @@ function MainLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col min-w-0 transition-colors bg-[#f3f5f6] dark:bg-[#1a2026]">
+      <main className="main-canvas flex-1 flex flex-col min-w-0 transition-colors">
         <SyncManager />
         
-        <div className="lg:hidden flex items-center justify-between p-4 bg-[#0070b2] text-white border-b border-[#005a8f]">
+        <div className="brand-panel lg:hidden flex items-center justify-between p-4 text-white">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-white/80 hover:bg-white/10 rounded transition-colors">
               <Menu size={24} />
@@ -418,35 +418,83 @@ function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] font-sans flex items-center justify-center p-4 transition-colors">
-      <div className="absolute top-4 right-4">
+    <div className="login-shell text-slate-900 dark:text-[#E2E8F0] font-sans flex items-center justify-center p-4 transition-colors">
+      <div className="absolute top-4 right-4 z-20">
         <ThemeToggle />
       </div>
-      <div className="bg-white dark:bg-[#232a31] p-10 rounded shadow-2xl w-full max-w-md border border-[#d9d9d9] dark:border-[#3a414a] transition-colors">
-        <div className="flex flex-col items-center mb-10">
-          <div className="bg-[#0070b2] text-white p-4 rounded mb-5 shadow-lg shrink-0 border border-white/10">
-            <StoreIcon size={36} />
+      <div className="login-stage grid lg:grid-cols-[1.08fr_0.92fr] gap-5">
+        <section className="login-hero-card hidden lg:flex min-h-[620px] rounded-[32px] p-10 text-white flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-2xl">
+              <StoreIcon size={24} />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] font-black text-white/70">Retail Command Center</p>
+              <h1 className="text-3xl font-black tracking-tight">El Triunfo ERP</h1>
+            </div>
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-[#0070b2] dark:text-blue-400 uppercase">EL TRIUNFO ERP</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-center mt-3 text-xs uppercase tracking-widest font-bold">
-            Portal de Acceso Centralizado
-            <br/><br/> <span className="font-mono text-[10px] text-slate-400">Ambiente de Producción: admin / 1234</span>
-          </p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-1">
-             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Identificador de Usuario</label>
-             <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full p-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] text-slate-900 dark:text-[#E2E8F0] rounded outline-none focus:ring-2 focus:ring-[#0070b2]/50 transition-all font-medium" placeholder="ID de Usuario" autoFocus />
+
+          <div className="space-y-6 max-w-lg">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[10px] uppercase tracking-[0.22em] font-black">
+              <ShieldCheck size={14} /> Sesion blindada
+            </div>
+            <h2 className="text-6xl font-black tracking-[-0.08em] leading-none">
+              Operacion de tienda con presencia de corporativo.
+            </h2>
+            <p className="text-sm leading-6 text-white/72 max-w-md">
+              Punto de venta, turnos, inventario, clientes y auditoria en una experiencia rapida, clara y lista para escalar.
+            </p>
           </div>
-          <div className="space-y-1">
-             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Clave PIN de Acceso</label>
-             <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="••••" className="w-full text-center tracking-[1em] text-2xl p-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] text-slate-900 dark:text-white rounded outline-none focus:ring-2 focus:ring-[#0070b2]/50 transition-all font-medium" maxLength={4} />
+
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              ['99.9%', 'Disponibilidad'],
+              ['<1s', 'Flujo POS'],
+              ['360', 'Control visual'],
+            ].map(([value, label]) => (
+              <div key={label} className="rounded-3xl border border-white/12 bg-white/10 p-4 backdrop-blur">
+                <p className="text-2xl font-black tracking-tight">{value}</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/62 font-bold mt-1">{label}</p>
+              </div>
+            ))}
           </div>
-          {error && <p className="text-[#ba1c1c] text-[11px] font-bold text-center uppercase tracking-tight">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-[#0070b2] hover:bg-[#005a8f] text-white font-bold py-3.5 rounded transition-all shadow-md active:scale-[0.98] uppercase tracking-widest text-sm">{loading ? 'Validando...' : 'Iniciar Sesión'}</button>
-        </form>
-        <div className="mt-8 text-center">
-           <p className="text-[10px] text-slate-400 font-medium">SAP Fiori Inspired • Intelligence for Business</p>
+        </section>
+
+        <div className="login-card p-8 sm:p-10 rounded-[32px] w-full transition-colors">
+          <div className="flex flex-col items-center mb-10">
+            <div className="brand-panel text-white p-4 rounded-3xl mb-5 shadow-2xl shrink-0 border border-white/10">
+              <StoreIcon size={38} />
+            </div>
+            <p className="section-kicker mb-2">Portal de acceso</p>
+            <h1 className="text-4xl font-black tracking-[-0.08em] text-gradient uppercase">EL TRIUNFO ERP</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-center mt-4 text-xs uppercase tracking-widest font-bold">
+              Acceso centralizado para operacion premium
+              <br/><br/> <span className="font-mono text-[10px] text-slate-400">Demo segura: admin / 1234</span>
+            </p>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-[0.18em]">Identificador de Usuario</label>
+               <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="input-premium w-full p-4 text-slate-900 dark:text-[#E2E8F0] outline-none transition-all font-bold" placeholder="ID de Usuario" autoFocus />
+            </div>
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-[0.18em]">Clave PIN de Acceso</label>
+               <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="••••" className="input-premium w-full text-center tracking-[1em] text-2xl p-4 text-slate-900 dark:text-white outline-none transition-all font-bold" maxLength={4} />
+            </div>
+            {error && <p className="text-[#ba1c1c] text-[11px] font-bold text-center uppercase tracking-tight">{error}</p>}
+            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-sm active:scale-[0.98]">{loading ? 'Validando...' : 'Iniciar Sesión'}</button>
+          </form>
+          <div className="mt-8 grid grid-cols-3 gap-2 text-center">
+             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
+               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">POS</p>
+             </div>
+             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
+               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Stock</p>
+             </div>
+             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
+               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">CRM</p>
+             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -614,12 +662,12 @@ function POSView() {
   };
 
   return (
-    <div className="flex h-full bg-[#f3f5f6] dark:bg-[#1a2026] relative overflow-hidden">
+    <div className="view-shell flex h-full relative overflow-hidden">
       {isProcessing && (
         <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] p-8 rounded shadow-2xl flex flex-col items-center gap-4">
+          <div className="modal-card p-8 rounded-[28px] flex flex-col items-center gap-4">
              <div className="w-12 h-12 border-4 border-[#0070b2] border-t-transparent rounded-full animate-spin"></div>
-             <span className="text-[#0070b2] font-bold uppercase tracking-widest text-xs">Sincronizando con ERP...</span>
+             <span className="text-teal-700 dark:text-teal-300 font-black uppercase tracking-widest text-xs">Sincronizando con ERP...</span>
           </div>
         </div>
       )}
@@ -631,27 +679,50 @@ function POSView() {
         />
       )}
 
-      <div className="flex-1 flex flex-col p-4 lg:p-6 h-full overflow-hidden bg-[#f3f5f6] dark:bg-[#1a2026] transition-colors relative">
+      <div className="flex-1 flex flex-col p-4 lg:p-6 h-full overflow-hidden transition-colors relative">
         {confirmSaleInfo && <ConfirmDialog title="Confirmar Movimiento" message={`¿Estás seguro de completar esta transacción por ${formatCurrency(cartTotal)}?`} onConfirm={executeCheckout} onCancel={() => setConfirmSaleInfo(null)} />}
         {alertInfo && !alertInfo.saleData && <AlertDialog title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo(null)} />}
         {alertInfo?.saleData && <ReceiptModal sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} storeName={store?.name ?? 'Sucursal'} />}
         
-        <div className="bg-white dark:bg-[#232a31] p-3 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] mb-5 flex items-center gap-4 transition-colors">
-          <Barcode size={24} className="text-slate-500 hidden sm:block" />
-          <Search size={24} className="text-slate-500 sm:hidden" />
-          <input
-            type="text" placeholder="Buscar producto o código..." className="flex-1 text-base lg:text-lg outline-none bg-transparent text-slate-900 dark:text-white"
-            value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus
-          />
+        <div className="search-hero mb-5 p-4 lg:p-5">
+          <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
+            <div>
+              <p className="section-kicker">Operacion en vivo</p>
+              <h2 className="text-2xl lg:text-4xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Punto de venta inteligente</h2>
+              <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-400 mt-1 font-semibold">Captura rapida, stock visible y cobro con flujo de caja.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-right">
+              <div className="status-chip px-3 py-2">
+                <p className="text-[9px] uppercase tracking-[0.18em] font-black">Estado</p>
+                <p className="text-xs font-black">{isOnline ? 'Online' : 'Offline'}</p>
+              </div>
+              <div className="status-chip px-3 py-2">
+                <p className="text-[9px] uppercase tracking-[0.18em] font-black">Items</p>
+                <p className="text-xs font-black">{cart.reduce((s, i) => s + i.quantity, 0)}</p>
+              </div>
+              <div className="status-chip px-3 py-2">
+                <p className="text-[9px] uppercase tracking-[0.18em] font-black">Total</p>
+                <p className="text-xs font-black">{formatCurrency(cartTotal)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="input-premium p-3 flex items-center gap-4 transition-colors">
+            <Barcode size={24} className="text-teal-600 dark:text-teal-300 hidden sm:block" />
+            <Search size={24} className="text-teal-600 dark:text-teal-300 sm:hidden" />
+            <input
+              type="text" placeholder="Buscar producto o código..." className="flex-1 text-base lg:text-lg outline-none bg-transparent text-slate-900 dark:text-white font-bold placeholder:text-slate-400"
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus
+            />
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1 lg:pr-2">
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-5 gap-4 pb-32">
             {filteredProducts.map(product => (
               <button key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0}
-                className={`text-left p-0 rounded border transition-all flex flex-col overflow-hidden bg-white dark:bg-[#232a31] border-[#d9d9d9] dark:border-[#3a414a] hover:border-[#0070b2] dark:hover:border-blue-500 shadow-sm hover:shadow-md group`}>
+                className="product-tile text-left p-0 transition-all flex flex-col group disabled:opacity-45 disabled:hover:translate-y-0 disabled:shadow-none">
                 
-                <div className="w-full h-32 sm:h-40 bg-white dark:bg-[#1a2026] overflow-hidden border-b border-[#f0f0f0] dark:border-white/5">
+                <div className="product-media w-full h-32 sm:h-40 overflow-hidden border-b border-white/30 dark:border-white/5">
                   <img src={`https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all" referrerPolicy="no-referrer" />
                 </div>
 
@@ -661,9 +732,9 @@ function POSView() {
                     {product.stock <= product.minStock && product.stock > 0 && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-sm border border-amber-200 dark:border-amber-700/30 shrink-0">Bajo Stock</span>}
                     {product.stock <= 0 && <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-sm border border-red-200 dark:border-red-700/30 shrink-0">Agotado</span>}
                   </div>
-                  <h3 className="font-semibold text-xs text-slate-800 dark:text-white line-clamp-2 h-8 leading-snug mb-2">{product.name}</h3>
+                  <h3 className="font-black text-xs text-slate-800 dark:text-white line-clamp-2 h-8 leading-snug mb-2">{product.name}</h3>
                   <div className="mt-auto flex justify-between items-baseline pt-2 border-t border-slate-50 dark:border-white/5">
-                    <span className="text-[#0070b2] dark:text-blue-400 font-bold text-base">{formatCurrency(product.price)}</span>
+                    <span className="text-teal-700 dark:text-teal-300 font-black text-base">{formatCurrency(product.price)}</span>
                     <span className="text-[9px] font-mono text-slate-400 uppercase">Stock: {product.stock}</span>
                   </div>
                 </div>
@@ -674,7 +745,7 @@ function POSView() {
 
         {cart.length > 0 && (
           <div className="lg:hidden absolute bottom-6 inset-x-4">
-            <button onClick={() => setIsCartOpen(true)} className="w-full bg-[#0070b2] text-white font-bold p-4 rounded shadow-2xl flex items-center justify-between uppercase tracking-widest text-xs">
+            <button onClick={() => setIsCartOpen(true)} className="btn-primary w-full p-4 flex items-center justify-between text-xs shadow-2xl">
               <div className="flex items-center gap-2">
                 <ShoppingCart size={18} />
                 <span>Carrito ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
@@ -685,17 +756,20 @@ function POSView() {
         )}
       </div>
 
-      <div className={`fixed inset-y-0 right-0 z-40 w-full sm:w-96 lg:static bg-white dark:bg-[#232a31] border-l border-[#d9d9d9] dark:border-[#3a414a] flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-4 bg-slate-50 dark:bg-black/10 border-b border-[#d9d9d9] dark:border-[#3a414a] flex items-center justify-between">
-          <h2 className="font-bold text-xs uppercase tracking-widest text-slate-500">Resumen de Materiales</h2>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+      <div className={`cart-drawer fixed inset-y-0 right-0 z-40 w-full sm:w-96 lg:static flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="brand-panel p-4 flex items-center justify-between text-white">
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.2em] font-black text-white/65">Checkout</p>
+            <h2 className="font-black text-sm uppercase tracking-widest">Resumen de Materiales</h2>
+          </div>
+          <button onClick={() => setIsCartOpen(false)} className="p-2 text-white/75 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
-        <div className="flex-1 p-3 space-y-2 overflow-y-auto bg-[#f9f9f9] dark:bg-black/5">
+        <div className="flex-1 p-3 space-y-3 overflow-y-auto bg-white/20 dark:bg-black/5">
           {cart.map(item => (
-            <div key={item.id} className="flex gap-3 bg-white dark:bg-[#2c343d] p-3 border border-[#e5e5e5] dark:border-[#3a414a] rounded-sm text-slate-900 dark:text-white items-center shadow-sm">
-              <div className="flex flex-col items-center bg-slate-50 dark:bg-black/20 rounded border border-slate-200 dark:border-white/5">
+            <div key={item.id} className="cart-line flex gap-3 p-3 text-slate-900 dark:text-white items-center shadow-sm">
+              <div className="flex flex-col items-center bg-slate-50/80 dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/5">
                 <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:text-[#0070b2] dark:hover:text-blue-400 transition-colors"><Plus size={12} /></button>
                 <span className="font-bold text-xs p-1 min-w-[24px] text-center">{item.quantity}</span>
                 <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
@@ -704,14 +778,14 @@ function POSView() {
                 <h4 className="font-bold text-xs truncate">{item.name}</h4>
                 <span className="text-slate-500 dark:text-slate-400 text-[10px] font-mono">{formatCurrency(item.price)} C/U</span>
               </div>
-              <div className="font-bold text-xs text-[#0070b2] dark:text-blue-400 whitespace-nowrap">{formatCurrency(item.subtotal)}</div>
+              <div className="font-black text-xs text-teal-700 dark:text-teal-300 whitespace-nowrap">{formatCurrency(item.subtotal)}</div>
             </div>
           ))}
           {!cart.length && <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-50 p-10 uppercase font-bold tracking-widest text-xs"><ShoppingCart size={32} /> Carrito Vacío</div>}
         </div>
 
         {/* CRM Selector */}
-        <div className="p-4 bg-white dark:bg-[#232a31] border-t border-[#d9d9d9] dark:border-[#3a414a] space-y-3">
+        <div className="p-4 bg-white/45 dark:bg-slate-950/20 border-t border-white/20 dark:border-white/10 space-y-3">
            <div className="flex items-center justify-between">
               <h4 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Vinculación CRM</h4>
               {selectedClient && (
@@ -725,12 +799,12 @@ function POSView() {
                 <input 
                   type="text" 
                   placeholder="Vincular cliente (Nombre/Tel)..." 
-                  className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded text-[11px] font-bold outline-none focus:ring-1 focus:ring-[#0070b2]"
+                  className="input-premium w-full pl-9 pr-4 py-2.5 text-[11px] font-bold outline-none"
                   value={clientSearch}
                   onChange={e => setClientSearch(e.target.value)}
                 />
                 {clientSearch && filteredClients.length > 0 && (
-                  <div className="absolute bottom-full left-0 right-0 mb-1 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-2xl z-50 max-h-48 overflow-y-auto">
+                  <div className="absolute bottom-full left-0 right-0 mb-1 modal-card rounded-2xl shadow-2xl z-50 max-h-48 overflow-y-auto">
                     {filteredClients.map(c => (
                       <div 
                         key={c.id} 
@@ -745,8 +819,8 @@ function POSView() {
                 )}
               </div>
            ) : (
-              <div className="flex items-center gap-3 bg-[#0070b2]/5 dark:bg-[#0070b2]/10 p-2.5 rounded border border-[#0070b2]/20">
-                 <div className="w-8 h-8 rounded-full bg-[#0070b2] text-white flex items-center justify-center font-bold text-xs">
+              <div className="flex items-center gap-3 bg-teal-500/10 p-2.5 rounded-2xl border border-teal-500/20">
+                 <div className="w-8 h-8 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 text-white flex items-center justify-center font-bold text-xs">
                     {selectedClient.name[0]}
                  </div>
                  <div className="flex-1 min-w-0">
@@ -757,13 +831,13 @@ function POSView() {
            )}
         </div>
 
-        <div className="p-5 bg-white dark:bg-[#232a31] border-t border-[#d9d9d9] dark:border-[#3a414a] shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+        <div className="p-5 bg-white/55 dark:bg-slate-950/25 border-t border-white/20 dark:border-white/10 shadow-[0_-4px_22px_rgba(0,0,0,0.06)]">
           <div className="flex justify-between items-baseline mb-4 text-slate-800 dark:text-white">
             <span className="text-[10px] uppercase font-black tracking-widest opacity-50">VALOR TOTAL NETO</span>
-            <span className="text-3xl font-black tracking-tighter text-[#0070b2] dark:text-blue-400">{formatCurrency(cartTotal)}</span>
+            <span className="text-3xl font-black tracking-tighter text-teal-700 dark:text-teal-300">{formatCurrency(cartTotal)}</span>
           </div>
           <button onClick={() => setShowPaymentModal(true)} disabled={!cart.length}
-            className="w-full bg-[#0070b2] disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 text-white hover:bg-[#005a8f] font-bold py-4 rounded shadow-lg flex items-center justify-center gap-2 uppercase tracking-widest text-xs transition-all active:scale-[0.98]">
+            className="btn-primary w-full py-4 flex items-center justify-center gap-2 text-xs active:scale-[0.98]">
             Finalizar Selección <Plus size={18} />
           </button>
         </div>
@@ -786,23 +860,26 @@ function PaymentModal({ total, onClose, onComplete }: {
   const isInvalid = method === 'CASH' && tenderNum < total;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0F1115]/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] rounded-2xl overflow-hidden w-full max-w-md transition-colors">
-        <div className="bg-slate-50 dark:bg-[#16191E] p-6 text-slate-900 border-b border-slate-200 dark:border-[#2D3139] text-center transition-colors"><div className="text-5xl font-mono tracking-tight text-blue-600 dark:text-blue-500">{formatCurrency(total)}</div></div>
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md flex items-center justify-center z-50 p-4">
+      <div className="modal-card rounded-[30px] overflow-hidden w-full max-w-md transition-colors">
+        <div className="brand-panel p-7 text-white text-center transition-colors">
+          <p className="text-[10px] uppercase tracking-[0.24em] font-black text-white/65 mb-2">Total a cobrar</p>
+          <div className="text-5xl font-mono tracking-tight">{formatCurrency(total)}</div>
+        </div>
         <div className="p-6 space-y-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
           <div className="grid grid-cols-2 gap-4">
-            <button onClick={() => { setMethod('CASH'); setTendered(total.toString()); }} className={`p-4 border rounded-xl font-bold transition-colors ${method==='CASH'?'border-blue-500 bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>EFECTIVO</button>
-            <button onClick={() => { setMethod('CARD'); setTendered(total.toString()); }} className={`p-4 border rounded-xl font-bold transition-colors ${method==='CARD'?'border-blue-500 bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>TARJETA</button>
+            <button onClick={() => { setMethod('CASH'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CASH'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>EFECTIVO</button>
+            <button onClick={() => { setMethod('CARD'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CARD'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>TARJETA</button>
           </div>
           {method === 'CASH' && (
             <div>
-              <input type="number" value={tendered} onChange={e => setTendered(e.target.value)} className="w-full text-right text-3xl font-mono p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] rounded-xl focus:border-blue-500 outline-none text-slate-900 dark:text-white transition-colors" onFocus={(e) => e.currentTarget.select()}/>
+              <input type="number" value={tendered} onChange={e => setTendered(e.target.value)} className="input-premium w-full text-right text-3xl font-mono p-4 outline-none text-slate-900 dark:text-white transition-colors" onFocus={(e) => e.currentTarget.select()}/>
               <div className="flex justify-between mt-4"><span>Cambio</span><span className="font-mono text-2xl text-slate-900 dark:text-white">{formatCurrency(change>0?change:0)}</span></div>
             </div>
           )}
           <div className="flex gap-4">
-            <button onClick={onClose} className="flex-1 py-4 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-800 dark:text-white rounded-xl font-bold transition-colors">Cancelar</button>
-            <button onClick={() => onComplete(method, tenderNum)} disabled={isInvalid} className="flex-1 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold disabled:bg-slate-200 dark:disabled:bg-white/5 disabled:text-slate-400 dark:disabled:text-slate-600 transition-colors">Confirmar</button>
+            <button onClick={onClose} className="btn-secondary flex-1 py-4 text-xs">Cancelar</button>
+            <button onClick={() => onComplete(method, tenderNum)} disabled={isInvalid} className="btn-primary flex-1 py-4 text-xs">Confirmar</button>
           </div>
         </div>
       </div>
@@ -864,25 +941,28 @@ function InventoryView() {
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search));
 
   return (
-    <div className="p-4 lg:p-8 h-full flex flex-col bg-[#f3f5f6] dark:bg-[#1a2026] relative text-slate-900 dark:text-[#E2E8F0] transition-colors">
+    <div className="view-shell p-4 lg:p-8 h-full flex flex-col relative text-slate-900 dark:text-[#E2E8F0] transition-colors">
       {confirmDelete && <ConfirmDialog title="Eliminar Objeto Maestro" message={`¿Confirmas la eliminación permanente del registro "${confirmDelete.name}"?`} onConfirm={executeDelete} onCancel={() => setConfirmDelete(null)} />}
       {alertInfo && <AlertDialog title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo(null)} />}
       {isEditing && <ProductFormModal product={isEditing} onClose={() => setIsEditing(null)} onSave={handleSave} />}
       {showBulkImport && <BulkImportModal onClose={() => setShowBulkImport(false)} onSuccess={handleBulkSuccess} />}
       
       <div className="flex flex-col md:flex-row md:justify-between tracking-tight gap-4 mb-6 lg:mb-8">
-        <div><h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Maestro de Materiales ERP</h2></div>
+        <div>
+          <p className="section-kicker">Catalogo vivo</p>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-[-0.06em]">Maestro de Materiales ERP</h2>
+        </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowBulkImport(true)} className="flex-1 md:flex-none justify-center bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] hover:bg-slate-50 text-slate-900 dark:text-white text-xs px-4 py-2.5 rounded font-bold flex items-center gap-2 transition-colors uppercase tracking-widest"><Upload size={18}/> Importar</button>
-          <button onClick={() => setIsEditing({category: 'Abarrotes', stock: 0, minStock: 5})} className="flex-1 md:flex-none justify-center bg-[#0070b2] hover:bg-[#005a8f] text-white text-xs px-4 py-2.5 rounded font-bold flex items-center gap-2 transition-colors uppercase tracking-widest shadow-md"><Plus size={18}/> Crear Material</button>
+          <button onClick={() => setShowBulkImport(true)} className="btn-secondary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"><Upload size={18}/> Importar</button>
+          <button onClick={() => setIsEditing({category: 'Abarrotes', stock: 0, minStock: 5})} className="btn-primary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"><Plus size={18}/> Crear Material</button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#232a31] flex-1 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-hidden flex flex-col transition-colors">
-        <div className="p-3 lg:p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] transition-colors bg-slate-50 dark:bg-black/10">
+      <div className="panel-card table-shell flex-1 overflow-hidden flex flex-col transition-colors">
+        <div className="p-3 lg:p-4 border-b border-white/20 dark:border-white/10 transition-colors bg-white/35 dark:bg-black/10">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input type="text" placeholder="Filtrar por descripción, categoría o ID..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-[#1a2026] border border-[#d9d9d9] dark:border-[#3a414a] text-xs font-semibold text-slate-900 dark:text-white rounded outline-none focus:ring-1 focus:ring-[#0070b2] transition-colors"/>
+            <input type="text" placeholder="Filtrar por descripción, categoría o ID..." value={search} onChange={e => setSearch(e.target.value)} className="input-premium w-full pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 dark:text-white outline-none transition-colors"/>
           </div>
         </div>
         <div className="flex-1 overflow-auto">
@@ -959,21 +1039,22 @@ function ProductFormModal({ product, onClose, onSave }: {
     setLoading(false);
   }
   return (
-    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0F1115]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <form onSubmit={submit} className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] rounded-2xl w-full max-w-xl p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-4">{product.id ? 'Editar' : 'Nuevo'} Producto</h2>
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <form onSubmit={submit} className="modal-card rounded-[30px] w-full max-w-xl p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
+        <p className="section-kicker mb-2">{product.id ? 'Edicion' : 'Alta'}</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-[-0.04em] mb-4">{product.id ? 'Editar' : 'Nuevo'} Producto</h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <input required placeholder="Código (ej. 12345)" value={data.barcode||''} onChange={e=>setData({...data, barcode: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required placeholder="Categoría (ej. General)" value={data.category||''} onChange={e=>setData({...data, category: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required placeholder="Nombre ('producto')" value={data.name||''} onChange={e=>setData({...data, name: e.target.value})} className="col-span-2 p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required type="number" step="0.01" placeholder="Costo proveedor" value={data.cost||''} onChange={e=>setData({...data, cost: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required type="number" step="0.01" placeholder="Venta publico" value={data.price||''} onChange={e=>setData({...data, price: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required type="number" placeholder="Items (Stock)" value={data.stock||0} onChange={e=>setData({...data, stock: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
-          <input required type="number" placeholder="Min Stock" value={data.minStock||0} onChange={e=>setData({...data, minStock: e.target.value})} className="p-3 bg-slate-50 dark:bg-[#0F1115] border border-slate-200 dark:border-[#2D3139] text-slate-900 dark:text-white rounded-xl focus:border-blue-500 outline-none transition-colors" />
+          <input required placeholder="Código (ej. 12345)" value={data.barcode||''} onChange={e=>setData({...data, barcode: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required placeholder="Categoría (ej. General)" value={data.category||''} onChange={e=>setData({...data, category: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required placeholder="Nombre ('producto')" value={data.name||''} onChange={e=>setData({...data, name: e.target.value})} className="input-premium col-span-2 p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required type="number" step="0.01" placeholder="Costo proveedor" value={data.cost||''} onChange={e=>setData({...data, cost: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required type="number" step="0.01" placeholder="Venta publico" value={data.price||''} onChange={e=>setData({...data, price: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required type="number" placeholder="Items (Stock)" value={data.stock||0} onChange={e=>setData({...data, stock: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
+          <input required type="number" placeholder="Min Stock" value={data.minStock||0} onChange={e=>setData({...data, minStock: e.target.value})} className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors" />
         </div>
         <div className="flex gap-4">
-          <button type="button" onClick={onClose} className="flex-1 py-3 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-800 dark:text-white rounded-xl font-bold transition-colors">Cancelar</button>
-          <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 dark:disabled:bg-white/5 disabled:text-slate-400 dark:disabled:text-slate-600 text-white rounded-xl font-bold transition-colors">Guardar</button>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3 text-xs">Cancelar</button>
+          <button type="submit" disabled={loading} className="btn-primary flex-1 py-3 text-xs">Guardar</button>
         </div>
       </form>
     </div>
@@ -1038,7 +1119,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0F1115]/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4">
       {confirmData && (
         <ConfirmDialog 
           title="Confirmar Importación" 
@@ -1047,8 +1128,9 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
           onCancel={() => setConfirmData(null)} 
         />
       )}
-      <div className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] rounded-2xl w-full max-w-md p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight mb-2">Importar Inventario</h2>
+      <div className="modal-card rounded-[30px] w-full max-w-md p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
+        <p className="section-kicker mb-2">Carga masiva</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-[-0.04em] mb-2">Importar Inventario</h2>
         <p className="text-sm text-slate-500 mb-6">Sube un archivo .xlsx con: <br/><strong>producto, Costo proveedor, Venta publico, Items</strong>.</p>
         
         {error && (
@@ -1070,7 +1152,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
         </div>
 
         <div className="flex gap-4">
-          <button type="button" onClick={onClose} disabled={loading} className="w-full py-3 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-800 dark:text-white rounded-xl font-bold transition-colors">Cerrar</button>
+          <button type="button" onClick={onClose} disabled={loading} className="btn-secondary w-full py-3 text-xs">Cerrar</button>
         </div>
       </div>
     </div>
@@ -1117,10 +1199,13 @@ function DashboardView() {
   const COLORS = ['#0070b2', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
-    <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
-      <div className="flex justify-between items-center bg-white dark:bg-[#232a31] p-4 rounded border border-[#d9d9d9] dark:border-[#3a414a] shadow-sm">
-        <h2 className="text-lg font-bold tracking-tight text-[#0070b2] uppercase">Panel de Inteligencia de Negocio</h2>
-        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+    <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
+      <div className="panel-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 p-5">
+        <div>
+          <p className="section-kicker">Inteligencia de negocio</p>
+          <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Panel Ejecutivo</h2>
+        </div>
+        <div className="status-chip text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-2">
            <TrendingUp size={12} /> Live Sync Active
         </div>
       </div>
@@ -1134,7 +1219,7 @@ function DashboardView() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Trend Chart */}
-        <div className="xl:col-span-2 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+        <div className="panel-card xl:col-span-2 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Tendencia de Ingresos</h3>
             <BarChart3 size={18} className="text-slate-400" />
@@ -1156,7 +1241,7 @@ function DashboardView() {
         </div>
 
         {/* Category Mix */}
-        <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+        <div className="panel-card p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Distribución de Inventario</h3>
             <PieIcon size={18} className="text-slate-400" />
@@ -1186,8 +1271,8 @@ function DashboardView() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] font-bold text-xs uppercase bg-slate-50 dark:bg-black/10">Salud Operativa del Sistema</div>
+         <div className="panel-card overflow-hidden">
+            <div className="p-4 border-b border-white/20 dark:border-white/10 font-bold text-xs uppercase bg-white/35 dark:bg-black/10">Salud Operativa del Sistema</div>
             <div className="p-8 flex items-center gap-6">
                <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-[#0070b2]">
                   <ShieldCheck size={32} />
@@ -1199,7 +1284,7 @@ function DashboardView() {
             </div>
          </div>
          
-         <div className="bg-gradient-to-br from-[#0070b2] to-[#005a8f] rounded p-6 text-white shadow-lg flex flex-col justify-between">
+         <div className="brand-panel rounded-[28px] p-6 text-white shadow-lg flex flex-col justify-between overflow-hidden">
             <div>
               <h4 className="text-xs font-black uppercase tracking-widest opacity-80">Rendimiento Estimado</h4>
               <p className="text-3xl font-black mt-2 tracking-tighter">
@@ -1226,13 +1311,16 @@ function SalesView() {
   useEffect(() => { BackendAPI.getSales({ tenantId: reqContext.tenantId, storeId: reqContext.storeId }).then(setSales); }, [reqContext]);
 
   return (
-    <div className="p-4 lg:p-8 h-full flex flex-col bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
+    <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
       {selectedReceipt && <ReceiptModal sale={selectedReceipt} onClose={() => setSelectedReceipt(null)} storeName={store?.name ?? 'Sucursal'} />}
       <div className="flex justify-between items-center">
-         <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase">Histórico de Transacciones SAP</h2>
-         <div className="bg-[#0070b2]/10 text-[#0070b2] text-[10px] font-bold px-3 py-1 rounded ring-1 ring-[#0070b2]/20 uppercase">Registros: {sales.length}</div>
+         <div>
+           <p className="section-kicker">Libro fiscal</p>
+           <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white">Historico de Transacciones</h2>
+         </div>
+         <div className="status-chip text-[10px] font-black px-3 py-2 uppercase">Registros: {sales.length}</div>
       </div>
-      <div className="bg-white dark:bg-[#232a31] flex-1 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-auto transition-colors">
+      <div className="panel-card table-shell flex-1 overflow-auto transition-colors">
         <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
           <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
             <tr><th className="px-6 py-4">UUID TRANSACCIÓN</th><th className="px-6 py-4">MARCA DE TIEMPO</th><th className="px-6 py-4">MÉTODO PAGO</th><th className="px-6 py-4 text-right">VALOR NETO</th><th className="px-6 py-4 text-center">UM</th><th className="px-6 py-4 text-center">ACCIONES</th></tr>
@@ -1263,9 +1351,12 @@ function MovementsView() {
   useEffect(() => { BackendAPI.getStockMovements({ tenantId: reqContext.tenantId, storeId: reqContext.storeId }).then(setMoves); }, [reqContext]);
   
   return (
-    <div className="p-4 lg:p-8 h-full flex flex-col bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
-      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">Libro de Logística y Auditoría</h2>
-      <div className="bg-white dark:bg-[#232a31] flex-1 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] p-6 flex flex-col gap-4 overflow-y-auto transition-colors">
+    <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
+      <div>
+        <p className="section-kicker">Trazabilidad</p>
+        <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white flex items-center gap-2">Libro de Logistica y Auditoria</h2>
+      </div>
+      <div className="panel-card flex-1 p-6 flex flex-col gap-4 overflow-y-auto transition-colors">
         {moves.map(m => (
           <div key={m.id} className="flex gap-4 group">
             <div className={`w-1 rounded-full ${m.quantity > 0 ? 'bg-[#0070b2]' : 'bg-[#ba1c1c]'}`}></div>
@@ -1343,13 +1434,13 @@ function ReceiptModal({ sale, storeName, onClose }: { sale: Sale; storeName: str
 
 function ConfirmDialog({ title, message, onConfirm, onCancel }: { title: string, message: string, onConfirm: () => void, onCancel: () => void }) {
   return (
-    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0F1115]/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] p-6 rounded-2xl w-full max-w-sm text-slate-900 dark:text-[#E2E8F0] shadow-xl transition-colors">
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <div className="modal-card p-6 rounded-[28px] w-full max-w-sm text-slate-900 dark:text-[#E2E8F0] transition-colors">
         <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{title}</h3>
         <p className="text-slate-500 mb-6">{message}</p>
         <div className="flex gap-4">
-          <button onClick={onCancel} className="flex-1 py-3 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-800 dark:text-white rounded-xl font-bold transition-colors">Cancelar</button>
-          <button onClick={onConfirm} className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">Confirmar</button>
+          <button onClick={onCancel} className="btn-secondary flex-1 py-3 text-xs">Cancelar</button>
+          <button onClick={onConfirm} className="btn-primary flex-1 py-3 text-xs">Confirmar</button>
         </div>
       </div>
     </div>
@@ -1358,12 +1449,12 @@ function ConfirmDialog({ title, message, onConfirm, onCancel }: { title: string,
 
 function AlertDialog({ title, message, onClose }: { title: string, message: string, onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-slate-900/50 dark:bg-[#0F1115]/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] p-6 rounded-2xl w-full max-w-sm text-slate-900 dark:text-[#E2E8F0] shadow-xl text-center transition-colors">
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <div className="modal-card p-6 rounded-[28px] w-full max-w-sm text-slate-900 dark:text-[#E2E8F0] text-center transition-colors">
         <div className="flex justify-center mb-4 text-emerald-500"><CheckCircle2 size={48} /></div>
         <h3 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">{title}</h3>
         <p className="text-slate-500 mb-6">{message}</p>
-        <button onClick={onClose} className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors">Aceptar</button>
+        <button onClick={onClose} className="btn-primary w-full py-3 text-xs">Aceptar</button>
       </div>
     </div>
   );
@@ -1371,20 +1462,21 @@ function AlertDialog({ title, message, onClose }: { title: string, message: stri
 
 function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md font-semibold text-sm transition-all ${active ? 'bg-[#0070b2]/10 text-[#0070b2] dark:text-blue-400 border border-[#0070b2]/20 shadow-none' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/5 border border-transparent'}`}>
-      {icon} {label}
+    <button onClick={onClick} className={`nav-link w-full flex items-center gap-3 px-3.5 py-3 font-bold text-sm transition-all ${active ? 'nav-link-active' : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'}`}>
+      <span className="shrink-0">{icon}</span>
+      <span className="truncate">{label}</span>
     </button>
   );
 }
 
 function StatCard({ icon, title, value }: { icon: React.ReactNode; title: string; value: React.ReactNode }) {
   return (
-    <div className="bg-white dark:bg-[#232a31] p-6 border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm flex flex-col justify-between transition-colors">
-      <div className={`text-[11px] uppercase font-bold text-slate-400 tracking-wider mb-2 flex items-center justify-between`}>
+    <div className="metric-card p-6 flex flex-col justify-between transition-colors">
+      <div className="relative z-10 text-[11px] uppercase font-black text-slate-400 tracking-[0.18em] mb-3 flex items-center justify-between">
         {title}
-        <div className={`p-1.5 rounded-sm bg-slate-50 dark:bg-black/20 text-[#0070b2] dark:text-blue-400`}>{icon}</div>
+        <div className="p-2 rounded-2xl bg-teal-500/10 text-teal-700 dark:text-teal-300">{icon}</div>
       </div>
-      <h4 className="text-3xl font-mono text-slate-800 dark:text-white tracking-tighter">{value}</h4>
+      <h4 className="relative z-10 text-3xl font-mono font-black text-slate-800 dark:text-white tracking-tighter">{value}</h4>
     </div>
   );
 }
@@ -1392,7 +1484,7 @@ function StatCard({ icon, title, value }: { icon: React.ReactNode; title: string
 function ThemeToggle() {
   const theme = useAppTheme();
   return (
-    <button onClick={theme.toggleTheme} className="px-4 py-3 rounded-lg bg-slate-200 dark:bg-white/5 hover:bg-slate-300 dark:hover:bg-white/10 text-slate-600 dark:text-slate-400 transition-colors">
+    <button onClick={theme.toggleTheme} className="btn-secondary px-4 py-3 text-xs">
       {theme.isDark ? <Sun size={20}/> : <Moon size={20}/>}
     </button>
   );
@@ -1429,12 +1521,15 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
   };
 
   return (
-    <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
-      <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">Control de Efectivo y Turnos</h2>
+    <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
+      <div>
+        <p className="section-kicker">Caja segura</p>
+        <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white flex items-center gap-2">Control de Efectivo y Turnos</h2>
+      </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Active Shift Card */}
-        <div className="xl:col-span-2 bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+        <div className="panel-card xl:col-span-2 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xs font-black uppercase tracking-widest text-[#0070b2]">Turno Actual en Operación</h3>
             <span className="px-2 py-1 bg-emerald-500 text-white text-[10px] font-bold rounded uppercase">Activo</span>
@@ -1467,7 +1562,7 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
                     <input 
                       type="number" 
                       placeholder="Dinero físico contado..." 
-                      className="w-full md:w-64 pl-8 pr-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold text-lg outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                      className="input-premium w-full md:w-64 pl-8 pr-4 py-3 font-bold text-lg outline-none"
                       value={countedCash}
                       onChange={e => setCountedCash(e.target.value)}
                     />
@@ -1475,7 +1570,7 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
                   <button 
                     onClick={handleClose}
                     disabled={loading || !countedCash}
-                    className="w-full bg-[#ba1c1c] hover:bg-red-700 text-white font-bold py-3 rounded shadow-md uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                    className="btn-danger w-full py-3 text-xs disabled:opacity-50"
                   >
                     {loading ? 'Procesando...' : 'Cerrar Turno y Arqueo'}
                   </button>
@@ -1489,7 +1584,7 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
 
         {/* Quick Info */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-[#232a31] border border-[#d9d9d9] dark:border-[#3a414a] rounded shadow-sm p-6">
+          <div className="panel-card p-6">
              <div className="flex items-center gap-3 mb-4">
                 <Landmark className="text-[#0070b2]" />
                 <h4 className="font-bold text-xs uppercase">Resumen de Seguridad</h4>
@@ -1502,8 +1597,8 @@ function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
       </div>
 
       {/* History */}
-      <div className="bg-white dark:bg-[#232a31] rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-[#d9d9d9] dark:border-[#3a414a] font-bold text-xs uppercase bg-slate-50 dark:bg-black/10">Historial de Cortes de Caja</div>
+      <div className="panel-card table-shell overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-white/20 dark:border-white/10 font-bold text-xs uppercase bg-white/35 dark:bg-black/10">Historial de Cortes de Caja</div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
             <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
@@ -1558,10 +1653,10 @@ function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0070b2]/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-      <form onSubmit={handleSubmit} className="bg-white dark:bg-[#1A1D23] border border-slate-200 dark:border-[#2D3139] p-8 rounded-2xl w-full max-w-md shadow-2xl transition-colors">
+    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+      <form onSubmit={handleSubmit} className="modal-card p-8 rounded-[30px] w-full max-w-md transition-colors">
         <div className="flex flex-col items-center text-center mb-8">
-          <div className="w-16 h-16 bg-[#0070b2]/10 text-[#0070b2] rounded-full flex items-center justify-center mb-4">
+          <div className="brand-panel w-16 h-16 text-white rounded-3xl flex items-center justify-center mb-4 shadow-2xl">
             <ArrowDownCircle size={32} />
           </div>
           <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">Apertura de Turno SAP</h2>
@@ -1575,7 +1670,7 @@ function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
               <input 
                 required 
                 type="number" 
-                className="w-full pl-10 pr-4 py-4 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded-xl text-3xl font-mono font-bold text-[#0070b2] outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                className="input-premium w-full pl-10 pr-4 py-4 text-3xl font-mono font-bold text-teal-700 dark:text-teal-300 outline-none"
                 value={initialCash}
                 onChange={e => setInitialCash(e.target.value)}
                 autoFocus
@@ -1587,7 +1682,7 @@ function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-[#0070b2] hover:bg-[#005a8f] text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-sm transition-all active:scale-[0.98]"
+          className="btn-primary w-full py-4 text-sm active:scale-[0.98]"
         >
           {loading ? 'Iniciando Turno...' : 'Comenzar Operaciones'}
         </button>
@@ -1647,36 +1742,37 @@ function ClientsView() {
   };
 
   return (
-    <div className="p-4 lg:p-8 h-full overflow-y-auto bg-[#f3f5f6] dark:bg-[#1a2026] flex flex-col gap-6">
+    <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto flex flex-col gap-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">
+          <p className="section-kicker">CRM compacto</p>
+          <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white flex items-center gap-2">
             <Users className="text-[#0070b2]" /> Directorio de Clientes
           </h2>
           <p className="text-xs text-slate-500 mt-1 uppercase font-bold tracking-widest">Gestión de cartera y lealtad</p>
         </div>
         <button 
           onClick={() => setEditingClient({ name: '', email: '', phone: '', taxId: '' })}
-          className="bg-[#0070b2] hover:bg-[#005a8f] text-white px-6 py-3 rounded shadow-md font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
+          className="btn-primary px-6 py-3 text-xs flex items-center gap-2"
         >
           <Plus size={16} /> Nuevo Cliente
         </button>
       </div>
 
-      <div className="bg-white dark:bg-[#232a31] p-4 rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a]">
+      <div className="panel-card p-4">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
             placeholder="Buscar por nombre, RFC o teléfono..." 
-            className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/10 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold text-sm outline-none focus:ring-2 focus:ring-[#0070b2]/50 transition-all"
+            className="input-premium w-full pl-10 pr-4 py-3 font-bold text-sm outline-none transition-all"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#232a31] rounded shadow-sm border border-[#d9d9d9] dark:border-[#3a414a] overflow-hidden">
+      <div className="panel-card table-shell overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[800px]">
             <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
@@ -1739,10 +1835,10 @@ function ClientsView() {
 
       {/* Editor Modal */}
       {editingClient && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#1a2026] w-full max-w-md rounded-xl shadow-2xl overflow-hidden border border-slate-200 dark:border-[#3a414a]">
-            <div className="p-6 border-b border-slate-100 dark:border-[#3a414a] flex justify-between items-center bg-slate-50 dark:bg-black/20">
-              <h3 className="font-bold text-sm uppercase tracking-widest text-[#0070b2]">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="modal-card w-full max-w-md rounded-[30px] overflow-hidden">
+            <div className="brand-panel p-6 flex justify-between items-center text-white">
+              <h3 className="font-black text-sm uppercase tracking-widest">
                 {editingClient.id ? 'Editar Cliente' : 'Nuevo Cliente CRM'}
               </h3>
               <button onClick={() => setEditingClient(null)}><X size={20} /></button>
@@ -1754,7 +1850,7 @@ function ClientsView() {
                    <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
                    <input 
                      required 
-                     className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                     className="input-premium w-full pl-10 pr-4 py-3 font-bold outline-none"
                      value={editingClient.name}
                      onChange={e => setEditingClient({...editingClient, name: e.target.value})}
                    />
@@ -1764,7 +1860,7 @@ function ClientsView() {
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">RFC / TAX ID</label>
                   <input 
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                    className="input-premium w-full px-4 py-3 font-bold outline-none"
                     value={editingClient.taxId}
                     onChange={e => setEditingClient({...editingClient, taxId: e.target.value})}
                   />
@@ -1772,7 +1868,7 @@ function ClientsView() {
                 <div className="space-y-1">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Teléfono</label>
                   <input 
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                    className="input-premium w-full px-4 py-3 font-bold outline-none"
                     value={editingClient.phone}
                     onChange={e => setEditingClient({...editingClient, phone: e.target.value})}
                   />
@@ -1782,7 +1878,7 @@ function ClientsView() {
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Email</label>
                 <input 
                   type="email"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-black/20 border border-[#d9d9d9] dark:border-[#3a414a] rounded font-bold outline-none focus:ring-2 focus:ring-[#0070b2]/50"
+                  className="input-premium w-full px-4 py-3 font-bold outline-none"
                   value={editingClient.email}
                   onChange={e => setEditingClient({...editingClient, email: e.target.value})}
                 />
@@ -1792,7 +1888,7 @@ function ClientsView() {
                 <button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full bg-[#0070b2] hover:bg-[#005a8f] text-white font-bold py-4 rounded shadow-lg uppercase tracking-widest text-xs transition-all"
+                  className="btn-primary w-full py-4 text-xs"
                 >
                   {loading ? 'Guardando...' : 'Guardar Cliente'}
                 </button>
