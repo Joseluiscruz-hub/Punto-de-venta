@@ -46,6 +46,24 @@ function createOfflineId() {
   return `OFF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
+function normalizeText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
+function productInitials(name: string) {
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map(part => part[0]?.toUpperCase()).join('') || 'ET';
+}
+
+function isEditableTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement
+    && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+}
+
 function loadSession(): Session | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -523,20 +541,41 @@ function POSView() {
   const [products, setProducts] = useState<ProductView[]>([]);
   const [cart, setCart] = useState<(ProductView & { quantity: number, subtotal: number })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmSaleInfo, setConfirmSaleInfo] = useState<{ paymentMethod: PaymentMethod; amountTendered: number } | null>(null);
   const [alertInfo, setAlertInfo] = useState<{ title: string; message: string; saleData?: Sale } | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCatalogLoading, setIsCatalogLoading] = useState(true);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // CRM State
   const [clients, setClients] = useState<Client[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>();
   const [clientSearch, setClientSearch] = useState('');
 
+  const showActionToast = useCallback((message: string) => {
+    setActionToast(message);
+    window.setTimeout(() => setActionToast(current => current === message ? null : current), 1800);
+  }, []);
+
   useEffect(() => {
-    BackendAPI.getStoreProducts(reqContext).then(setProducts);
-    BackendAPI.getClients(reqContext).then(setClients);
+    let active = true;
+    Promise.all([BackendAPI.getStoreProducts(reqContext), BackendAPI.getClients(reqContext)])
+      .then(([productData, clientData]) => {
+        if (!active) return;
+        setProducts(productData);
+        setClients(clientData);
+      })
+      .catch((error) => {
+        if (active) setAlertInfo({ title: 'Catalogo no disponible', message: errorMessage(error, 'No se pudo cargar el catalogo.') });
+      })
+      .finally(() => {
+        if (active) setIsCatalogLoading(false);
+      });
+    return () => { active = false; };
   }, [reqContext]);
 
   const filteredClients = useMemo(() => clients.filter(c => 
@@ -545,24 +584,56 @@ function POSView() {
 
   const selectedClient = clients.find(c => c.id === selectedClientId);
 
-  const filteredProducts = useMemo(() => products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.barcode.includes(searchQuery)
-  ), [products, searchQuery]);
+  const categories = useMemo(() => {
+    const counts = products.reduce<Record<string, number>>((acc, product) => {
+      acc[product.category] = (acc[product.category] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, count]) => ({ name, count }));
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    const query = normalizeText(searchQuery);
+    return products.filter(product => {
+      const inCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
+      const matchesQuery = !query
+        || normalizeText(product.name).includes(query)
+        || normalizeText(product.category).includes(query)
+        || product.barcode.toLowerCase().includes(query);
+      return inCategory && matchesQuery;
+    });
+  }, [products, searchQuery, selectedCategory]);
 
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartQuantities = useMemo(() => {
+    const quantities = new Map<string, number>();
+    cart.forEach(item => quantities.set(item.id, item.quantity));
+    return quantities;
+  }, [cart]);
 
-  const addToCart = (product: ProductView) => {
+  const addToCart = useCallback((product: ProductView) => {
+    if (product.stock <= 0) {
+      showActionToast(`${product.name} esta agotado`);
+      return;
+    }
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        if (existing.quantity >= product.stock) return prev;
+        if (existing.quantity >= product.stock) {
+          showActionToast(`Stock maximo: ${product.stock} unidades`);
+          return prev;
+        }
         return prev.map(item => item.id === product.id 
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price } : item);
       }
       return [...prev, { ...product, quantity: 1, subtotal: product.price }];
     });
     setSearchQuery('');
-  };
+    showActionToast(`${product.name} agregado`);
+  }, [showActionToast]);
 
   const updateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity <= 0) { setCart(prev => prev.filter(i => i.id !== id)); return; }
@@ -658,8 +729,56 @@ function POSView() {
   };
 
   const handleCheckout = (paymentMethod: PaymentMethod, amountTendered: number) => {
+    setShowPaymentModal(false);
     setConfirmSaleInfo({ paymentMethod, amountTendered });
   };
+
+  const addSearchResultToCart = useCallback(() => {
+    const query = normalizeText(searchQuery);
+    const exactBarcode = products.find(product => product.barcode.toLowerCase() === query);
+    const exactName = products.find(product => normalizeText(product.name) === query);
+    const candidate = exactBarcode || exactName || (filteredProducts.length === 1 ? filteredProducts[0] : null);
+    if (!candidate) {
+      showActionToast(query ? 'Refina la busqueda para agregar rapido' : 'Escanea o busca un producto');
+      return false;
+    }
+    addToCart(candidate);
+    return true;
+  }, [addToCart, filteredProducts, products, searchQuery, showActionToast]);
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addSearchResultToCart();
+    }
+    if (event.key === 'Escape') {
+      setSearchQuery('');
+    }
+  };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if ((event.key === 'F2' || (key === '/' && !isEditableTarget(event.target))) && !showPaymentModal && !confirmSaleInfo) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+
+      if ((event.key === 'F9' || ((event.ctrlKey || event.metaKey) && key === 'enter')) && cart.length > 0 && !showPaymentModal && !confirmSaleInfo) {
+        event.preventDefault();
+        setShowPaymentModal(true);
+      }
+
+      if (event.key === 'Escape') {
+        if (showPaymentModal) setShowPaymentModal(false);
+        else if (isCartOpen) setIsCartOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [cart.length, confirmSaleInfo, isCartOpen, showPaymentModal]);
 
   return (
     <div className="view-shell flex h-full relative overflow-hidden">
@@ -683,6 +802,7 @@ function POSView() {
         {confirmSaleInfo && <ConfirmDialog title="Confirmar Movimiento" message={`¿Estás seguro de completar esta transacción por ${formatCurrency(cartTotal)}?`} onConfirm={executeCheckout} onCancel={() => setConfirmSaleInfo(null)} />}
         {alertInfo && !alertInfo.saleData && <AlertDialog title={alertInfo.title} message={alertInfo.message} onClose={() => setAlertInfo(null)} />}
         {alertInfo?.saleData && <ReceiptModal sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} storeName={store?.name ?? 'Sucursal'} />}
+        {actionToast && <div className="toast-floating">{actionToast}</div>}
         
         <div className="search-hero mb-5 p-4 lg:p-5">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
@@ -698,7 +818,7 @@ function POSView() {
               </div>
               <div className="status-chip px-3 py-2">
                 <p className="text-[9px] uppercase tracking-[0.18em] font-black">Items</p>
-                <p className="text-xs font-black">{cart.reduce((s, i) => s + i.quantity, 0)}</p>
+                <p className="text-xs font-black">{cartItemsCount}</p>
               </div>
               <div className="status-chip px-3 py-2">
                 <p className="text-[9px] uppercase tracking-[0.18em] font-black">Total</p>
@@ -710,20 +830,64 @@ function POSView() {
             <Barcode size={24} className="text-teal-600 dark:text-teal-300 hidden sm:block" />
             <Search size={24} className="text-teal-600 dark:text-teal-300 sm:hidden" />
             <input
+              ref={searchInputRef}
               type="text" placeholder="Buscar producto o código..." className="flex-1 text-base lg:text-lg outline-none bg-transparent text-slate-900 dark:text-white font-bold placeholder:text-slate-400"
-              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} autoFocus
+              value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleSearchKeyDown} autoFocus
             />
+            <button type="button" onClick={addSearchResultToCart} className="hidden md:flex btn-secondary px-4 py-2 text-[10px] items-center gap-2">
+              Enter <Plus size={14} />
+            </button>
+          </div>
+          <div className="mt-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('Todos')}
+                className={`category-chip ${selectedCategory === 'Todos' ? 'category-chip-active' : ''}`}
+              >
+                Todos <span>{products.length}</span>
+              </button>
+              {categories.map(category => (
+                <button
+                  type="button"
+                  key={category.name}
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`category-chip ${selectedCategory === category.name ? 'category-chip-active' : ''}`}
+                >
+                  {category.name} <span>{category.count}</span>
+                </button>
+              ))}
+            </div>
+            <div className="hidden lg:flex items-center gap-2 text-[9px] uppercase tracking-[0.16em] font-black text-slate-400">
+              <span className="shortcut-chip">F2 Buscar</span>
+              <span className="shortcut-chip">Enter Agregar</span>
+              <span className="shortcut-chip">F9 Cobrar</span>
+              <span className="shortcut-chip">Esc Cerrar</span>
+            </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1 lg:pr-2">
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xxl:grid-cols-5 gap-4 pb-32">
-            {filteredProducts.map(product => (
+          {isCatalogLoading ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(165px,1fr))] gap-4 pb-32">
+              {Array.from({ length: 8 }).map((_, index) => <div key={index} className="skeleton-card" />)}
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(165px,1fr))] gap-4 pb-32">
+              {filteredProducts.map(product => {
+                const quantityInCart = cartQuantities.get(product.id) ?? 0;
+                return (
               <button key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0}
                 className="product-tile text-left p-0 transition-all flex flex-col group disabled:opacity-45 disabled:hover:translate-y-0 disabled:shadow-none">
-                
+
+                {quantityInCart > 0 && (
+                  <span className="absolute top-3 right-3 z-10 min-w-7 h-7 px-2 rounded-full bg-teal-500 text-white text-xs font-black flex items-center justify-center shadow-lg shadow-teal-500/30">
+                    {quantityInCart}
+                  </span>
+                )}
+
                 <div className="product-media w-full h-32 sm:h-40 overflow-hidden border-b border-white/30 dark:border-white/5">
-                  <img src={`https://picsum.photos/seed/${product.id}/400/400`} alt={product.name} className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all" referrerPolicy="no-referrer" />
+                  <ProductArtwork product={product} />
                 </div>
 
                 <div className="p-4 flex flex-col flex-1">
@@ -739,8 +903,19 @@ function POSView() {
                   </div>
                 </div>
               </button>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="empty-panel h-full min-h-[340px] flex flex-col items-center justify-center text-center p-8">
+              <PackageSearch size={42} className="text-teal-500 mb-4" />
+              <h3 className="text-2xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">No encontramos productos</h3>
+              <p className="text-sm text-slate-500 mt-2 max-w-md">Prueba otra categoria, escanea el codigo completo o limpia la busqueda para volver al catalogo.</p>
+              <button type="button" onClick={() => { setSearchQuery(''); setSelectedCategory('Todos'); searchInputRef.current?.focus(); }} className="btn-secondary px-5 py-3 text-xs mt-6">
+                Limpiar filtros
+              </button>
+            </div>
+          )}
         </div>
 
         {cart.length > 0 && (
@@ -748,7 +923,7 @@ function POSView() {
             <button onClick={() => setIsCartOpen(true)} className="btn-primary w-full p-4 flex items-center justify-between text-xs shadow-2xl">
               <div className="flex items-center gap-2">
                 <ShoppingCart size={18} />
-                <span>Carrito ({cart.reduce((s, i) => s + i.quantity, 0)})</span>
+                <span>Carrito ({cartItemsCount})</span>
               </div>
               <span className="text-base">{formatCurrency(cartTotal)}</span>
             </button>
@@ -769,10 +944,10 @@ function POSView() {
         <div className="flex-1 p-3 space-y-3 overflow-y-auto bg-white/20 dark:bg-black/5">
           {cart.map(item => (
             <div key={item.id} className="cart-line flex gap-3 p-3 text-slate-900 dark:text-white items-center shadow-sm">
-              <div className="flex flex-col items-center bg-slate-50/80 dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/5">
-                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="p-1 hover:text-[#0070b2] dark:hover:text-blue-400 transition-colors"><Plus size={12} /></button>
-                <span className="font-bold text-xs p-1 min-w-[24px] text-center">{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 text-slate-400 hover:text-red-500 transition-colors"><Trash2 size={12} /></button>
+              <div className="flex items-center gap-1 bg-slate-50/80 dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/5 p-1">
+                <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="w-8 h-8 rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-500 transition-colors flex items-center justify-center"><Trash2 size={13} /></button>
+                <span className="font-black text-sm min-w-[28px] text-center">{item.quantity}</span>
+                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 rounded-xl hover:bg-teal-500/10 hover:text-teal-600 dark:hover:text-teal-300 transition-colors flex items-center justify-center"><Plus size={14} /></button>
               </div>
               <div className="flex-1 flex flex-col min-w-0">
                 <h4 className="font-bold text-xs truncate">{item.name}</h4>
@@ -848,6 +1023,38 @@ function POSView() {
   );
 }
 
+const PRODUCT_ART_PALETTES = [
+  ['rgba(20,184,166,0.95)', 'rgba(37,99,235,0.9)'],
+  ['rgba(14,165,233,0.95)', 'rgba(124,58,237,0.86)'],
+  ['rgba(245,158,11,0.95)', 'rgba(225,29,72,0.82)'],
+  ['rgba(34,197,94,0.92)', 'rgba(20,184,166,0.88)'],
+  ['rgba(99,102,241,0.95)', 'rgba(217,70,239,0.82)'],
+];
+
+function ProductArtwork({ product }: { product: ProductView }) {
+  const seed = Array.from(product.category + product.name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const [from, to] = PRODUCT_ART_PALETTES[seed % PRODUCT_ART_PALETTES.length];
+
+  return (
+    <div
+      className="product-artwork"
+      style={{
+        background: `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.34), transparent 8rem), linear-gradient(135deg, ${from}, ${to})`,
+      }}
+    >
+      <div className="product-art-orb product-art-orb-one" />
+      <div className="product-art-orb product-art-orb-two" />
+      <div className="relative z-10 flex h-full flex-col items-center justify-center text-white">
+        <PackageSearch size={28} className="mb-2 opacity-80" />
+        <div className="text-4xl font-black tracking-[-0.08em]">{productInitials(product.name)}</div>
+        <div className="mt-2 max-w-[82%] truncate rounded-full bg-white/16 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/78">
+          {product.category}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PaymentModal({ total, onClose, onComplete }: {
   total: number;
   onClose: () => void;
@@ -858,6 +1065,49 @@ function PaymentModal({ total, onClose, onComplete }: {
   const tenderNum = parseFloat(tendered) || 0;
   const change = tenderNum - total;
   const isInvalid = method === 'CASH' && tenderNum < total;
+  const quickAmounts = useMemo(() => {
+    const candidates = [
+      total,
+      Math.ceil(total / 20) * 20,
+      Math.ceil(total / 50) * 50,
+      Math.ceil(total / 100) * 100,
+      50,
+      100,
+      200,
+      500,
+      1000,
+    ].filter(amount => amount >= total);
+    return Array.from(new Set(candidates)).slice(0, 5);
+  }, [total]);
+
+  const submitPayment = useCallback(() => {
+    if (!isInvalid) onComplete(method, tenderNum);
+  }, [isInvalid, method, onComplete, tenderNum]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submitPayment();
+      }
+      if (!isEditableTarget(event.target)) {
+        if (event.key === '1') {
+          setMethod('CASH');
+          setTendered(total.toString());
+        }
+        if (event.key === '2') {
+          setMethod('CARD');
+          setTendered(total.toString());
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose, submitPayment, total]);
 
   return (
     <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md flex items-center justify-center z-50 p-4">
@@ -868,19 +1118,35 @@ function PaymentModal({ total, onClose, onComplete }: {
         </div>
         <div className="p-6 space-y-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
           <div className="grid grid-cols-2 gap-4">
-            <button onClick={() => { setMethod('CASH'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CASH'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>EFECTIVO</button>
-            <button onClick={() => { setMethod('CARD'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CARD'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>TARJETA</button>
+            <button onClick={() => { setMethod('CASH'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CASH'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>1 EFECTIVO</button>
+            <button onClick={() => { setMethod('CARD'); setTendered(total.toString()); }} className={`p-4 border rounded-2xl font-black transition-colors ${method==='CARD'?'border-teal-500 bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-300':'border-slate-200 dark:border-[#2D3139] text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5'}`}>2 TARJETA</button>
           </div>
           {method === 'CASH' && (
-            <div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {quickAmounts.map(amount => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setTendered(amount.toString())}
+                    className={`quick-cash ${tenderNum === amount ? 'quick-cash-active' : ''}`}
+                  >
+                    {amount === total ? 'Exacto' : formatCurrency(amount).replace('.00', '')}
+                  </button>
+                ))}
+              </div>
               <input type="number" value={tendered} onChange={e => setTendered(e.target.value)} className="input-premium w-full text-right text-3xl font-mono p-4 outline-none text-slate-900 dark:text-white transition-colors" onFocus={(e) => e.currentTarget.select()}/>
-              <div className="flex justify-between mt-4"><span>Cambio</span><span className="font-mono text-2xl text-slate-900 dark:text-white">{formatCurrency(change>0?change:0)}</span></div>
+              <div className={`payment-change ${isInvalid ? 'payment-change-error' : ''}`}>
+                <span>{isInvalid ? 'Faltante' : 'Cambio'}</span>
+                <span className="font-mono text-2xl">{formatCurrency(isInvalid ? Math.abs(change) : Math.max(change, 0))}</span>
+              </div>
             </div>
           )}
           <div className="flex gap-4">
             <button onClick={onClose} className="btn-secondary flex-1 py-4 text-xs">Cancelar</button>
-            <button onClick={() => onComplete(method, tenderNum)} disabled={isInvalid} className="btn-primary flex-1 py-4 text-xs">Confirmar</button>
+            <button onClick={submitPayment} disabled={isInvalid} className="btn-primary flex-1 py-4 text-xs">Confirmar</button>
           </div>
+          <p className="text-center text-[9px] uppercase tracking-[0.18em] font-black text-slate-400">Enter confirma · Esc cancela</p>
         </div>
       </div>
     </div>
@@ -939,6 +1205,9 @@ function InventoryView() {
   };
 
   const filtered = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode.includes(search));
+  const inventoryValue = products.reduce((sum, product) => sum + product.price * product.stock, 0);
+  const lowStockCount = products.filter(product => product.stock > 0 && product.stock <= product.minStock).length;
+  const outOfStockCount = products.filter(product => product.stock <= 0).length;
 
   return (
     <div className="view-shell p-4 lg:p-8 h-full flex flex-col relative text-slate-900 dark:text-[#E2E8F0] transition-colors">
@@ -955,6 +1224,25 @@ function InventoryView() {
         <div className="flex gap-2">
           <button onClick={() => setShowBulkImport(true)} className="btn-secondary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"><Upload size={18}/> Importar</button>
           <button onClick={() => setIsEditing({category: 'Abarrotes', stock: 0, minStock: 5})} className="btn-primary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"><Plus size={18}/> Crear Material</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+        <div className="mini-metric">
+          <p>Valor inventario</p>
+          <strong>{formatCurrency(inventoryValue)}</strong>
+        </div>
+        <div className="mini-metric">
+          <p>Productos</p>
+          <strong>{products.length}</strong>
+        </div>
+        <div className="mini-metric">
+          <p>Bajo stock</p>
+          <strong>{lowStockCount}</strong>
+        </div>
+        <div className="mini-metric">
+          <p>Agotados</p>
+          <strong>{outOfStockCount}</strong>
         </div>
       </div>
 
@@ -1197,6 +1485,15 @@ function DashboardView() {
   }, [products]);
 
   const COLORS = ['#0070b2', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const lowStockProducts = products
+    .filter(product => product.stock <= product.minStock)
+    .sort((a, b) => a.stock - b.stock)
+    .slice(0, 5);
+  const highValueProducts = [...products]
+    .sort((a, b) => (b.stock * b.price) - (a.stock * a.price))
+    .slice(0, 5);
+  const bestMarginProduct = [...products]
+    .sort((a, b) => ((b.price - b.cost) / Math.max(b.price, 1)) - ((a.price - a.cost) / Math.max(a.price, 1)))[0];
 
   return (
     <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
@@ -1267,6 +1564,69 @@ function DashboardView() {
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="panel-card p-6 xl:col-span-2">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <p className="section-kicker">Prioridad de inventario</p>
+              <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">Alertas Inteligentes</h3>
+            </div>
+            <AlertCircle className={lowStockProducts.length ? 'text-amber-500' : 'text-emerald-500'} />
+          </div>
+          <div className="space-y-3">
+            {lowStockProducts.length ? lowStockProducts.map(product => (
+              <div key={product.id} className="insight-row">
+                <div>
+                  <p className="font-black text-sm text-slate-900 dark:text-white">{product.name}</p>
+                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-slate-400">{product.category} · minimo {product.minStock}</p>
+                </div>
+                <span className="rounded-full bg-amber-500/12 px-3 py-1 text-xs font-black text-amber-600 dark:text-amber-300">{product.stock} uds</span>
+              </div>
+            )) : (
+              <div className="empty-inline">
+                <CheckCircle2 size={20} className="text-emerald-500" />
+                Inventario dentro de rango operativo.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="panel-card p-6">
+          <p className="section-kicker">Margen estrella</p>
+          <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white mb-5">Mejor Producto</h3>
+          {bestMarginProduct ? (
+            <div className="rounded-[24px] border border-teal-500/20 bg-teal-500/10 p-5">
+              <p className="text-sm font-black text-slate-900 dark:text-white">{bestMarginProduct.name}</p>
+              <p className="mt-2 text-4xl font-black tracking-[-0.06em] text-teal-700 dark:text-teal-300">
+                {(((bestMarginProduct.price - bestMarginProduct.cost) / Math.max(bestMarginProduct.price, 1)) * 100).toFixed(1)}%
+              </p>
+              <p className="text-[10px] uppercase tracking-[0.16em] font-black text-slate-400">margen estimado</p>
+            </div>
+          ) : (
+            <div className="empty-inline">Sin productos cargados.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="panel-card p-6">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="section-kicker">Capital en anaquel</p>
+            <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">Productos con Mayor Valor</h3>
+          </div>
+          <PackageSearch className="text-teal-500" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {highValueProducts.map(product => (
+            <div key={product.id} className="rounded-[22px] border border-white/20 dark:border-white/10 bg-white/45 dark:bg-white/5 p-4">
+              <p className="line-clamp-2 text-xs font-black text-slate-900 dark:text-white min-h-8">{product.name}</p>
+              <p className="mt-3 text-lg font-black text-teal-700 dark:text-teal-300">{formatCurrency(product.stock * product.price)}</p>
+              <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-slate-400">{product.stock} uds</p>
+            </div>
+          ))}
         </div>
       </div>
 
