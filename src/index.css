@@ -453,7 +453,9 @@ button:disabled {
 
 .category-chip,
 .shortcut-chip,
-.quick-cash {
+.quick-cash,
+.recent-chip,
+.stock-filter-chip {
   white-space: nowrap;
   border-radius: 999px;
   border: 1px solid rgba(15, 23, 42, 0.1);
@@ -467,7 +469,9 @@ button:disabled {
 
 .dark .category-chip,
 .dark .shortcut-chip,
-.dark .quick-cash {
+.dark .quick-cash,
+.dark .recent-chip,
+.dark .stock-filter-chip {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.06);
   color: #cbd5e1;
@@ -500,6 +504,39 @@ button:disabled {
 
 .shortcut-chip {
   padding: 0.46rem 0.68rem;
+}
+
+.recent-chip,
+.stock-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.52rem 0.75rem;
+  transition: all 160ms ease;
+}
+
+.recent-chip span,
+.stock-filter-chip span {
+  color: #0f766e;
+}
+
+.recent-chip:hover:not(:disabled),
+.stock-filter-chip:hover,
+.stock-filter-chip-active {
+  border-color: rgba(20, 184, 166, 0.54);
+  background: rgba(20, 184, 166, 0.12);
+  color: #0f766e;
+  box-shadow: 0 10px 24px rgba(20, 184, 166, 0.1);
+}
+
+.dark .recent-chip:hover:not(:disabled),
+.dark .stock-filter-chip:hover,
+.dark .stock-filter-chip-active {
+  color: #5eead4;
+}
+
+.recent-chip:disabled {
+  opacity: 0.45;
 }
 
 .toast-floating {
@@ -765,6 +802,24 @@ button:disabled {
   overflow: hidden;
 }
 
+.table-sort-button {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.35rem 0.55rem;
+  color: inherit;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.table-sort-button:hover {
+  background: rgba(20, 184, 166, 0.1);
+  color: #0f766e;
+}
+
+.dark .table-sort-button:hover {
+  color: #5eead4;
+}
+
 .section-kicker {
   color: #0f766e;
   font-size: 0.68rem;
@@ -820,13 +875,32 @@ button:disabled {
 }
 
 /* Estilos de impresion para recibo */
+@page {
+  size: 80mm auto;
+  margin: 4mm;
+}
+
 @media print {
   .no-print {
     display: none !important;
   }
 
+  html,
   body {
     background: white !important;
     color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #root {
+    width: 80mm !important;
+  }
+
+  .receipt-paper {
+    width: 72mm !important;
+    max-width: 72mm !important;
+    box-shadow: none !important;
+    filter: none !important;
   }
 }
