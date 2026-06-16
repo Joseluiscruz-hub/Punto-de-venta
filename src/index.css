@@ -874,6 +874,295 @@ button:disabled {
   }
 }
 
+/* Identidad corporativa neutral */
+:root {
+  --corp-font: "Manrope", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --corp-ink: #18181b;
+  --corp-ink-soft: #52525b;
+  --corp-accent: #3f3f46;
+  --corp-accent-strong: #27272a;
+  --corp-warm: #f5f3ef;
+  --corp-surface: rgba(255, 255, 255, 0.8);
+  --corp-line: rgba(39, 39, 42, 0.12);
+  --panel-light: rgba(255, 255, 255, 0.82);
+  --panel-dark: rgba(18, 18, 20, 0.82);
+  --line-light: rgba(39, 39, 42, 0.11);
+  --line-dark: rgba(244, 244, 245, 0.1);
+}
+
+body {
+  font-family: var(--corp-font);
+  letter-spacing: -0.012em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+button,
+input,
+select,
+textarea {
+  font-family: var(--corp-font);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-black,
+.font-extrabold {
+  font-weight: 800;
+}
+
+.app-bg {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(82, 82, 91, 0.18), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgba(120, 113, 108, 0.13), transparent 28rem),
+    linear-gradient(135deg, #ece9e3 0%, #f7f5f0 48%, #e7e5df 100%);
+}
+
+.dark .app-bg {
+  background:
+    radial-gradient(circle at 12% -8%, rgba(161, 161, 170, 0.14), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgba(168, 162, 158, 0.1), transparent 28rem),
+    linear-gradient(135deg, #09090b 0%, #18181b 48%, #27272a 100%);
+}
+
+.login-shell {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(82, 82, 91, 0.18), transparent 24rem),
+    radial-gradient(circle at 80% 18%, rgba(120, 113, 108, 0.14), transparent 26rem),
+    linear-gradient(135deg, #edeae4 0%, #faf9f5 45%, #e6e3dc 100%);
+}
+
+.dark .login-shell {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(161, 161, 170, 0.16), transparent 24rem),
+    radial-gradient(circle at 80% 18%, rgba(168, 162, 158, 0.1), transparent 26rem),
+    linear-gradient(135deg, #09090b 0%, #18181b 45%, #27272a 100%);
+}
+
+.login-shell::before {
+  background: rgba(82, 82, 91, 0.14);
+}
+
+.login-shell::after {
+  background: rgba(120, 113, 108, 0.12);
+}
+
+.login-hero-card::before {
+  background:
+    conic-gradient(from 140deg, rgba(39, 39, 42, 0.22), rgba(120, 113, 108, 0.18), rgba(214, 211, 209, 0.16), rgba(39, 39, 42, 0.22));
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #18181b, #52525b, #78716c);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.dark .text-gradient {
+  background-image: linear-gradient(90deg, #fafafa, #d4d4d8, #a8a29e);
+}
+
+.brand-panel {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.2), transparent 9rem),
+    linear-gradient(135deg, #18181b, #3f3f46 54%, #78716c);
+}
+
+.side-rail {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 243, 239, 0.72)),
+    linear-gradient(180deg, rgba(82, 82, 91, 0.07), transparent 48%);
+}
+
+.dark .side-rail {
+  background:
+    linear-gradient(180deg, rgba(9, 9, 11, 0.9), rgba(24, 24, 27, 0.78)),
+    linear-gradient(180deg, rgba(161, 161, 170, 0.08), transparent 46%);
+}
+
+.nav-link::before {
+  background: linear-gradient(90deg, rgba(82, 82, 91, 0.13), rgba(120, 113, 108, 0.08));
+}
+
+.nav-link-active {
+  color: var(--corp-ink);
+  border-color: rgba(63, 63, 70, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(63, 63, 70, 0.08), 0 14px 30px rgba(39, 39, 42, 0.09);
+}
+
+.dark .nav-link-active {
+  color: #f4f4f5;
+}
+
+.view-shell::before,
+.metric-card::after {
+  background: radial-gradient(circle at 55% 0%, rgba(82, 82, 91, 0.1), transparent 34rem);
+}
+
+.search-hero {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(250, 250, 249, 0.66)),
+    radial-gradient(circle at 0% 0%, rgba(82, 82, 91, 0.12), transparent 18rem);
+}
+
+.dark .search-hero {
+  background:
+    linear-gradient(135deg, rgba(24, 24, 27, 0.84), rgba(39, 39, 42, 0.56)),
+    radial-gradient(circle at 0% 0%, rgba(161, 161, 170, 0.1), transparent 18rem);
+}
+
+.product-tile::before {
+  background: linear-gradient(135deg, rgba(82, 82, 91, 0.12), rgba(120, 113, 108, 0.1));
+}
+
+.product-tile:hover {
+  border-color: rgba(82, 82, 91, 0.38);
+  box-shadow: 0 22px 52px rgba(39, 39, 42, 0.14);
+}
+
+.product-media {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.92), rgba(231, 229, 228, 0.56)),
+    linear-gradient(135deg, rgba(82, 82, 91, 0.08), rgba(120, 113, 108, 0.08));
+}
+
+.dark .product-media {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(39, 39, 42, 0.9), rgba(9, 9, 11, 0.72)),
+    linear-gradient(135deg, rgba(161, 161, 170, 0.08), rgba(120, 113, 108, 0.06));
+}
+
+.category-chip span,
+.recent-chip span,
+.stock-filter-chip span,
+.mini-metric strong {
+  color: var(--corp-accent);
+}
+
+.category-chip:hover,
+.category-chip-active,
+.recent-chip:hover:not(:disabled),
+.stock-filter-chip:hover,
+.stock-filter-chip-active,
+.quick-cash:hover,
+.quick-cash-active {
+  border-color: rgba(82, 82, 91, 0.42);
+  background: rgba(82, 82, 91, 0.09);
+  color: var(--corp-ink);
+  box-shadow: 0 10px 24px rgba(39, 39, 42, 0.09);
+}
+
+.dark .category-chip:hover,
+.dark .category-chip-active,
+.dark .recent-chip:hover:not(:disabled),
+.dark .stock-filter-chip:hover,
+.dark .stock-filter-chip-active,
+.dark .quick-cash:hover,
+.dark .quick-cash-active {
+  color: #f4f4f5;
+}
+
+.toast-floating {
+  border-color: rgba(212, 212, 216, 0.22);
+  background: rgba(24, 24, 27, 0.92);
+}
+
+.empty-panel {
+  border-color: rgba(82, 82, 91, 0.24);
+}
+
+.dark .empty-panel {
+  border-color: rgba(212, 212, 216, 0.18);
+}
+
+.input-premium:focus {
+  border-color: rgba(82, 82, 91, 0.6);
+  box-shadow: 0 0 0 4px rgba(82, 82, 91, 0.12);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #18181b, #3f3f46 58%, #78716c);
+  box-shadow: 0 16px 34px rgba(39, 39, 42, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 22px 44px rgba(39, 39, 42, 0.26);
+}
+
+.btn-secondary:hover:not(:disabled),
+.table-sort-button:hover,
+.surface-hover:hover {
+  background: rgba(82, 82, 91, 0.08);
+  color: var(--corp-ink);
+  border-color: rgba(82, 82, 91, 0.24);
+}
+
+.dark .btn-secondary:hover:not(:disabled),
+.dark .table-sort-button:hover {
+  color: #f4f4f5;
+}
+
+.status-chip,
+.payment-change {
+  border-color: rgba(82, 82, 91, 0.2);
+  background: rgba(82, 82, 91, 0.08);
+  color: var(--corp-accent);
+}
+
+.dark .status-chip,
+.dark .payment-change {
+  color: #d4d4d8;
+}
+
+.section-kicker {
+  color: var(--corp-accent);
+  letter-spacing: 0.24em;
+}
+
+.dark .section-kicker {
+  color: #d4d4d8;
+}
+
+[class*="text-teal-"],
+[class*="text-blue-"],
+.text-\[\#0070b2\] {
+  color: var(--corp-accent) !important;
+}
+
+.dark [class*="dark\:text-teal-"],
+.dark [class*="dark\:text-blue-"],
+.dark .dark\:text-blue-400 {
+  color: #d4d4d8 !important;
+}
+
+[class*="bg-teal-"],
+[class*="bg-blue-"] {
+  background-color: rgba(82, 82, 91, 0.12) !important;
+}
+
+[class*="border-teal-"],
+[class*="border-blue-"] {
+  border-color: rgba(82, 82, 91, 0.24) !important;
+}
+
+[class*="from-teal-"] {
+  --tw-gradient-from: #52525b var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(82 82 91 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+[class*="to-blue-"] {
+  --tw-gradient-to: #27272a var(--tw-gradient-to-position) !important;
+}
+
 /* Estilos de impresion para recibo */
 @page {
   size: 80mm auto;

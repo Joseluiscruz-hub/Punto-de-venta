@@ -1065,11 +1065,11 @@ function POSView() {
 }
 
 const PRODUCT_ART_PALETTES = [
-  ['rgba(20,184,166,0.95)', 'rgba(37,99,235,0.9)'],
-  ['rgba(14,165,233,0.95)', 'rgba(124,58,237,0.86)'],
-  ['rgba(245,158,11,0.95)', 'rgba(225,29,72,0.82)'],
-  ['rgba(34,197,94,0.92)', 'rgba(20,184,166,0.88)'],
-  ['rgba(99,102,241,0.95)', 'rgba(217,70,239,0.82)'],
+  ['rgba(39,39,42,0.96)', 'rgba(120,113,108,0.88)'],
+  ['rgba(63,63,70,0.96)', 'rgba(28,25,23,0.9)'],
+  ['rgba(87,83,78,0.94)', 'rgba(41,37,36,0.88)'],
+  ['rgba(82,82,91,0.94)', 'rgba(68,64,60,0.88)'],
+  ['rgba(24,24,27,0.96)', 'rgba(168,162,158,0.72)'],
 ];
 
 function ProductArtwork({ product }: { product: ProductView }) {
@@ -1631,7 +1631,7 @@ function DashboardView() {
     return Object.entries(cats).map(([name, value]) => ({ name, value }));
   }, [products]);
 
-  const COLORS = ['#0070b2', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const COLORS = ['#27272a', '#52525b', '#78716c', '#a8a29e', '#d6d3d1'];
   const lowStockProducts = products
     .filter(product => product.stock <= product.minStock)
     .sort((a, b) => a.stock - b.stock)
@@ -1716,7 +1716,7 @@ function DashboardView() {
                   contentStyle={{ backgroundColor: '#1a2026', border: 'none', borderRadius: '8px', color: '#fff' }}
                   itemStyle={{ color: '#60a5fa' }}
                 />
-                <Line type="monotone" dataKey="total" stroke="#0070b2" strokeWidth={3} dot={{ fill: '#0070b2', r: 4 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="total" stroke="#3f3f46" strokeWidth={3} dot={{ fill: '#3f3f46', r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
