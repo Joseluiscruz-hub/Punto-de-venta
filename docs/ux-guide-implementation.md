@@ -15,6 +15,14 @@ Esta nota traduce la guia `punto_de_venta_guia_mejoras.html` a cambios seguros d
 - Dashboard: ranking visual de productos vendidos cuando las ventas incluyen detalle de items.
 - Recibos: base de impresion en formato 80mm y dialogos con semantica accesible.
 
+## Iteracion adicional (junio 2026)
+
+- Ventas: filtro por rango (Hoy, 7 dias, 30 dias, Todo), filtro por metodo de pago y busqueda por ticket, metodo o producto.
+- Ventas: resumen de KPIs (transacciones, ingreso del periodo, ticket promedio, articulos) y exportacion del listado filtrado a CSV (con BOM para Excel).
+- Dashboard: selector de periodo que recalcula ingresos, utilidad, transacciones, tendencia y top de productos.
+- Recibo: precio unitario por linea, conteo de articulos y desglose de efectivo recibido/cambio en ventas en efectivo.
+- POS: accion para vaciar el carrito desde el encabezado del checkout.
+
 ## Base preparada, pendiente de fase mayor
 
 - Refactor por features (`features/pos`, `features/inventory`, `features/dashboard`): recomendable, pero requiere dividir `App.tsx`, actualizar imports y cubrir regresiones con pruebas de UI.

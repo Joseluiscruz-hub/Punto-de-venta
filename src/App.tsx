@@ -6,7 +6,7 @@ import {
   TrendingUp, AlertCircle, CheckCircle2, UserCog, ShieldCheck,
   History, X, Store as StoreIcon, Sun, Moon, Upload, Menu,
   Printer, QrCode, CloudUpload, WifiOff, BarChart3, PieChart as PieIcon,
-  Wallet, Landmark, ArrowDownCircle, Users, Mail, Phone
+  Wallet, Landmark, ArrowDownCircle, Users, Mail, Phone, Download, CalendarDays
 } from 'lucide-react';
 
 import {
@@ -78,6 +78,41 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 type StockFilter = 'ALL' | 'LOW' | 'OUT';
 type InventorySortKey = 'name' | 'category' | 'price' | 'stock';
 type SortDirection = 'asc' | 'desc';
+type SalesPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
+
+const PERIOD_OPTIONS: Array<{ key: SalesPeriod; label: string }> = [
+  { key: 'TODAY', label: 'Hoy' },
+  { key: 'WEEK', label: '7 dias' },
+  { key: 'MONTH', label: '30 dias' },
+  { key: 'ALL', label: 'Todo' },
+];
+
+// Inicio del periodo (medianoche local) usado para filtrar ventas por fecha.
+function startOfPeriod(period: SalesPeriod): number {
+  if (period === 'ALL') return 0;
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (period === 'WEEK') start.setDate(start.getDate() - 6);
+  if (period === 'MONTH') start.setDate(start.getDate() - 29);
+  return start.getTime();
+}
+
+// Descarga un archivo de texto en el navegador sin dependencias externas.
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+function escapeCsv(value: string | number) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
 
 function loadSession(): Session | null {
   try {
@@ -978,9 +1013,20 @@ function POSView() {
             <p className="text-[9px] uppercase tracking-[0.2em] font-black text-white/65">Checkout</p>
             <h2 className="font-black text-sm uppercase tracking-widest">Resumen de Materiales</h2>
           </div>
-          <button onClick={() => setIsCartOpen(false)} className="p-2 text-white/75 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-1">
+            {cart.length > 0 && (
+              <button
+                onClick={() => { setCart([]); setSelectedClientId(undefined); showActionToast('Carrito vaciado'); }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.16em] text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+                title="Vaciar carrito"
+              >
+                <Trash2 size={13} /> Vaciar
+              </button>
+            )}
+            <button onClick={() => setIsCartOpen(false)} className="p-2 text-white/75 hover:text-white transition-colors">
+              <X size={20} />
+            </button>
+          </div>
         </div>
         <div className="flex-1 p-3 space-y-3 overflow-y-auto bg-white/20 dark:bg-black/5">
           {cart.map(item => (
@@ -1583,6 +1629,7 @@ function DashboardView() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<ProductView[]>([]);
   const [lastDashboardRefresh, setLastDashboardRefresh] = useState<Date | null>(null);
+  const [period, setPeriod] = useState<SalesPeriod>('ALL');
 
   useEffect(() => {
     let active = true;
@@ -1608,20 +1655,25 @@ function DashboardView() {
     };
   }, [reqContext]);
 
-  const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
-  const totalCost = sales.reduce((sum, sale) => sum + (sale.items?.reduce((c, i) => c + (i.cost * i.quantity), 0) || 0), 0);
+  const periodSales = useMemo(() => {
+    const from = startOfPeriod(period);
+    return sales.filter(sale => new Date(sale.datetime).getTime() >= from);
+  }, [sales, period]);
+
+  const totalRevenue = periodSales.reduce((sum, s) => sum + s.total, 0);
+  const totalCost = periodSales.reduce((sum, sale) => sum + (sale.items?.reduce((c, i) => c + (i.cost * i.quantity), 0) || 0), 0);
   const totalProfit = totalRevenue - totalCost;
   const iv = products.reduce((sum, p) => sum + (p.cost * p.stock), 0);
 
   // Data processing for Charts
   const salesByDate = useMemo(() => {
     const groups: Record<string, number> = {};
-    sales.forEach(s => {
+    periodSales.forEach(s => {
       const date = new Date(s.datetime).toLocaleDateString();
       groups[date] = (groups[date] || 0) + s.total;
     });
     return Object.entries(groups).map(([date, total]) => ({ date, total })).reverse();
-  }, [sales]);
+  }, [periodSales]);
 
   const categoryMix = useMemo(() => {
     const cats: Record<string, number> = {};
@@ -1643,7 +1695,7 @@ function DashboardView() {
     .sort((a, b) => ((b.price - b.cost) / Math.max(b.price, 1)) - ((a.price - a.cost) / Math.max(a.price, 1)))[0];
   const topProducts = useMemo(() => {
     const groups: Record<string, { name: string; quantity: number; total: number }> = {};
-    sales.forEach(sale => {
+    periodSales.forEach(sale => {
       sale.items?.forEach(item => {
         const current = groups[item.productId] ?? { name: item.name, quantity: 0, total: 0 };
         current.quantity += item.quantity;
@@ -1652,7 +1704,7 @@ function DashboardView() {
       });
     });
     return Object.values(groups).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [sales]);
+  }, [periodSales]);
   const todayKey = new Date().toLocaleDateString();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -1667,13 +1719,23 @@ function DashboardView() {
 
   return (
     <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
-      <div className="panel-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 p-5">
-        <div>
-          <p className="section-kicker">Inteligencia de negocio</p>
-          <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Panel Ejecutivo</h2>
+      <div className="panel-card flex flex-col gap-4 p-5">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <p className="section-kicker">Inteligencia de negocio</p>
+            <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Panel Ejecutivo</h2>
+          </div>
+          <div className="status-chip text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-2">
+             <TrendingUp size={12} /> Live Sync 60s {lastDashboardRefresh ? `- ${lastDashboardRefresh.toLocaleTimeString()}` : ''}
+          </div>
         </div>
-        <div className="status-chip text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-2">
-           <TrendingUp size={12} /> Live Sync 60s {lastDashboardRefresh ? `- ${lastDashboardRefresh.toLocaleTimeString()}` : ''}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[9px] uppercase tracking-[0.18em] font-black text-slate-400 inline-flex items-center gap-1"><CalendarDays size={12} /> Periodo</span>
+          {PERIOD_OPTIONS.map(option => (
+            <button key={option.key} type="button" onClick={() => setPeriod(option.key)} className={`stock-filter-chip ${period === option.key ? 'stock-filter-chip-active' : ''}`}>
+              {option.label}
+            </button>
+          ))}
         </div>
       </div>
       
@@ -1681,7 +1743,7 @@ function DashboardView() {
         <StatCard title="Ingresos Brutos" value={formatCurrency(totalRevenue)} icon={<Banknote size={24}/>} />
         <StatCard title="Margen de Utilidad" value={formatCurrency(totalProfit)} icon={<TrendingUp size={24}/>} />
         <StatCard title="Valuación Maestro" value={formatCurrency(iv)} icon={<PackageSearch size={24}/>} />
-        <StatCard title="Transacciones" value={sales.length} icon={<Receipt size={24}/>} />
+        <StatCard title="Transacciones" value={periodSales.length} icon={<Receipt size={24}/>} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -1878,43 +1940,135 @@ function DashboardView() {
   );
 }
 
+const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+  TRANSFER: 'Transferencia',
+  MIXED: 'Mixto',
+};
+
 function SalesView() {
   const { reqContext, store } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Sale | null>(null);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 140);
+  const [period, setPeriod] = useState<SalesPeriod>('ALL');
+  const [methodFilter, setMethodFilter] = useState<'ALL' | PaymentMethod>('ALL');
 
   useEffect(() => { BackendAPI.getSales({ tenantId: reqContext.tenantId, storeId: reqContext.storeId }).then(setSales); }, [reqContext]);
+
+  const filtered = useMemo(() => {
+    const query = normalizeText(debouncedSearch);
+    const from = startOfPeriod(period);
+    return sales.filter(sale => {
+      const inPeriod = new Date(sale.datetime).getTime() >= from;
+      const inMethod = methodFilter === 'ALL' || sale.paymentMethod === methodFilter;
+      const matchesQuery = !query
+        || sale.id.toLowerCase().includes(query)
+        || normalizeText(PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod).includes(query)
+        || (sale.items?.some(item => normalizeText(item.name).includes(query)) ?? false);
+      return inPeriod && inMethod && matchesQuery;
+    });
+  }, [sales, debouncedSearch, period, methodFilter]);
+
+  const summary = useMemo(() => {
+    const total = filtered.reduce((sum, sale) => sum + sale.total, 0);
+    const items = filtered.reduce((sum, sale) => sum + sale.itemsCount, 0);
+    return { count: filtered.length, total, items, avg: filtered.length ? total / filtered.length : 0 };
+  }, [filtered]);
+
+  const methodOptions: Array<{ key: 'ALL' | PaymentMethod; label: string }> = [
+    { key: 'ALL', label: 'Todos' },
+    { key: 'CASH', label: 'Efectivo' },
+    { key: 'CARD', label: 'Tarjeta' },
+    { key: 'TRANSFER', label: 'Transferencia' },
+  ];
+
+  const exportCsv = () => {
+    const header = ['ID', 'Fecha', 'Metodo', 'Articulos', 'Total', 'Recibido', 'Cambio'];
+    const lines = filtered.map(sale => [
+      sale.id,
+      new Date(sale.datetime).toLocaleString(),
+      PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod,
+      sale.itemsCount,
+      sale.total,
+      sale.amountTendered,
+      sale.changeAmount,
+    ]);
+    const csv = [header, ...lines].map(row => row.map(escapeCsv).join(',')).join('\r\n');
+    downloadTextFile(`ventas-${new Date().toISOString().slice(0, 10)}.csv`, String.fromCharCode(0xFEFF) + csv, 'text/csv;charset=utf-8;');
+  };
 
   return (
     <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
       {selectedReceipt && <ReceiptModal sale={selectedReceipt} onClose={() => setSelectedReceipt(null)} storeName={store?.name ?? 'Sucursal'} />}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
          <div>
            <p className="section-kicker">Libro fiscal</p>
            <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white">Historico de Transacciones</h2>
          </div>
-         <div className="status-chip text-[10px] font-black px-3 py-2 uppercase">Registros: {sales.length}</div>
+         <button onClick={exportCsv} disabled={!filtered.length} className="btn-secondary flex items-center justify-center gap-2 px-4 py-3 text-xs">
+           <Download size={16} /> Exportar CSV
+         </button>
       </div>
-      <div className="panel-card table-shell flex-1 overflow-auto transition-colors">
-        <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
-          <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
-            <tr><th className="px-6 py-4">UUID TRANSACCIÓN</th><th className="px-6 py-4">MARCA DE TIEMPO</th><th className="px-6 py-4">MÉTODO PAGO</th><th className="px-6 py-4 text-right">VALOR NETO</th><th className="px-6 py-4 text-center">UM</th><th className="px-6 py-4 text-center">ACCIONES</th></tr>
-          </thead>
-          <tbody className="divide-y divide-[#d9d9d9] dark:divide-[#3a414a] transition-colors">
-            {sales.map(s => (
-              <tr key={s.id} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors text-slate-700 dark:text-slate-300">
-                <td className="px-6 py-4 font-mono text-slate-500 text-[10px]">{s.id}</td>
-                <td className="px-6 py-4 font-semibold">{new Date(s.datetime).toLocaleString()}</td>
-                <td className="px-6 py-4 font-bold text-[#0070b2] dark:text-blue-400 uppercase tracking-tighter">{s.paymentMethod}</td>
-                <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">{formatCurrency(s.total)}</td>
-                <td className="px-6 py-4 text-center font-bold text-slate-500">{s.itemsCount} LIN</td>
-                <td className="px-6 py-4 text-center">
-                  <button onClick={() => setSelectedReceipt(s)} className="p-2 text-[#0070b2] hover:bg-white dark:hover:bg-black/20 rounded-full transition-colors"><Printer size={16}/></button>
-                </td>
-              </tr>
+
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="mini-metric"><p>Transacciones</p><strong>{summary.count}</strong></div>
+        <div className="mini-metric"><p>Ingreso del periodo</p><strong>{formatCurrency(summary.total)}</strong></div>
+        <div className="mini-metric"><p>Ticket promedio</p><strong>{formatCurrency(summary.avg)}</strong></div>
+        <div className="mini-metric"><p>Articulos vendidos</p><strong>{summary.items}</strong></div>
+      </div>
+
+      <div className="panel-card table-shell flex-1 overflow-hidden flex flex-col transition-colors">
+        <div className="p-3 lg:p-4 border-b border-white/20 dark:border-white/10 bg-white/35 dark:bg-black/10 space-y-3">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input type="text" placeholder="Buscar por ticket, metodo o producto..." value={search} onChange={e => setSearch(e.target.value)} className="input-premium w-full pl-10 pr-4 py-3 text-xs font-semibold text-slate-900 dark:text-white outline-none transition-colors" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[9px] uppercase tracking-[0.18em] font-black text-slate-400 inline-flex items-center gap-1"><CalendarDays size={12} /> Periodo</span>
+            {PERIOD_OPTIONS.map(option => (
+              <button key={option.key} type="button" onClick={() => setPeriod(option.key)} className={`stock-filter-chip ${period === option.key ? 'stock-filter-chip-active' : ''}`}>
+                {option.label}
+              </button>
             ))}
-          </tbody>
-        </table>
+            <span className="mx-1 hidden sm:inline-block w-px h-4 bg-slate-300 dark:bg-white/10" />
+            {methodOptions.map(option => (
+              <button key={option.key} type="button" onClick={() => setMethodFilter(option.key)} className={`stock-filter-chip ${methodFilter === option.key ? 'stock-filter-chip-active' : ''}`}>
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 overflow-auto">
+          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
+            <thead className="bg-[#f0f3f4] dark:bg-[#2c343d] border-b border-[#d9d9d9] dark:border-[#3a414a] uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
+              <tr><th className="px-6 py-4">UUID TRANSACCIÓN</th><th className="px-6 py-4">MARCA DE TIEMPO</th><th className="px-6 py-4">MÉTODO PAGO</th><th className="px-6 py-4 text-right">VALOR NETO</th><th className="px-6 py-4 text-center">UM</th><th className="px-6 py-4 text-center">ACCIONES</th></tr>
+            </thead>
+            <tbody className="divide-y divide-[#d9d9d9] dark:divide-[#3a414a] transition-colors">
+              {filtered.map(s => (
+                <tr key={s.id} className="hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors text-slate-700 dark:text-slate-300">
+                  <td className="px-6 py-4 font-mono text-slate-500 text-[10px]">{s.id}</td>
+                  <td className="px-6 py-4 font-semibold">{new Date(s.datetime).toLocaleString()}</td>
+                  <td className="px-6 py-4 font-bold text-[#0070b2] dark:text-blue-400 uppercase tracking-tighter">{PAYMENT_LABELS[s.paymentMethod] ?? s.paymentMethod}</td>
+                  <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">{formatCurrency(s.total)}</td>
+                  <td className="px-6 py-4 text-center font-bold text-slate-500">{s.itemsCount} LIN</td>
+                  <td className="px-6 py-4 text-center">
+                    <button onClick={() => setSelectedReceipt(s)} className="p-2 text-[#0070b2] hover:bg-white dark:hover:bg-black/20 rounded-full transition-colors"><Printer size={16}/></button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400 font-black uppercase tracking-[0.16em]">
+                    Sin transacciones para los filtros actuales.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -1982,7 +2136,10 @@ function ReceiptModal({ sale, storeName, onClose }: { sale: Sale; storeName: str
                     {sale.items?.map((item) => (
                       <tr key={item.id} className="align-top">
                         <td className="py-2 pr-2">{item.quantity}</td>
-                        <td className="py-2 pr-2 uppercase">{item.name}</td>
+                        <td className="py-2 pr-2">
+                          <span className="uppercase">{item.name}</span>
+                          <span className="block text-[10px] text-slate-500">{formatCurrency(item.price)} c/u</span>
+                        </td>
                         <td className="py-2 text-right font-bold">{formatCurrency(item.subtotal)}</td>
                       </tr>
                     ))}
@@ -1991,10 +2148,19 @@ function ReceiptModal({ sale, storeName, onClose }: { sale: Sale; storeName: str
              </div>
 
              <div className="w-full flex flex-col gap-1 text-sm font-mono border-t border-slate-800 pt-3">
+                <div className="flex justify-between text-[11px] text-slate-500">
+                  <span>ARTÍCULOS</span><span className="text-slate-800">{sale.itemsCount}</span>
+                </div>
                 <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-300">
                   <span className="font-bold text-slate-800 tracking-widest uppercase">TOTAL</span>
                   <span className="font-black text-3xl tracking-tighter text-emerald-600">{formatCurrency(sale.total)}</span>
                 </div>
+                {sale.paymentMethod === 'CASH' && sale.amountTendered > 0 && (
+                  <div className="mt-3 pt-3 border-t border-dashed border-slate-300 space-y-1 text-[12px]">
+                    <div className="flex justify-between text-slate-500"><span>RECIBIDO</span><span className="text-slate-800 font-bold">{formatCurrency(sale.amountTendered)}</span></div>
+                    <div className="flex justify-between text-slate-500"><span>CAMBIO</span><span className="text-slate-800 font-bold">{formatCurrency(sale.changeAmount)}</span></div>
+                  </div>
+                )}
              </div>
 
              <div className="mt-10 flex flex-col items-center border-t border-dashed border-slate-300 pt-6 w-full">
