@@ -343,6 +343,15 @@ function MainLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
+  const viewMeta: Record<View, { title: string; eyebrow: string }> = {
+    pos: { title: 'Punto de venta', eyebrow: 'Operacion en caja' },
+    dashboard: { title: 'Panel ejecutivo', eyebrow: 'Indicadores y margen' },
+    inventory: { title: 'Inventario', eyebrow: 'Maestro de productos' },
+    sales: { title: 'Ventas', eyebrow: 'Libro fiscal' },
+    movements: { title: 'Auditoria de stock', eyebrow: 'Trazabilidad' },
+    corte: { title: 'Corte de caja', eyebrow: 'Turnos y efectivo' },
+    clients: { title: 'Clientes', eyebrow: 'Cartera y lealtad' },
+  };
   
   useEffect(() => {
     BackendAPI.getActiveShift(reqContext).then(shift => {
@@ -436,6 +445,27 @@ function MainLayout() {
 
       <main className="main-canvas flex-1 flex flex-col min-w-0 transition-colors">
         <SyncManager />
+        <div className="top-command-strip hidden lg:flex items-center justify-between px-6 py-3">
+          <div className="flex items-center gap-4 min-w-0">
+            <button onClick={() => setIsSidebarOpen(true)} className="top-icon-button xl:hidden" aria-label="Abrir menu">
+              <Menu size={18} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-500 dark:text-slate-400">{viewMeta[currentView].eyebrow}</p>
+              <h2 className="text-lg font-black text-slate-950 dark:text-white truncate">{viewMeta[currentView].title}</h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="top-store-pill">
+              <StoreIcon size={15} />
+              <span className="truncate">{store?.name ?? 'Sucursal'}</span>
+            </div>
+            <div className="top-store-pill">
+              <UserCog size={15} />
+              <span className="truncate">{user?.name ?? 'Usuario'}</span>
+            </div>
+          </div>
+        </div>
         
         <div className="brand-panel lg:hidden flex items-center justify-between p-4 text-white">
           <div className="flex items-center gap-3">
@@ -862,7 +892,7 @@ function POSView() {
         {alertInfo?.saleData && <ReceiptModal sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} storeName={store?.name ?? 'Sucursal'} />}
         {actionToast && <div className="toast-floating">{actionToast}</div>}
         
-        <div className="search-hero mb-5 p-4 lg:p-5">
+        <div className="search-hero pos-command mb-5 p-4 lg:p-5">
           <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-4">
             <div>
               <p className="section-kicker">Operacion en vivo</p>
@@ -884,7 +914,7 @@ function POSView() {
               </div>
             </div>
           </div>
-          <div className="input-premium p-3 flex items-center gap-4 transition-colors">
+          <div className="input-premium search-focus-ring p-3 flex items-center gap-4 transition-colors">
             <Barcode size={24} className="text-teal-600 dark:text-teal-300 hidden sm:block" />
             <Search size={24} className="text-teal-600 dark:text-teal-300 sm:hidden" />
             <input
@@ -976,6 +1006,10 @@ function POSView() {
                   <div className="mt-auto flex justify-between items-baseline pt-2 border-t border-slate-50 dark:border-white/5">
                     <span className="text-teal-700 dark:text-teal-300 font-black text-base">{formatCurrency(product.price)}</span>
                     <span className="text-[9px] font-mono text-slate-400 uppercase">Stock: {product.stock}</span>
+                  </div>
+                  <div className="product-action-hint mt-3">
+                    <Plus size={13} />
+                    <span>Agregar al carrito</span>
                   </div>
                 </div>
               </button>
@@ -1719,11 +1753,12 @@ function DashboardView() {
 
   return (
     <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
-      <div className="panel-card flex flex-col gap-4 p-5">
+      <div className="panel-card command-header flex flex-col gap-4 p-5">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
             <p className="section-kicker">Inteligencia de negocio</p>
             <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Panel Ejecutivo</h2>
+            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">Lectura rapida de ingresos, utilidad, inventario y actividad comercial.</p>
           </div>
           <div className="status-chip text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-2">
              <TrendingUp size={12} /> Live Sync 60s {lastDashboardRefresh ? `- ${lastDashboardRefresh.toLocaleTimeString()}` : ''}
@@ -2003,10 +2038,11 @@ function SalesView() {
   return (
     <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
       {selectedReceipt && <ReceiptModal sale={selectedReceipt} onClose={() => setSelectedReceipt(null)} storeName={store?.name ?? 'Sucursal'} />}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+      <div className="panel-card command-header flex flex-col md:flex-row md:justify-between md:items-center gap-4 p-5">
          <div>
            <p className="section-kicker">Libro fiscal</p>
            <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white">Historico de Transacciones</h2>
+           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">Filtra, revisa e imprime ventas con resumen del periodo.</p>
          </div>
          <button onClick={exportCsv} disabled={!filtered.length} className="btn-secondary flex items-center justify-center gap-2 px-4 py-3 text-xs">
            <Download size={16} /> Exportar CSV
