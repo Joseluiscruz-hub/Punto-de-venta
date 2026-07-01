@@ -341,6 +341,14 @@ function MainLayout() {
   type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients';
   const [currentView, setCurrentView] = useState<View>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [time, setTime] = useState(new Date());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const viewMeta: Record<View, { title: string; eyebrow: string }> = {
@@ -377,67 +385,69 @@ function MainLayout() {
         />
       )}
 
-      <aside className={`side-rail fixed inset-y-0 left-0 z-50 w-72 lg:w-72 flex flex-col transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="brand-panel p-6 flex items-center justify-between text-white">
+      <aside 
+        onMouseEnter={() => setIsSidebarExpanded(true)}
+        onMouseLeave={() => setIsSidebarExpanded(false)}
+        className={`
+          fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out
+          ${isSidebarExpanded ? 'w-64' : 'w-20'}
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          lg:static
+        `}
+      >
+        <div className={`p-4 h-20 flex items-center ${isSidebarExpanded ? 'px-6' : 'justify-center'}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/15 rounded-2xl flex items-center justify-center font-bold text-white shrink-0 border border-white/20 shadow-lg shadow-black/10">
-              <StoreIcon size={18} />
+            <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+              <StoreIcon size={20} />
             </div>
-            <div>
-              <h1 className="text-lg font-black tracking-tight leading-tight uppercase text-white">EL TRIUNFO</h1>
-              <p className="text-[10px] text-white/75 font-bold tracking-[0.22em] uppercase">Abarrotes y Más</p>
-            </div>
-          </div>
-          <button onClick={() => setIsSidebarOpen(false)} className="p-2 lg:hidden text-white/70 hover:text-white">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="side-profile mx-4 mt-4 p-4 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-400 to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/20 text-white">
-              {user?.role === 'ADMIN' ? <ShieldCheck size={20} className="text-white"/> : <UserCog size={20} className="text-white"/>}
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user?.name}</p>
-              <p className="text-[10px] uppercase font-black tracking-[0.18em] text-teal-700 dark:text-teal-300">{user?.role}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white/55 dark:bg-black/20 p-3 border border-white/60 dark:border-white/5 rounded-2xl">
-            <StoreIcon size={14} className="text-teal-600 dark:text-teal-300 shrink-0" />
-            <span className="truncate">{store?.name}</span>
+            {isSidebarExpanded && (
+              <div className="overflow-hidden transition-all duration-300">
+                <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white leading-none">EL TRIUNFO</h1>
+                <p className="text-[10px] text-primary-light font-semibold uppercase tracking-wider mt-1">SaaS Retail</p>
+              </div>
+            )}
           </div>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto flex flex-col gap-0.5">
-          <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Día a Día</div>
-          <NavItem icon={<ShoppingCart size={18} />} label="Vender" active={currentView === 'pos'} onClick={() => navItemClick('pos')} />
-          <NavItem icon={<Wallet size={18} />} label="Corte de Caja" active={currentView === 'corte'} onClick={() => navItemClick('corte')} />
-          <NavItem icon={<Users size={18} />} label="Clientes" active={currentView === 'clients'} onClick={() => navItemClick('clients')} />
+        <nav className="flex-1 py-4 px-3 space-y-2 overflow-y-auto custom-scrollbar">
+          <NavItem icon={<LayoutDashboard size={20} />} label="Dashboard" active={currentView === 'dashboard'} onClick={() => navItemClick('dashboard')} expanded={isSidebarExpanded} />
+          <NavItem icon={<ShoppingCart size={20} />} label="Ventas" active={currentView === 'pos'} onClick={() => navItemClick('pos')} expanded={isSidebarExpanded} />
+          <NavItem icon={<PackageSearch size={20} />} label="Inventario" active={currentView === 'inventory'} onClick={() => navItemClick('inventory')} expanded={isSidebarExpanded} />
+          <NavItem icon={<Users size={20} />} label="Clientes" active={currentView === 'clients'} onClick={() => navItemClick('clients')} expanded={isSidebarExpanded} />
+          
+          <div className={`my-4 border-t border-slate-100 dark:border-slate-800 mx-2`} />
           
           {hasPermission(['ADMIN', 'MANAGER']) && (
             <>
-              <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Administrar</div>
-              <NavItem icon={<LayoutDashboard size={18} />} label="Resultados (KPIs)" active={currentView === 'dashboard'} onClick={() => navItemClick('dashboard')} />
-              <NavItem icon={<PackageSearch size={18} />} label="Mis Productos" active={currentView === 'inventory'} onClick={() => navItemClick('inventory')} />
-              
-              {auditEnabled && (
-                <>
-                  <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Reportes</div>
-                  <NavItem icon={<Receipt size={18} />} label="Libro de Ventas" active={currentView === 'sales'} onClick={() => navItemClick('sales')} />
-                  <NavItem icon={<History size={18} />} label="Auditoría" active={currentView === 'movements'} onClick={() => navItemClick('movements')} />
-                </>
-              )}
+              <NavItem icon={<Receipt size={20} />} label="Reportes" active={currentView === 'sales'} onClick={() => navItemClick('sales')} expanded={isSidebarExpanded} />
+              <NavItem icon={<History size={20} />} label="Auditoría" active={currentView === 'movements'} onClick={() => navItemClick('movements')} expanded={isSidebarExpanded} />
             </>
           )}
+          
+          <NavItem icon={<Wallet size={20} />} label="Configuración" active={currentView === 'corte'} onClick={() => navItemClick('corte')} expanded={isSidebarExpanded} />
         </nav>
 
-        <div className="p-4 border-t border-white/10 flex flex-col gap-3">
-          <button onClick={logout} className="btn-secondary flex items-center justify-center gap-2 px-4 py-3 text-xs active:scale-95">
-            <LogOut size={18} />
-            <span>Cerrar Sesión</span>
+        <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+          <button 
+            onClick={logout}
+            className={`flex items-center h-12 rounded-xl text-slate-500 hover:bg-error/10 hover:text-error transition-all duration-200 w-full ${isSidebarExpanded ? 'px-4 gap-4' : 'justify-center'}`}
+          >
+            <LogOut size={20} />
+            {isSidebarExpanded && <span className="text-sm font-semibold">Salir</span>}
           </button>
-          <div className="flex justify-center">
+          
+          <div className={`mt-4 flex items-center ${isSidebarExpanded ? 'gap-3 px-2' : 'justify-center'}`}>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-light to-accent flex items-center justify-center text-white shrink-0 shadow-sm">
+              <span className="text-[10px] font-bold">{user?.name?.[0].toUpperCase()}</span>
+            </div>
+            {isSidebarExpanded && (
+              <div className="overflow-hidden">
+                <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.name}</p>
+                <p className="text-[10px] text-slate-400 font-medium">{user?.role}</p>
+              </div>
+            )}
+          </div>
+          <div className="mt-4 flex justify-center">
              <ThemeToggle />
           </div>
         </div>
@@ -445,36 +455,52 @@ function MainLayout() {
 
       <main className="main-canvas flex-1 flex flex-col min-w-0 transition-colors">
         <SyncManager />
-        <div className="top-command-strip hidden lg:flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4 min-w-0">
-            <button onClick={() => setIsSidebarOpen(true)} className="top-icon-button xl:hidden" aria-label="Abrir menu">
-              <Menu size={18} />
-            </button>
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-500 dark:text-slate-400">{viewMeta[currentView].eyebrow}</p>
-              <h2 className="text-lg font-black text-slate-950 dark:text-white truncate">{viewMeta[currentView].title}</h2>
+        <div className="hidden lg:flex items-center justify-between px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-8">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Colaborador</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.name}</p>
+            </div>
+            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sucursal</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">{store?.name}</p>
+            </div>
+            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Terminal</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">Caja Principal</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="top-store-pill">
-              <StoreIcon size={15} />
-              <span className="truncate">{store?.name ?? 'Sucursal'}</span>
+          
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input 
+                type="text" 
+                placeholder="Buscar en el sistema..." 
+                className="pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none rounded-xl text-sm w-64 focus:ring-2 focus:ring-primary-light transition-all outline-none"
+              />
             </div>
-            <div className="top-store-pill">
-              <UserCog size={15} />
-              <span className="truncate">{user?.name ?? 'Usuario'}</span>
+            <div className="text-right">
+              <p className="text-lg font-black text-slate-900 dark:text-white leading-none">
+                {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p className="text-[10px] font-bold text-primary-light uppercase tracking-wider mt-1">
+                {time.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}
+              </p>
             </div>
           </div>
         </div>
-        
-        <div className="brand-panel lg:hidden flex items-center justify-between p-4 text-white">
-          <div className="flex items-center gap-3">
-            <button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 text-white/80 hover:bg-white/10 rounded transition-colors">
-              <Menu size={24} />
-            </button>
-            <span className="font-bold tracking-tight uppercase">EL TRIUNFO</span>
+
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+            <Menu size={24} />
+          </button>
+          <div className="text-center">
+            <h1 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">EL TRIUNFO</h1>
           </div>
-          <ThemeToggle />
+          <div className="w-10" />
         </div>
         
         <div className="flex-1 overflow-hidden relative">
@@ -516,83 +542,84 @@ function LoginScreen() {
   };
 
   return (
-    <div className="login-shell text-slate-900 dark:text-[#E2E8F0] font-sans flex items-center justify-center p-4 transition-colors">
-      <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
+    <div className="min-h-screen flex items-center justify-center bg-[#0f172a] relative overflow-hidden font-sans">
+      {/* Background patterns */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-accent/20 blur-[120px] rounded-full" />
       </div>
-      <div className="login-stage grid lg:grid-cols-[1.08fr_0.92fr] gap-5">
-        <section className="login-hero-card hidden lg:flex min-h-[620px] rounded-[32px] p-10 text-white flex-col justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shadow-2xl">
-              <StoreIcon size={24} />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.3em] font-black text-white/70">Retail Command Center</p>
-              <h1 className="text-3xl font-black tracking-tight">El Triunfo ERP</h1>
-            </div>
-          </div>
 
-          <div className="space-y-6 max-w-lg">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[10px] uppercase tracking-[0.22em] font-black">
-              <ShieldCheck size={14} /> Sesion blindada
-            </div>
-            <h2 className="text-6xl font-black tracking-[-0.08em] leading-none">
-              Operacion de tienda con presencia de corporativo.
-            </h2>
-            <p className="text-sm leading-6 text-white/72 max-w-md">
-              Punto de venta, turnos, inventario, clientes y auditoria en una experiencia rapida, clara y lista para escalar.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              ['99.9%', 'Disponibilidad'],
-              ['<1s', 'Flujo POS'],
-              ['360', 'Control visual'],
-            ].map(([value, label]) => (
-              <div key={label} className="rounded-3xl border border-white/12 bg-white/10 p-4 backdrop-blur">
-                <p className="text-2xl font-black tracking-tight">{value}</p>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/62 font-bold mt-1">{label}</p>
+      <div className="relative z-10 w-full max-w-[440px] p-4 animate-in fade-in zoom-in duration-500">
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-2xl border border-white/20 dark:border-slate-800 rounded-[32px] shadow-2xl shadow-black/20 overflow-hidden">
+          <div className="p-8 sm:p-12">
+            <div className="flex flex-col items-center text-center mb-10">
+              <div className="w-20 h-20 bg-primary text-white rounded-3xl flex items-center justify-center shadow-xl shadow-primary/30 mb-6">
+                <StoreIcon size={40} />
               </div>
-            ))}
-          </div>
-        </section>
+              <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Bienvenido</h1>
+              <p className="text-slate-500 dark:text-slate-400 font-medium">El Triunfo SaaS Retail System</p>
+            </div>
 
-        <div className="login-card p-8 sm:p-10 rounded-[32px] w-full transition-colors">
-          <div className="flex flex-col items-center mb-10">
-            <div className="brand-panel text-white p-4 rounded-3xl mb-5 shadow-2xl shrink-0 border border-white/10">
-              <StoreIcon size={38} />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Usuario</label>
+                <div className="relative group">
+                   <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-light transition-colors" size={18} />
+                   <input 
+                    type="text" 
+                    value={username} 
+                    onChange={e => setUsername(e.target.value)} 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-primary-light focus:bg-white dark:focus:bg-slate-900 rounded-2xl outline-none transition-all font-bold text-slate-900 dark:text-white" 
+                    placeholder="ej. admin" 
+                    autoFocus 
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">PIN de Acceso</label>
+                <div className="relative group">
+                   <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-light transition-colors" size={18} />
+                   <input 
+                    type="password" 
+                    value={pin} 
+                    onChange={e => setPin(e.target.value)} 
+                    placeholder="••••" 
+                    className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-primary-light focus:bg-white dark:focus:bg-slate-900 rounded-2xl outline-none transition-all font-bold tracking-[0.5em] text-xl text-slate-900 dark:text-white" 
+                    maxLength={4} 
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="bg-error/10 border border-error/20 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                   <AlertCircle size={18} className="text-error" />
+                   <p className="text-error text-xs font-bold">{error}</p>
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full py-4 bg-primary hover:bg-primary-light text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-4"
+              >
+                {loading ? 'Verificando...' : 'Entrar al Sistema'}
+              </button>
+            </form>
+
+            <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Módulos Corporativos</p>
+               <div className="flex justify-center gap-4">
+                  {['POS', 'ERP', 'CRM', 'BI'].map(mod => (
+                    <span key={mod} className="px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg text-[10px] font-black text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800">{mod}</span>
+                  ))}
+               </div>
             </div>
-            <p className="section-kicker mb-2">Portal de acceso</p>
-            <h1 className="text-4xl font-black tracking-[-0.08em] text-gradient uppercase">EL TRIUNFO ERP</h1>
-            <p className="text-slate-500 dark:text-slate-400 text-center mt-4 text-xs uppercase tracking-widest font-bold">
-              Acceso centralizado para operacion premium
-              <br/><br/> <span className="font-mono text-[10px] text-slate-400">Demo segura: admin / 1234</span>
-            </p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-[0.18em]">Identificador de Usuario</label>
-               <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="input-premium w-full p-4 text-slate-900 dark:text-[#E2E8F0] outline-none transition-all font-bold" placeholder="ID de Usuario" autoFocus />
-            </div>
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-500 uppercase ml-1 tracking-[0.18em]">Clave PIN de Acceso</label>
-               <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="••••" className="input-premium w-full text-center tracking-[1em] text-2xl p-4 text-slate-900 dark:text-white outline-none transition-all font-bold" maxLength={4} />
-            </div>
-            {error && <p className="text-[#ba1c1c] text-[11px] font-bold text-center uppercase tracking-tight">{error}</p>}
-            <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-sm active:scale-[0.98]">{loading ? 'Validando...' : 'Iniciar Sesión'}</button>
-          </form>
-          <div className="mt-8 grid grid-cols-3 gap-2 text-center">
-             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">POS</p>
-             </div>
-             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Stock</p>
-             </div>
-             <div className="rounded-2xl bg-white/45 dark:bg-white/5 border border-white/40 dark:border-white/10 p-3">
-               <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">CRM</p>
-             </div>
-          </div>
+        </div>
+        
+        <div className="mt-8 flex justify-center gap-6 text-white/40">
+           <ThemeToggle />
         </div>
       </div>
     </div>
@@ -1670,6 +1697,9 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void, onSucces
 // 9. DASHBOARD Y REPORTES
 // ============================================================================
 
+const formatCurrency = (val: number) => `$${val.toLocaleString()}`;
+const formatNumber = (val: number) => val.toLocaleString();
+
 function DashboardView() {
   const { reqContext } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
@@ -1764,224 +1794,179 @@ function DashboardView() {
   const revenueDelta = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : null;
 
   return (
-    <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
-      <div className="panel-card command-header flex flex-col gap-4 p-5">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <div>
-            <p className="section-kicker">Inteligencia de negocio</p>
-            <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-950 dark:text-white">Panel Ejecutivo</h2>
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">Lectura rapida de ingresos, utilidad, inventario y actividad comercial.</p>
-          </div>
-          <div className="status-chip text-[10px] font-black uppercase tracking-widest flex items-center gap-2 px-3 py-2">
-             <TrendingUp size={12} /> Live Sync 60s {lastDashboardRefresh ? `- ${lastDashboardRefresh.toLocaleTimeString()}` : ''}
-          </div>
+    <div className="view-shell p-6 lg:p-10 h-full overflow-y-auto bg-[#f8fafc] dark:bg-slate-950 flex flex-col gap-8 transition-colors">
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">Panel de Control</h2>
+          <p className="text-slate-500 font-medium mt-1">Monitoreo de rendimiento empresarial en tiempo real.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[9px] uppercase tracking-[0.18em] font-black text-slate-400 inline-flex items-center gap-1"><CalendarDays size={12} /> Periodo</span>
+        
+        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
           {PERIOD_OPTIONS.map(option => (
-            <button key={option.key} type="button" onClick={() => setPeriod(option.key)} className={`stock-filter-chip ${period === option.key ? 'stock-filter-chip-active' : ''}`}>
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setPeriod(option.key)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${period === option.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+            >
               {option.label}
             </button>
           ))}
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-        <StatCard title="Ingresos Brutos" value={formatCurrency(totalRevenue)} icon={<Banknote size={24}/>} />
-        <StatCard title="Margen de Utilidad" value={formatCurrency(totalProfit)} icon={<TrendingUp size={24}/>} />
-        <StatCard title="Valuación Maestro" value={formatCurrency(iv)} icon={<PackageSearch size={24}/>} />
-        <StatCard title="Transacciones" value={periodSales.length} icon={<Receipt size={24}/>} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard 
+          icon={<Banknote size={24} />} 
+          title="Ventas de Hoy" 
+          value={formatCurrency(todayRevenue)} 
+          delta={revenueDelta}
+        />
+        <StatCard 
+          icon={<TrendingUp size={24} />} 
+          title="Ingresos del Periodo" 
+          value={formatCurrency(totalRevenue)} 
+        />
+        <StatCard 
+          icon={<PieIcon size={24} />} 
+          title="Utilidad Estimada" 
+          value={formatCurrency(totalProfit)} 
+          suffix="MXN"
+        />
+        <StatCard 
+          icon={<PackageSearch size={24} />} 
+          title="Valor de Inventario" 
+          value={formatCurrency(iv)} 
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="mini-metric">
-          <p>Ingresos hoy</p>
-          <strong>{formatCurrency(todayRevenue)}</strong>
-        </div>
-        <div className="mini-metric">
-          <p>Dia anterior</p>
-          <strong>{formatCurrency(yesterdayRevenue)}</strong>
-        </div>
-        <div className="mini-metric">
-          <p>Variacion diaria</p>
-          <strong>{revenueDelta === null ? 'N/D' : `${revenueDelta >= 0 ? '+' : ''}${revenueDelta.toFixed(1)}%`}</strong>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Trend Chart */}
-        <div className="panel-card xl:col-span-2 p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Tendencia de Ingresos</h3>
-            <BarChart3 size={18} className="text-slate-400" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <BarChart3 size={20} className="text-primary-light" />
+              Curva de Ingresos
+            </h3>
+            <div className="flex items-center gap-2">
+               <div className="w-3 h-3 rounded-full bg-primary" />
+               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ventas Totales</span>
+            </div>
           </div>
-          <div className="h-72 w-full">
+          <div className="h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesByDate}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis dataKey="date" fontSize={10} axisLine={false} tickLine={false} />
-                <YAxis fontSize={10} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1a2026', border: 'none', borderRadius: '8px', color: '#fff' }}
-                  itemStyle={{ color: '#60a5fa' }}
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={reqContext.theme === 'dark' ? '#1e293b' : '#f1f5f9'} />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                  dy={10}
                 />
-                <Line type="monotone" dataKey="total" stroke="#3f3f46" strokeWidth={3} dot={{ fill: '#3f3f46', r: 4 }} activeDot={{ r: 6 }} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} 
+                  tickFormatter={(val) => `$${val}`}
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontWeight: 700 }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="#2563eb" 
+                  strokeWidth={4} 
+                  dot={{ r: 6, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 8, strokeWidth: 0 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Category Mix */}
-        <div className="panel-card p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Distribución de Inventario</h3>
-            <PieIcon size={18} className="text-slate-400" />
-          </div>
-          <div className="h-72 w-full">
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <h3 className="font-black text-lg text-slate-900 dark:text-white mb-8 flex items-center gap-2">
+            <PieIcon size={20} className="text-accent" />
+            Mix de Inventario
+          </h3>
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={categoryMix}
-                  cx="50%"
-                  cy="50%"
                   innerRadius={60}
                   outerRadius={80}
-                  paddingAngle={5}
+                  paddingAngle={8}
                   dataKey="value"
                 >
                   {categoryMix.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={['#0f172a', '#2563eb', '#06b6d4', '#10b981', '#f59e0b'][index % 5]} />
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="panel-card p-6 xl:col-span-2">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <p className="section-kicker">Prioridad de inventario</p>
-              <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">Alertas Inteligentes</h3>
-            </div>
-            <AlertCircle className={lowStockProducts.length ? 'text-amber-500' : 'text-emerald-500'} />
-          </div>
-          <div className="space-y-3">
-            {lowStockProducts.length ? lowStockProducts.map(product => (
-              <div key={product.id} className="insight-row">
-                <div>
-                  <p className="font-black text-sm text-slate-900 dark:text-white">{product.name}</p>
-                  <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-slate-400">{product.category} · minimo {product.minStock}</p>
+          <div className="mt-6 space-y-3">
+            {categoryMix.slice(0, 4).map((cat, i) => (
+              <div key={cat.name} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#0f172a', '#2563eb', '#06b6d4', '#10b981', '#f59e0b'][i % 5] }} />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{cat.name}</span>
                 </div>
-                <span className="rounded-full bg-amber-500/12 px-3 py-1 text-xs font-black text-amber-600 dark:text-amber-300">{product.stock} uds</span>
+                <span className="text-xs font-black text-slate-900 dark:text-white">{formatCurrency(cat.value)}</span>
               </div>
-            )) : (
-              <div className="empty-inline">
-                <CheckCircle2 size={20} className="text-emerald-500" />
-                Inventario dentro de rango operativo.
-              </div>
-            )}
+            ))}
           </div>
-        </div>
-
-        <div className="panel-card p-6">
-          <p className="section-kicker">Margen estrella</p>
-          <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white mb-5">Mejor Producto</h3>
-          {bestMarginProduct ? (
-            <div className="rounded-[24px] border border-teal-500/20 bg-teal-500/10 p-5">
-              <p className="text-sm font-black text-slate-900 dark:text-white">{bestMarginProduct.name}</p>
-              <p className="mt-2 text-4xl font-black tracking-[-0.06em] text-teal-700 dark:text-teal-300">
-                {(((bestMarginProduct.price - bestMarginProduct.cost) / Math.max(bestMarginProduct.price, 1)) * 100).toFixed(1)}%
-              </p>
-              <p className="text-[10px] uppercase tracking-[0.16em] font-black text-slate-400">margen estimado</p>
-            </div>
-          ) : (
-            <div className="empty-inline">Sin productos cargados.</div>
-          )}
         </div>
       </div>
 
-      <div className="panel-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="section-kicker">Capital en anaquel</p>
-            <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">Productos con Mayor Valor</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-wider text-sm">Productos más vendidos</h3>
           </div>
-          <PackageSearch className="text-teal-500" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {highValueProducts.map(product => (
-            <div key={product.id} className="rounded-[22px] border border-white/20 dark:border-white/10 bg-white/45 dark:bg-white/5 p-4">
-              <p className="line-clamp-2 text-xs font-black text-slate-900 dark:text-white min-h-8">{product.name}</p>
-              <p className="mt-3 text-lg font-black text-teal-700 dark:text-teal-300">{formatCurrency(product.stock * product.price)}</p>
-              <p className="text-[9px] uppercase tracking-[0.16em] font-bold text-slate-400">{product.stock} uds</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="panel-card p-6">
-        <div className="flex items-center justify-between mb-5">
-          <div>
-            <p className="section-kicker">Ranking comercial</p>
-            <h3 className="text-xl font-black tracking-[-0.04em] text-slate-900 dark:text-white">Top Productos Vendidos</h3>
-          </div>
-          <BarChart3 className="text-teal-500" />
-        </div>
-        <div className="space-y-3">
-          {topProducts.length ? topProducts.map(item => {
-            const maxTotal = Math.max(...topProducts.map(product => product.total));
-            const width = maxTotal > 0 ? `${Math.max((item.total / maxTotal) * 100, 12)}%` : '12%';
-            return (
-              <div key={item.name} className="rounded-[22px] border border-white/20 dark:border-white/10 bg-white/45 dark:bg-white/5 p-4">
-                <div className="mb-2 flex items-center justify-between gap-4">
-                  <p className="line-clamp-1 text-xs font-black text-slate-900 dark:text-white">{item.name}</p>
-                  <span className="text-xs font-black text-teal-700 dark:text-teal-300">{formatCurrency(item.total)}</span>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {topProducts.map((p, i) => (
+              <div key={p.name} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div className="flex items-center gap-4">
+                  <span className="w-6 text-xs font-black text-slate-300">0{i+1}</span>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</p>
+                    <p className="text-[10px] font-bold text-slate-400">{formatNumber(p.quantity)} unidades</p>
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-200/80 dark:bg-white/10 overflow-hidden">
-                  <div className="h-full rounded-full bg-gradient-to-r from-teal-500 to-blue-500" style={{ width }} />
-                </div>
-                <p className="mt-2 text-[9px] uppercase tracking-[0.16em] font-bold text-slate-400">{item.quantity} unidades vendidas</p>
+                <span className="text-sm font-black text-slate-900 dark:text-white">{formatCurrency(p.total)}</span>
               </div>
-            );
-          }) : (
-            <div className="empty-inline">Aun no hay ventas con detalle para construir ranking.</div>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="panel-card overflow-hidden">
-            <div className="p-4 border-b border-white/20 dark:border-white/10 font-bold text-xs uppercase bg-white/35 dark:bg-black/10">Salud Operativa del Sistema</div>
-            <div className="p-8 flex items-center gap-6">
-               <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center text-[#0070b2]">
-                  <ShieldCheck size={32} />
-               </div>
-               <div>
-                  <h5 className="font-bold text-slate-800 dark:text-white uppercase tracking-tight">Núcleo Centralizado Activo</h5>
-                  <p className="text-xs text-slate-500 mt-1">Sucursal: <span className="font-bold">{reqContext.storeId}</span>. Todos los servicios de auditoría y respaldo local están operativos.</p>
-               </div>
-            </div>
-         </div>
-         
-         <div className="brand-panel rounded-[28px] p-6 text-white shadow-lg flex flex-col justify-between overflow-hidden">
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-widest opacity-80">Rendimiento Estimado</h4>
-              <p className="text-3xl font-black mt-2 tracking-tighter">
-                {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0.0'}%
-              </p>
-              <p className="text-[10px] uppercase font-bold mt-1 opacity-70">Margen Bruto de Operación</p>
-            </div>
-            <div className="mt-4 flex gap-2">
-               <div className="h-1 flex-1 bg-white/20 rounded overflow-hidden">
-                  <div className="h-full bg-white rounded" style={{ width: `${totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0}%` }}></div>
-               </div>
-            </div>
-         </div>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-wider text-sm text-error">Alertas de Stock Bajo</h3>
+            <AlertCircle size={18} className="text-error" />
+          </div>
+          <div className="divide-y divide-slate-50 dark:divide-slate-800">
+            {lowStockProducts.map(p => (
+              <div key={p.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div className="flex items-center gap-4">
+                   <div className="w-2 h-2 rounded-full bg-error animate-pulse" />
+                   <div>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{p.name}</p>
+                    <p className="text-[10px] font-bold text-slate-400">{p.category}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-black text-error">{p.stock}</p>
+                  <p className="text-[10px] font-bold text-slate-400">En existencia</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2249,23 +2234,55 @@ function AlertDialog({ title, message, onClose }: { title: string, message: stri
   );
 }
 
-function NavItem({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+function NavItem({ icon, label, active, onClick, expanded }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void; expanded: boolean }) {
   return (
-    <button onClick={onClick} className={`nav-link w-full flex items-center gap-3 px-3.5 py-3 font-bold text-sm transition-all ${active ? 'nav-link-active' : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'}`}>
-      <span className="shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
+    <button 
+      onClick={onClick}
+      className={`
+        relative flex items-center h-12 rounded-xl transition-all duration-200 group
+        ${expanded ? 'px-4 gap-4 w-full' : 'px-0 justify-center w-12 mx-auto'}
+        ${active 
+          ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+          : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'}
+      `}
+      title={!expanded ? label : undefined}
+    >
+      <div className={`shrink-0 ${active ? 'text-white' : 'text-slate-500 group-hover:text-primary-light dark:text-slate-400 dark:group-hover:text-white'}`}>
+        {icon}
+      </div>
+      {expanded && (
+        <span className={`text-sm font-semibold whitespace-nowrap overflow-hidden transition-opacity duration-200 ${active ? 'text-white' : ''}`}>
+          {label}
+        </span>
+      )}
+      {active && !expanded && (
+        <div className="absolute left-0 w-1 h-6 bg-accent rounded-r-full" />
+      )}
     </button>
   );
 }
 
-function StatCard({ icon, title, value }: { icon: React.ReactNode; title: string; value: React.ReactNode }) {
+function StatCard({ icon, title, value, delta, suffix }: { icon: React.ReactNode; title: string; value: React.ReactNode; delta?: number | null; suffix?: string }) {
   return (
-    <div className="metric-card p-6 flex flex-col justify-between transition-colors">
-      <div className="relative z-10 text-[11px] uppercase font-black text-slate-400 tracking-[0.18em] mb-3 flex items-center justify-between">
-        {title}
-        <div className="p-2 rounded-2xl bg-teal-500/10 text-teal-700 dark:text-teal-300">{icon}</div>
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
+          {icon}
+        </div>
+        {delta !== undefined && delta !== null && (
+          <div className={`text-xs font-bold flex items-center gap-1 ${delta >= 0 ? 'text-success' : 'text-error'}`}>
+            {delta >= 0 ? <TrendingUp size={12} /> : <TrendingUp size={12} className="rotate-180" />}
+            {delta >= 0 ? '+' : ''}{delta.toFixed(1)}%
+          </div>
+        )}
       </div>
-      <h4 className="relative z-10 text-3xl font-mono font-black text-slate-800 dark:text-white tracking-tighter">{value}</h4>
+      <div>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{title}</p>
+        <div className="flex items-baseline gap-1">
+          <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{value}</h3>
+          {suffix && <span className="text-xs font-bold text-slate-400">{suffix}</span>}
+        </div>
+      </div>
     </div>
   );
 }
