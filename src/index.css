@@ -973,7 +973,7 @@ h6,
 .brand-panel {
   background:
     radial-gradient(circle at 18% 20%, rgba(255, 255, 255, 0.2), transparent 9rem),
-    linear-gradient(135deg, #18181b, #3f3f46 54%, #78716c);
+    linear-gradient(135deg, #059669, #10b981 54%, #0f766e);
 }
 
 .side-rail {
@@ -1172,6 +1172,9 @@ h6,
   --ui-accent: #0f766e;
   --ui-accent-2: #2563eb;
   --ui-warning: #b45309;
+  --grocer-green: #10b981;
+  --grocer-yellow: #f59e0b;
+  --grocer-red: #ef4444;
 }
 
 .dark {
@@ -1179,21 +1182,81 @@ h6,
   --ui-surface-soft: rgba(30, 41, 59, 0.62);
   --ui-ink: #f8fafc;
   --ui-muted: #94a3b8;
-  --ui-accent: #5eead4;
-  --ui-accent-2: #93c5fd;
+  --ui-accent: #34d399;
+  --ui-accent-2: #60a5fa;
   --ui-warning: #fbbf24;
+  --grocer-green: #34d399;
+  --grocer-yellow: #fbbf24;
+  --grocer-red: #f87171;
 }
 
 .app-bg {
   background:
-    linear-gradient(135deg, rgba(240, 253, 250, 0.8), rgba(239, 246, 255, 0.68) 42%, rgba(245, 243, 239, 0.88)),
-    linear-gradient(115deg, #f8fafc 0%, #eef2f7 48%, #e8edf4 100%);
+    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.1), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.05), transparent 40%),
+    linear-gradient(135deg, #f0fdf4 0%, #f8fafc 48%, #fffbeb 100%);
 }
 
 .dark .app-bg {
   background:
-    linear-gradient(135deg, rgba(6, 78, 59, 0.18), rgba(30, 64, 175, 0.12) 42%, rgba(39, 39, 42, 0.36)),
-    linear-gradient(115deg, #050816 0%, #101827 48%, #18181b 100%);
+    radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.15), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(245, 158, 11, 0.1), transparent 40%),
+    linear-gradient(135deg, #022c22 0%, #0f172a 48%, #1c1917 100%);
+}
+
+.product-tile {
+  background: var(--ui-surface-solid);
+  border-color: rgba(15, 23, 42, 0.08);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.product-tile:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--grocer-green);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+}
+
+.product-tile:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.category-chip-active {
+  background: var(--grocer-green) !important;
+  color: white !important;
+  border-color: var(--grocer-green) !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #059669, #10b981 62%, #059669);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}
+
+.cart-drawer {
+  background: var(--ui-surface-solid);
+  border-left: 4px solid var(--grocer-green);
+}
+
+/* Glassmorphism for Groceries */
+.grocer-glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.dark .grocer-glass {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .top-command-strip {

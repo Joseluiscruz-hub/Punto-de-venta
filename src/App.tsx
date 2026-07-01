@@ -344,13 +344,13 @@ function MainLayout() {
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
   const viewMeta: Record<View, { title: string; eyebrow: string }> = {
-    pos: { title: 'Punto de venta', eyebrow: 'Operacion en caja' },
-    dashboard: { title: 'Panel ejecutivo', eyebrow: 'Indicadores y margen' },
-    inventory: { title: 'Inventario', eyebrow: 'Maestro de productos' },
-    sales: { title: 'Ventas', eyebrow: 'Libro fiscal' },
-    movements: { title: 'Auditoria de stock', eyebrow: 'Trazabilidad' },
-    corte: { title: 'Corte de caja', eyebrow: 'Turnos y efectivo' },
-    clients: { title: 'Clientes', eyebrow: 'Cartera y lealtad' },
+    pos: { title: 'Caja de Cobro', eyebrow: 'Venta rápida' },
+    dashboard: { title: 'Panel de Control', eyebrow: 'Cómo va el negocio' },
+    inventory: { title: 'Mis Productos', eyebrow: 'Gestión de abarrotes' },
+    sales: { title: 'Historial de Ventas', eyebrow: 'Registro de hoy' },
+    movements: { title: 'Entradas y Salidas', eyebrow: 'Control de stock' },
+    corte: { title: 'Corte de Caja', eyebrow: 'Cierre de turno' },
+    clients: { title: 'Mis Clientes', eyebrow: 'Directorio' },
   };
   
   useEffect(() => {
@@ -384,8 +384,8 @@ function MainLayout() {
               <StoreIcon size={18} />
             </div>
             <div>
-              <h1 className="text-lg font-black tracking-tight leading-tight uppercase">EL TRIUNFO</h1>
-              <p className="text-[10px] text-white/75 font-bold tracking-[0.22em] uppercase">Retail Command</p>
+              <h1 className="text-lg font-black tracking-tight leading-tight uppercase text-white">EL TRIUNFO</h1>
+              <p className="text-[10px] text-white/75 font-bold tracking-[0.22em] uppercase">Abarrotes y Más</p>
             </div>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="p-2 lg:hidden text-white/70 hover:text-white">
@@ -410,22 +410,22 @@ function MainLayout() {
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto flex flex-col gap-0.5">
-          <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Capa de Operaciones</div>
-          <NavItem icon={<ShoppingCart size={18} />} label="Ventas & Punto de Venta" active={currentView === 'pos'} onClick={() => navItemClick('pos')} />
-          <NavItem icon={<Wallet size={18} />} label="Corte de Caja & Turnos" active={currentView === 'corte'} onClick={() => navItemClick('corte')} />
-          <NavItem icon={<Users size={18} />} label="Directorio de Clientes" active={currentView === 'clients'} onClick={() => navItemClick('clients')} />
+          <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mb-1">Día a Día</div>
+          <NavItem icon={<ShoppingCart size={18} />} label="Vender" active={currentView === 'pos'} onClick={() => navItemClick('pos')} />
+          <NavItem icon={<Wallet size={18} />} label="Corte de Caja" active={currentView === 'corte'} onClick={() => navItemClick('corte')} />
+          <NavItem icon={<Users size={18} />} label="Clientes" active={currentView === 'clients'} onClick={() => navItemClick('clients')} />
           
           {hasPermission(['ADMIN', 'MANAGER']) && (
             <>
-              <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Administración de Recursos</div>
-              <NavItem icon={<LayoutDashboard size={18} />} label="Panel Estratégico (KPIs)" active={currentView === 'dashboard'} onClick={() => navItemClick('dashboard')} />
-              <NavItem icon={<PackageSearch size={18} />} label="Maestro de Materiales" active={currentView === 'inventory'} onClick={() => navItemClick('inventory')} />
+              <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Administrar</div>
+              <NavItem icon={<LayoutDashboard size={18} />} label="Resultados (KPIs)" active={currentView === 'dashboard'} onClick={() => navItemClick('dashboard')} />
+              <NavItem icon={<PackageSearch size={18} />} label="Mis Productos" active={currentView === 'inventory'} onClick={() => navItemClick('inventory')} />
               
               {auditEnabled && (
                 <>
-                  <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Cumplimiento y Registro</div>
-                  <NavItem icon={<Receipt size={18} />} label="Libro de Diario de Ventas" active={currentView === 'sales'} onClick={() => navItemClick('sales')} />
-                  <NavItem icon={<History size={18} />} label="Auditoría de Stock" active={currentView === 'movements'} onClick={() => navItemClick('movements')} />
+                  <div className="px-3 py-2 text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold tracking-widest mt-4 mb-1">Reportes</div>
+                  <NavItem icon={<Receipt size={18} />} label="Libro de Ventas" active={currentView === 'sales'} onClick={() => navItemClick('sales')} />
+                  <NavItem icon={<History size={18} />} label="Auditoría" active={currentView === 'movements'} onClick={() => navItemClick('movements')} />
                 </>
               )}
             </>
@@ -984,32 +984,33 @@ function POSView() {
                 const quantityInCart = cartQuantities.get(product.id) ?? 0;
                 return (
               <button key={product.id} onClick={() => addToCart(product)} disabled={product.stock <= 0}
-                className="product-tile text-left p-0 transition-all flex flex-col group disabled:opacity-45 disabled:hover:translate-y-0 disabled:shadow-none">
+                className="product-tile text-left p-0 transition-all flex flex-col group disabled:opacity-45 disabled:hover:translate-y-0 disabled:shadow-none relative">
 
                 {quantityInCart > 0 && (
-                  <span className="absolute top-3 right-3 z-10 min-w-7 h-7 px-2 rounded-full bg-teal-500 text-white text-xs font-black flex items-center justify-center shadow-lg shadow-teal-500/30">
+                  <span className="absolute top-3 right-3 z-20 min-w-7 h-7 px-2 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center shadow-lg shadow-emerald-500/30 animate-in zoom-in duration-300">
                     {quantityInCart}
                   </span>
                 )}
 
-                <div className="product-media w-full h-32 sm:h-40 overflow-hidden border-b border-white/30 dark:border-white/5">
+                <div className="product-media w-full h-32 sm:h-40 overflow-hidden border-b border-slate-100 dark:border-white/5 relative">
                   <ProductArtwork product={product} />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </div>
 
-                <div className="p-4 flex flex-col flex-1">
+                <div className="p-4 flex flex-col flex-1 bg-white dark:bg-slate-900/50">
                   <div className="flex justify-between items-start mb-1 w-full">
-                    <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider truncate mr-1">{product.category}</span>
+                    <span className="text-[9px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider truncate mr-1">{product.category}</span>
                     {product.stock <= product.minStock && product.stock > 0 && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/20 px-1.5 py-0.5 rounded-sm border border-amber-200 dark:border-amber-700/30 shrink-0">Bajo Stock</span>}
                     {product.stock <= 0 && <span className="text-[9px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded-sm border border-red-200 dark:border-red-700/30 shrink-0">Agotado</span>}
                   </div>
-                  <h3 className="font-black text-xs text-slate-800 dark:text-white line-clamp-2 h-8 leading-snug mb-2">{product.name}</h3>
-                  <div className="mt-auto flex justify-between items-baseline pt-2 border-t border-slate-50 dark:border-white/5">
-                    <span className="text-teal-700 dark:text-teal-300 font-black text-base">{formatCurrency(product.price)}</span>
-                    <span className="text-[9px] font-mono text-slate-400 uppercase">Stock: {product.stock}</span>
+                  <h3 className="font-bold text-xs text-slate-800 dark:text-white line-clamp-2 h-8 leading-snug mb-2 group-hover:text-emerald-600 transition-colors">{product.name}</h3>
+                  <div className="mt-auto flex justify-between items-center pt-2 border-t border-slate-50 dark:border-white/5">
+                    <span className="text-emerald-600 dark:text-emerald-400 font-black text-base">{formatCurrency(product.price)}</span>
+                    <span className="text-[9px] font-mono text-slate-400 uppercase bg-slate-50 dark:bg-white/5 px-2 py-1 rounded-md">Stock: {product.stock}</span>
                   </div>
-                  <div className="product-action-hint mt-3">
+                  <div className="product-action-hint mt-3 opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0">
                     <Plus size={13} />
-                    <span>Agregar al carrito</span>
+                    <span>Agregar</span>
                   </div>
                 </div>
               </button>
@@ -1044,8 +1045,8 @@ function POSView() {
       <div className={`cart-drawer fixed inset-y-0 right-0 z-40 w-full sm:w-96 lg:static flex flex-col shadow-2xl transition-transform duration-300 ease-in-out lg:translate-x-0 ${isCartOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="brand-panel p-4 flex items-center justify-between text-white">
           <div>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-black text-white/65">Checkout</p>
-            <h2 className="font-black text-sm uppercase tracking-widest">Resumen de Materiales</h2>
+            <p className="text-[9px] uppercase tracking-[0.2em] font-black text-white/65">Venta en curso</p>
+            <h2 className="font-black text-sm uppercase tracking-widest">Mi Carrito</h2>
           </div>
           <div className="flex items-center gap-1">
             {cart.length > 0 && (
@@ -1127,14 +1128,18 @@ function POSView() {
            )}
         </div>
 
-        <div className="p-5 bg-white/55 dark:bg-slate-950/25 border-t border-white/20 dark:border-white/10 shadow-[0_-4px_22px_rgba(0,0,0,0.06)]">
-          <div className="flex justify-between items-baseline mb-4 text-slate-800 dark:text-white">
-            <span className="text-[10px] uppercase font-black tracking-widest opacity-50">VALOR TOTAL NETO</span>
-            <span className="text-3xl font-black tracking-tighter text-teal-700 dark:text-teal-300">{formatCurrency(cartTotal)}</span>
+        <div className="p-5 bg-white/55 dark:bg-slate-950/25 border-t border-white/20 dark:border-white/10 shadow-[0_-4px_22px_rgba(0,0,0,0.06)] mt-auto">
+          <div className="flex justify-between items-center mb-4 text-slate-800 dark:text-white">
+            <span className="text-[10px] uppercase font-black tracking-widest opacity-60">Total a pagar</span>
+            <span className="text-3xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{formatCurrency(cartTotal)}</span>
           </div>
           <button onClick={() => setShowPaymentModal(true)} disabled={!cart.length}
-            className="btn-primary w-full py-4 flex items-center justify-center gap-2 text-xs active:scale-[0.98]">
-            Finalizar Selección <Plus size={18} />
+            className="btn-primary w-full py-4 rounded-2xl flex items-center justify-between px-6 shadow-2xl shadow-emerald-500/20 active:scale-[0.98] transition-all">
+            <span className="text-sm font-black uppercase tracking-widest">Cobrar Ahora</span>
+            <div className="flex items-center gap-2">
+               <span className="text-[10px] opacity-70 font-bold border border-white/30 px-1.5 py-0.5 rounded-md">F9</span>
+               <Banknote size={20} />
+            </div>
           </button>
         </div>
       </div>
@@ -1145,11 +1150,13 @@ function POSView() {
 }
 
 const PRODUCT_ART_PALETTES = [
-  ['rgba(39,39,42,0.96)', 'rgba(120,113,108,0.88)'],
-  ['rgba(63,63,70,0.96)', 'rgba(28,25,23,0.9)'],
-  ['rgba(87,83,78,0.94)', 'rgba(41,37,36,0.88)'],
-  ['rgba(82,82,91,0.94)', 'rgba(68,64,60,0.88)'],
-  ['rgba(24,24,27,0.96)', 'rgba(168,162,158,0.72)'],
+  ['#10b981', '#059669'], // Esmeralda
+  ['#f59e0b', '#d97706'], // Ámbar
+  ['#3b82f6', '#2563eb'], // Azul
+  ['#8b5cf6', '#7c3aed'], // Violeta
+  ['#ef4444', '#dc2626'], // Rojo
+  ['#06b6d4', '#0891b2'], // Cian
+  ['#f43f5e', '#e11d48'], // Rosa
 ];
 
 function ProductArtwork({ product }: { product: ProductView }) {
@@ -1158,17 +1165,19 @@ function ProductArtwork({ product }: { product: ProductView }) {
 
   return (
     <div
-      className="product-artwork"
+      className="product-artwork h-full w-full relative overflow-hidden"
       style={{
-        background: `radial-gradient(circle at 30% 20%, rgba(255,255,255,0.34), transparent 8rem), linear-gradient(135deg, ${from}, ${to})`,
+        background: `linear-gradient(135deg, ${from}, ${to})`,
       }}
     >
-      <div className="product-art-orb product-art-orb-one" />
-      <div className="product-art-orb product-art-orb-two" />
-      <div className="relative z-10 flex h-full flex-col items-center justify-center text-white">
-        <PackageSearch size={28} className="mb-2 opacity-80" />
-        <div className="text-4xl font-black tracking-[-0.08em]">{productInitials(product.name)}</div>
-        <div className="mt-2 max-w-[82%] truncate rounded-full bg-white/16 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/78">
+      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '12px 12px' }} />
+      <div className="product-art-orb product-art-orb-one bg-white/20 blur-xl" />
+      <div className="product-art-orb product-art-orb-two bg-black/10 blur-lg" />
+      <div className="relative z-10 flex h-full flex-col items-center justify-center text-white p-4">
+        <div className="w-16 h-16 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center shadow-2xl mb-3 transform group-hover:scale-110 transition-transform duration-500">
+          <span className="text-2xl font-black tracking-tighter">{productInitials(product.name)}</span>
+        </div>
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm">
           {product.category}
         </div>
       </div>
@@ -1240,11 +1249,14 @@ function PaymentModal({ total, onClose, onComplete }: {
   }, [onClose, submitPayment, total]);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="modal-card rounded-[30px] overflow-hidden w-full max-w-md transition-colors" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
-        <div className="brand-panel p-7 text-white text-center transition-colors">
-          <p id="payment-modal-title" className="text-[10px] uppercase tracking-[0.24em] font-black text-white/65 mb-2">Total a cobrar</p>
-          <div className="text-5xl font-mono tracking-tight">{formatCurrency(total)}</div>
+    <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl flex items-center justify-center z-50 p-4 animate-in fade-in duration-300">
+      <div className="modal-card rounded-[40px] overflow-hidden w-full max-w-md shadow-2xl border border-white/20 dark:border-white/5 animate-in zoom-in-95 duration-300" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+        <div className="brand-panel p-8 text-white text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+             <Banknote size={120} />
+          </div>
+          <p id="payment-modal-title" className="text-[10px] uppercase tracking-[0.24em] font-black text-white/70 mb-2 relative z-10">Total a recibir</p>
+          <div className="text-6xl font-black tracking-tighter relative z-10">{formatCurrency(total)}</div>
         </div>
         <div className="p-6 space-y-6 text-slate-900 dark:text-[#E2E8F0] transition-colors">
           <div className="grid grid-cols-3 gap-3">
