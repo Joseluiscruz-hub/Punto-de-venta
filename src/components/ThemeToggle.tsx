@@ -6,16 +6,16 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2 group"
+      aria-pressed={isDark}
+      title={isDark ? 'Cambiar a modo claro (Ctrl/Cmd+J)' : 'Cambiar a modo oscuro (Ctrl/Cmd+J)'}
+      aria-label={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+      className="top-icon-button transition-all"
     >
       {isDark ? (
-        <Sun size={20} className="group-hover:rotate-45 transition-transform" />
+        <Sun size={18} className="text-white" />
       ) : (
-        <Moon size={20} className="group-hover:-rotate-12 transition-transform" />
+        <Moon size={18} className="text-slate-700" />
       )}
-      <span className="text-xs font-bold uppercase tracking-widest">
-        {isDark ? 'Modo Claro' : 'Modo Oscuro'}
-      </span>
     </button>
   );
 }

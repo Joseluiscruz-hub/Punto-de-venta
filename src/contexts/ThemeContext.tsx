@@ -15,11 +15,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add('dark');
+      document.documentElement.setAttribute('data-theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      document.documentElement.setAttribute('data-theme', 'light');
     }
     localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  // Atajo global: Ctrl/Cmd + J para alternar tema (convención usada en muchas apps)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const key = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && key === 'j') {
+        e.preventDefault();
+        setIsDark((v) => !v);
+      }
+    }
+
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const value = { isDark, toggleTheme: () => setIsDark(!isDark) };
 
