@@ -22,7 +22,10 @@ const customerSchema = z.object({
 });
 const saleSchema = z.object({
   externalId: z.string().trim().min(1).max(100).optional(),
-  items: z.array(z.object({ id: uuid, quantity: z.coerce.number().int().positive() })).min(1).max(200),
+  items: z
+    .array(z.object({ id: uuid, quantity: z.coerce.number().int().positive() }))
+    .min(1)
+    .max(200),
   paymentMethod: z.enum(['CASH', 'CARD', 'TRANSFER', 'MIXED']),
   amountTendered: z.coerce.number().min(0).max(99_999_999),
   clientId: uuid.optional(),
@@ -99,7 +102,7 @@ interface SaleItemRow {
   subtotal: string | number;
 }
 
-const money = (value: string | number | null) => value === null ? undefined : Number(value);
+const money = (value: string | number | null) => (value === null ? undefined : Number(value));
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 function mapProduct(row: ProductRow) {
@@ -151,7 +154,10 @@ function mapShift(row: ShiftRow) {
 }
 
 async function saleDetails(client: QueryClient, sale: SaleRow) {
-  const items = await client.query<SaleItemRow>('SELECT * FROM sale_items WHERE sale_id = $1 ORDER BY id', [sale.id]);
+  const items = await client.query<SaleItemRow>(
+    'SELECT * FROM sale_items WHERE sale_id = $1 ORDER BY id',
+    [sale.id],
+  );
   return {
     id: sale.id,
     externalId: sale.external_id ?? undefined,
@@ -197,14 +203,24 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.get('/stores', async (request) => {
     const result = await database.query<{
-      id: string; tenant_id: string; name: string; address: string; code: string;
+      id: string;
+      tenant_id: string;
+      name: string;
+      address: string;
+      code: string;
     }>(
       `SELECT s.id, s.tenant_id, s.code, s.name, s.address
        FROM stores s JOIN user_store_access usa ON usa.store_id = s.id
        WHERE usa.user_id = $1 AND s.tenant_id = $2 AND s.active = true ORDER BY s.code`,
       [request.user.sub, request.user.tenantId],
     );
-    return result.rows.map((row) => ({ id: row.id, tenantId: row.tenant_id, code: row.code, name: row.name, address: row.address }));
+    return result.rows.map((row) => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      code: row.code,
+      name: row.name,
+      address: row.address,
+    }));
   });
 
   app.get('/registers', async (request) => {
@@ -214,12 +230,23 @@ export async function coreRoutes(app: FastifyInstance) {
       'SELECT store_id AS id FROM user_store_access WHERE user_id = $1::uuid AND store_id = $2::uuid',
       [request.user.sub, storeId],
     );
-    if (access.rowCount === 0) throw new HttpError(403, 'No tienes acceso a esta sucursal', 'STORE_ACCESS_DENIED');
-    const registers = await database.query<{ id: string; store_id: string; code: string; name: string }>(
+    if (access.rowCount === 0)
+      throw new HttpError(403, 'No tienes acceso a esta sucursal', 'STORE_ACCESS_DENIED');
+    const registers = await database.query<{
+      id: string;
+      store_id: string;
+      code: string;
+      name: string;
+    }>(
       'SELECT id, store_id, code, name FROM registers WHERE store_id = $1 AND active = true ORDER BY code',
       [storeId],
     );
-    return registers.rows.map((row) => ({ id: row.id, storeId: row.store_id, code: row.code, name: row.name }));
+    return registers.rows.map((row) => ({
+      id: row.id,
+      storeId: row.store_id,
+      code: row.code,
+      name: row.name,
+    }));
   });
 
   app.get('/products', async (request) => {
@@ -236,7 +263,15 @@ export async function coreRoutes(app: FastifyInstance) {
       await client.query(
         `INSERT INTO products (id, tenant_id, barcode, name, category, cost, price)
          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [productId, request.user.tenantId, input.barcode, input.name, input.category, input.cost, input.price],
+        [
+          productId,
+          request.user.tenantId,
+          input.barcode,
+          input.name,
+          input.category,
+          input.cost,
+          input.price,
+        ],
       );
       await client.query(
         `INSERT INTO inventory (tenant_id, store_id, product_id, stock, min_stock)
@@ -248,10 +283,19 @@ export async function coreRoutes(app: FastifyInstance) {
           `INSERT INTO stock_movements
             (id, tenant_id, store_id, product_id, user_id, type, quantity, reason)
            VALUES ($1, $2, $3, $4, $5, 'PURCHASE', $6, 'Inventario inicial')`,
-          [randomUUID(), request.user.tenantId, context.storeId, productId, request.user.sub, input.stock],
+          [
+            randomUUID(),
+            request.user.tenantId,
+            context.storeId,
+            productId,
+            request.user.sub,
+            input.stock,
+          ],
         );
       }
-      await audit(client, request, 'PRODUCT_CREATED', 'product', productId, { barcode: input.barcode });
+      await audit(client, request, 'PRODUCT_CREATED', 'product', productId, {
+        barcode: input.barcode,
+      });
       const products = await productRows(client, request.user.tenantId, context.storeId);
       const product = products.rows.find((row) => row.id === productId);
       if (!product) throw new HttpError(500, 'No se pudo recuperar el producto creado');
@@ -270,11 +314,20 @@ export async function coreRoutes(app: FastifyInstance) {
          WHERE p.id = $1 AND p.tenant_id = $2 AND p.active = true FOR UPDATE`,
         [id, request.user.tenantId, context.storeId],
       );
-      if (!existing.rows[0]) throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
+      if (!existing.rows[0])
+        throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
       await client.query(
         `UPDATE products SET barcode = $3, name = $4, category = $5, cost = $6, price = $7, updated_at = now()
          WHERE id = $1 AND tenant_id = $2`,
-        [id, request.user.tenantId, input.barcode, input.name, input.category, input.cost, input.price],
+        [
+          id,
+          request.user.tenantId,
+          input.barcode,
+          input.name,
+          input.category,
+          input.cost,
+          input.price,
+        ],
       );
       await client.query(
         'UPDATE inventory SET stock = $3, min_stock = $4, updated_at = now() WHERE store_id = $1 AND product_id = $2',
@@ -302,7 +355,8 @@ export async function coreRoutes(app: FastifyInstance) {
         'UPDATE products SET active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2 AND active = true RETURNING id',
         [id, request.user.tenantId],
       );
-      if (result.rowCount === 0) throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
+      if (result.rowCount === 0)
+        throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
       await audit(client, request, 'PRODUCT_ARCHIVED', 'product', id);
     });
     return reply.status(204).send();
@@ -323,7 +377,14 @@ export async function coreRoutes(app: FastifyInstance) {
       const inserted = await client.query<CustomerRow>(
         `INSERT INTO customers (id, tenant_id, name, email, phone, tax_id)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [id, request.user.tenantId, input.name, input.email || null, input.phone || null, input.taxId || null],
+        [
+          id,
+          request.user.tenantId,
+          input.name,
+          input.email || null,
+          input.phone || null,
+          input.taxId || null,
+        ],
       );
       await audit(client, request, 'CUSTOMER_CREATED', 'customer', id);
       return mapCustomer(inserted.rows[0]!);
@@ -338,7 +399,14 @@ export async function coreRoutes(app: FastifyInstance) {
       const updated = await client.query<CustomerRow>(
         `UPDATE customers SET name = $3, email = $4, phone = $5, tax_id = $6, updated_at = now()
          WHERE id = $1 AND tenant_id = $2 AND active = true RETURNING *`,
-        [id, request.user.tenantId, input.name, input.email || null, input.phone || null, input.taxId || null],
+        [
+          id,
+          request.user.tenantId,
+          input.name,
+          input.email || null,
+          input.phone || null,
+          input.taxId || null,
+        ],
       );
       if (!updated.rows[0]) throw new HttpError(404, 'Cliente no encontrado', 'CUSTOMER_NOT_FOUND');
       await audit(client, request, 'CUSTOMER_UPDATED', 'customer', id);
@@ -346,18 +414,23 @@ export async function coreRoutes(app: FastifyInstance) {
     });
   });
 
-  app.delete('/customers/:id', { preHandler: authorize('ADMIN', 'MANAGER') }, async (request, reply) => {
-    const { id } = parse(z.object({ id: uuid }), request.params);
-    await database.transaction(async (client) => {
-      const result = await client.query(
-        'UPDATE customers SET active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2 AND active = true RETURNING id',
-        [id, request.user.tenantId],
-      );
-      if (result.rowCount === 0) throw new HttpError(404, 'Cliente no encontrado', 'CUSTOMER_NOT_FOUND');
-      await audit(client, request, 'CUSTOMER_ARCHIVED', 'customer', id);
-    });
-    return reply.status(204).send();
-  });
+  app.delete(
+    '/customers/:id',
+    { preHandler: authorize('ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const { id } = parse(z.object({ id: uuid }), request.params);
+      await database.transaction(async (client) => {
+        const result = await client.query(
+          'UPDATE customers SET active = false, updated_at = now() WHERE id = $1 AND tenant_id = $2 AND active = true RETURNING id',
+          [id, request.user.tenantId],
+        );
+        if (result.rowCount === 0)
+          throw new HttpError(404, 'Cliente no encontrado', 'CUSTOMER_NOT_FOUND');
+        await audit(client, request, 'CUSTOMER_ARCHIVED', 'customer', id);
+      });
+      return reply.status(204).send();
+    },
+  );
 
   app.get('/shifts/active', async (request) => {
     const context = await resolveStoreContext(request, database);
@@ -378,20 +451,31 @@ export async function coreRoutes(app: FastifyInstance) {
   });
 
   app.post('/shifts/open', async (request, reply) => {
-    const input = parse(z.object({ initialCash: z.coerce.number().min(0).max(99_999_999) }), request.body);
+    const input = parse(
+      z.object({ initialCash: z.coerce.number().min(0).max(99_999_999) }),
+      request.body,
+    );
     const shift = await database.transaction(async (client) => {
       const context = await resolveStoreContext(request, client);
       const existing = await client.query<{ id: string }>(
         `SELECT id FROM shifts WHERE register_id = $1 AND status = 'OPEN' FOR UPDATE`,
         [context.registerId],
       );
-      if (existing.rowCount > 0) throw new HttpError(409, 'La caja ya tiene un turno abierto', 'SHIFT_ALREADY_OPEN');
+      if (existing.rowCount > 0)
+        throw new HttpError(409, 'La caja ya tiene un turno abierto', 'SHIFT_ALREADY_OPEN');
       const id = randomUUID();
       const inserted = await client.query<ShiftRow>(
         `INSERT INTO shifts
           (id, tenant_id, store_id, register_id, user_id, initial_cash, expected_cash, status)
          VALUES ($1, $2, $3, $4, $5, $6, $6, 'OPEN') RETURNING *`,
-        [id, request.user.tenantId, context.storeId, context.registerId, request.user.sub, input.initialCash],
+        [
+          id,
+          request.user.tenantId,
+          context.storeId,
+          context.registerId,
+          request.user.sub,
+          input.initialCash,
+        ],
       );
       await audit(client, request, 'SHIFT_OPENED', 'shift', id, { initialCash: input.initialCash });
       return mapShift(inserted.rows[0]!);
@@ -401,7 +485,10 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.post('/shifts/:id/close', async (request) => {
     const { id } = parse(z.object({ id: uuid }), request.params);
-    const input = parse(z.object({ actualCash: z.coerce.number().min(0).max(99_999_999) }), request.body);
+    const input = parse(
+      z.object({ actualCash: z.coerce.number().min(0).max(99_999_999) }),
+      request.body,
+    );
     return database.transaction(async (client) => {
       const context = await resolveStoreContext(request, client);
       const result = await client.query<ShiftRow>(
@@ -411,7 +498,8 @@ export async function coreRoutes(app: FastifyInstance) {
          RETURNING *`,
         [id, request.user.tenantId, context.registerId, input.actualCash, request.user.sub],
       );
-      if (!result.rows[0]) throw new HttpError(404, 'Turno activo no encontrado', 'SHIFT_NOT_FOUND');
+      if (!result.rows[0])
+        throw new HttpError(404, 'Turno activo no encontrado', 'SHIFT_NOT_FOUND');
       await audit(client, request, 'SHIFT_CLOSED', 'shift', id, { actualCash: input.actualCash });
       return mapShift(result.rows[0]);
     });
@@ -434,7 +522,8 @@ export async function coreRoutes(app: FastifyInstance) {
         [request.user.tenantId, context.registerId, request.user.sub],
       );
       const shift = shiftResult.rows[0];
-      if (!shift) throw new HttpError(409, 'Debes abrir un turno antes de vender', 'SHIFT_REQUIRED');
+      if (!shift)
+        throw new HttpError(409, 'Debes abrir un turno antes de vender', 'SHIFT_REQUIRED');
 
       const lines: Array<{ product: ProductRow; quantity: number }> = [];
       for (const requested of input.items) {
@@ -446,8 +535,14 @@ export async function coreRoutes(app: FastifyInstance) {
           [requested.id, request.user.tenantId, context.storeId],
         );
         const row = product.rows[0];
-        if (!row) throw new HttpError(404, 'Uno de los productos ya no esta disponible', 'PRODUCT_NOT_FOUND');
-        if (row.stock < requested.quantity) throw new HttpError(409, `Stock insuficiente para ${row.name}`, 'INSUFFICIENT_STOCK');
+        if (!row)
+          throw new HttpError(
+            404,
+            'Uno de los productos ya no esta disponible',
+            'PRODUCT_NOT_FOUND',
+          );
+        if (row.stock < requested.quantity)
+          throw new HttpError(409, `Stock insuficiente para ${row.name}`, 'INSUFFICIENT_STOCK');
         lines.push({ product: row, quantity: requested.quantity });
       }
 
@@ -456,10 +551,13 @@ export async function coreRoutes(app: FastifyInstance) {
           'SELECT id FROM customers WHERE id = $1 AND tenant_id = $2 AND active = true',
           [input.clientId, request.user.tenantId],
         );
-        if (customer.rowCount === 0) throw new HttpError(404, 'Cliente no encontrado', 'CUSTOMER_NOT_FOUND');
+        if (customer.rowCount === 0)
+          throw new HttpError(404, 'Cliente no encontrado', 'CUSTOMER_NOT_FOUND');
       }
 
-      const total = roundMoney(lines.reduce((sum, line) => sum + Number(line.product.price) * line.quantity, 0));
+      const total = roundMoney(
+        lines.reduce((sum, line) => sum + Number(line.product.price) * line.quantity, 0),
+      );
       if (input.paymentMethod === 'CASH' && input.amountTendered < total) {
         throw new HttpError(400, 'El efectivo recibido es menor al total', 'INSUFFICIENT_PAYMENT');
       }
@@ -471,9 +569,22 @@ export async function coreRoutes(app: FastifyInstance) {
            datetime, total, payment_method, amount_tendered, change_amount, items_count)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9::timestamptz, now()), $10, $11, $12, $13, $14)
          RETURNING *`,
-        [saleId, input.externalId ?? null, request.user.tenantId, context.storeId, context.registerId,
-          shift.id, request.user.sub, input.clientId ?? null, input.offlineDate ?? null, total,
-          input.paymentMethod, input.amountTendered, change, lines.reduce((sum, line) => sum + line.quantity, 0)],
+        [
+          saleId,
+          input.externalId ?? null,
+          request.user.tenantId,
+          context.storeId,
+          context.registerId,
+          shift.id,
+          request.user.sub,
+          input.clientId ?? null,
+          input.offlineDate ?? null,
+          total,
+          input.paymentMethod,
+          input.amountTendered,
+          change,
+          lines.reduce((sum, line) => sum + line.quantity, 0),
+        ],
       );
 
       for (const line of lines) {
@@ -482,8 +593,16 @@ export async function coreRoutes(app: FastifyInstance) {
           `INSERT INTO sale_items
             (id, sale_id, product_id, product_name, quantity, price, cost, subtotal)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [randomUUID(), saleId, line.product.id, line.product.name, line.quantity,
-            line.product.price, line.product.cost, subtotal],
+          [
+            randomUUID(),
+            saleId,
+            line.product.id,
+            line.product.name,
+            line.quantity,
+            line.product.price,
+            line.product.cost,
+            subtotal,
+          ],
         );
         await client.query(
           `UPDATE inventory SET stock = stock - $3, updated_at = now()
@@ -494,8 +613,17 @@ export async function coreRoutes(app: FastifyInstance) {
           `INSERT INTO stock_movements
             (id, tenant_id, store_id, product_id, user_id, sale_id, type, quantity, date, reason)
            VALUES ($1, $2, $3, $4, $5, $6, 'SALE', $7, COALESCE($8::timestamptz, now()), $9)`,
-          [randomUUID(), request.user.tenantId, context.storeId, line.product.id, request.user.sub,
-            saleId, -line.quantity, input.offlineDate ?? null, `Venta ${saleId}`],
+          [
+            randomUUID(),
+            request.user.tenantId,
+            context.storeId,
+            line.product.id,
+            request.user.sub,
+            saleId,
+            -line.quantity,
+            input.offlineDate ?? null,
+            `Venta ${saleId}`,
+          ],
         );
       }
 
@@ -504,7 +632,13 @@ export async function coreRoutes(app: FastifyInstance) {
           `UPDATE customers SET points = points + $3, total_spent = total_spent + $4,
              last_visit = COALESCE($5::timestamptz, now()), updated_at = now()
            WHERE id = $1 AND tenant_id = $2`,
-          [input.clientId, request.user.tenantId, Math.floor(total * 0.01), total, input.offlineDate ?? null],
+          [
+            input.clientId,
+            request.user.tenantId,
+            Math.floor(total * 0.01),
+            total,
+            input.offlineDate ?? null,
+          ],
         );
       }
 
@@ -514,9 +648,15 @@ export async function coreRoutes(app: FastifyInstance) {
           [shift.id, total],
         );
       } else {
-        await client.query('UPDATE shifts SET sales_card = sales_card + $2 WHERE id = $1', [shift.id, total]);
+        await client.query('UPDATE shifts SET sales_card = sales_card + $2 WHERE id = $1', [
+          shift.id,
+          total,
+        ]);
       }
-      await audit(client, request, 'SALE_CREATED', 'sale', saleId, { total, paymentMethod: input.paymentMethod });
+      await audit(client, request, 'SALE_CREATED', 'sale', saleId, {
+        total,
+        paymentMethod: input.paymentMethod,
+      });
       return saleDetails(client, inserted.rows[0]!);
     });
     return reply.status(201).send(sale);
@@ -534,8 +674,17 @@ export async function coreRoutes(app: FastifyInstance) {
   app.get('/stock-movements', async (request) => {
     const context = await resolveStoreContext(request, database);
     const result = await database.query<{
-      id: string; tenant_id: string; store_id: string; product_id: string; user_id: string;
-      type: string; quantity: number; date: string; reason: string; product_name: string; user_name: string;
+      id: string;
+      tenant_id: string;
+      store_id: string;
+      product_id: string;
+      user_id: string;
+      type: string;
+      quantity: number;
+      date: string;
+      reason: string;
+      product_name: string;
+      user_name: string;
     }>(
       `SELECT m.id, m.tenant_id, m.store_id, m.product_id, m.user_id, m.type, m.quantity,
               m.date, m.reason, p.name AS product_name, u.display_name AS user_name

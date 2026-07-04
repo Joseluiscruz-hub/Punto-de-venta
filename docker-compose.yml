@@ -6,11 +6,11 @@ services:
       POSTGRES_USER: el_triunfo
       POSTGRES_PASSWORD: local_change_me
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U el_triunfo -d el_triunfo"]
+      test: ['CMD-SHELL', 'pg_isready -U el_triunfo -d el_triunfo']
       interval: 5s
       timeout: 5s
       retries: 10

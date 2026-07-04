@@ -62,7 +62,15 @@ test('autentica, renueva la sesion y respeta permisos por rol', async () => {
     method: 'POST',
     url: '/api/products',
     headers: { authorization: `Bearer ${cashier.body.token}` },
-    payload: { barcode: 'NO-PERMITIDO', name: 'Producto', category: 'Test', cost: 1, price: 2, stock: 1, minStock: 0 },
+    payload: {
+      barcode: 'NO-PERMITIDO',
+      name: 'Producto',
+      category: 'Test',
+      cost: 1,
+      price: 2,
+      stock: 1,
+      minStock: 0,
+    },
   });
   assert.equal(forbidden.statusCode, 403);
 });

@@ -39,7 +39,10 @@ export class Database implements QueryClient {
     }
     if (!this.embedded) throw new Error('Database is not connected');
     const result = await this.embedded.query<T>(sql, params);
-    return { rows: result.rows, rowCount: result.rows.length > 0 ? result.rows.length : (result.affectedRows ?? 0) };
+    return {
+      rows: result.rows,
+      rowCount: result.rows.length > 0 ? result.rows.length : (result.affectedRows ?? 0),
+    };
   }
 
   async exec(sql: string): Promise<void> {
@@ -61,7 +64,9 @@ export class Database implements QueryClient {
             const queryResult = await client.query(sql, params);
             return { rows: queryResult.rows as Row[], rowCount: queryResult.rowCount ?? 0 };
           },
-          exec: async (sql: string) => { await client.query(sql); },
+          exec: async (sql: string) => {
+            await client.query(sql);
+          },
         });
         await client.query('COMMIT');
         return result;
@@ -74,13 +79,20 @@ export class Database implements QueryClient {
     }
 
     if (!this.embedded) throw new Error('Database is not connected');
-    return this.embedded.transaction(async (transaction) => work({
-      query: async <Row>(sql: string, params: unknown[] = []) => {
-        const result = await transaction.query<Row>(sql, params);
-        return { rows: result.rows, rowCount: result.rows.length > 0 ? result.rows.length : (result.affectedRows ?? 0) };
-      },
-      exec: async (sql: string) => { await transaction.exec(sql); },
-    }));
+    return this.embedded.transaction(async (transaction) =>
+      work({
+        query: async <Row>(sql: string, params: unknown[] = []) => {
+          const result = await transaction.query<Row>(sql, params);
+          return {
+            rows: result.rows,
+            rowCount: result.rows.length > 0 ? result.rows.length : (result.affectedRows ?? 0),
+          };
+        },
+        exec: async (sql: string) => {
+          await transaction.exec(sql);
+        },
+      }),
+    );
   }
 
   async migrate() {
@@ -93,7 +105,10 @@ export class Database implements QueryClient {
         version text PRIMARY KEY,
         applied_at timestamptz NOT NULL DEFAULT now()
       )`);
-      const applied = await this.query<{ version: string }>('SELECT version FROM schema_migrations WHERE version = $1', [version]);
+      const applied = await this.query<{ version: string }>(
+        'SELECT version FROM schema_migrations WHERE version = $1',
+        [version],
+      );
       if (applied.rowCount > 0) continue;
       const sql = await readFile(resolve(migrationsPath, file), 'utf8');
       await this.transaction(async (client) => {

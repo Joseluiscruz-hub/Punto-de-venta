@@ -26,23 +26,41 @@ export async function buildApp() {
   await app.register(jwt, { secret: config.JWT_SECRET });
   await app.register(rateLimit, { max: 300, timeWindow: '1 minute' });
 
-  app.get('/api/health', async () => ({ status: 'ok', database: config.DATABASE_URL ? 'postgresql' : 'pglite' }));
+  app.get('/api/health', async () => ({
+    status: 'ok',
+    database: config.DATABASE_URL ? 'postgresql' : 'pglite',
+  }));
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(coreRoutes, { prefix: '/api' });
 
   app.setNotFoundHandler((request, reply) => {
-    reply.status(404).send({ error: { code: 'NOT_FOUND', message: `Ruta no encontrada: ${request.method} ${request.url}` } });
+    reply
+      .status(404)
+      .send({
+        error: {
+          code: 'NOT_FOUND',
+          message: `Ruta no encontrada: ${request.method} ${request.url}`,
+        },
+      });
   });
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof HttpError) {
-      return reply.status(error.statusCode).send({ error: { code: error.code, message: error.message } });
+      return reply
+        .status(error.statusCode)
+        .send({ error: { code: error.code, message: error.message } });
     }
     const databaseError = error as { code?: string; constraint?: string };
     if (databaseError.code === '23505') {
-      return reply.status(409).send({ error: { code: 'DUPLICATE_RECORD', message: 'Ya existe un registro con esos datos' } });
+      return reply
+        .status(409)
+        .send({
+          error: { code: 'DUPLICATE_RECORD', message: 'Ya existe un registro con esos datos' },
+        });
     }
     request.log.error(error);
-    return reply.status(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Ocurrio un error interno' } });
+    return reply
+      .status(500)
+      .send({ error: { code: 'INTERNAL_ERROR', message: 'Ocurrio un error interno' } });
   });
 
   return app;

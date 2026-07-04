@@ -16,7 +16,10 @@ const schema = z.object({
 
 const parsed = schema.parse(process.env);
 
-if (parsed.NODE_ENV === 'production' && parsed.JWT_SECRET === 'local-development-secret-change-before-production') {
+if (
+  parsed.NODE_ENV === 'production' &&
+  parsed.JWT_SECRET === 'local-development-secret-change-before-production'
+) {
   throw new Error('JWT_SECRET must be configured in production');
 }
 

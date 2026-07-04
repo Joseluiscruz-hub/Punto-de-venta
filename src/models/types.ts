@@ -6,7 +6,8 @@ export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type Plan = 'BASIC' | 'PRO' | 'PREMIUM';
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
 export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH_IN' | 'CASH_OUT';
-export type Feature = 'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
+export type Feature =
+  'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
 
 export interface Shift {

@@ -18,7 +18,10 @@ export interface BackendContract {
   logout(): Promise<void>;
   deleteProduct(context: RequestContext, productId: string): Promise<void>;
   getStoreProducts(context: RequestContext): Promise<ProductView[]>;
-  saveProduct(context: RequestContext, product: CreateProductInput | UpdateProductInput): Promise<ProductView>;
+  saveProduct(
+    context: RequestContext,
+    product: CreateProductInput | UpdateProductInput,
+  ): Promise<ProductView>;
   saveProductsBulk(context: RequestContext, products: CreateProductInput[]): Promise<void>;
   processSale(context: RequestContext, sale: ProcessSaleInput): Promise<Sale>;
   getActiveShift(context: RequestContext): Promise<Shift | null>;
@@ -26,10 +29,20 @@ export interface BackendContract {
   closeShift(context: RequestContext, actualCash: number): Promise<Shift>;
   getShifts(context: RequestContext): Promise<Shift[]>;
   getClients(context: Pick<RequestContext, 'tenantId' | 'storeId'>): Promise<Client[]>;
-  saveClient(context: Pick<RequestContext, 'tenantId' | 'storeId'>, client: Partial<Client>): Promise<Client>;
-  deleteClient(context: Pick<RequestContext, 'tenantId' | 'storeId'>, clientId: string): Promise<void>;
-  getSales(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<Sale[]>;
-  getStockMovements(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<StockMovementView[]>;
+  saveClient(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    client: Partial<Client>,
+  ): Promise<Client>;
+  deleteClient(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    clientId: string,
+  ): Promise<void>;
+  getSales(
+    context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>,
+  ): Promise<Sale[]>;
+  getStockMovements(
+    context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>,
+  ): Promise<StockMovementView[]>;
 }
 
 const localContract: BackendContract = {
@@ -37,7 +50,8 @@ const localContract: BackendContract = {
   logout: async () => undefined,
 };
 
-const useApi = import.meta.env.VITE_BACKEND_MODE === 'api'
-  || (import.meta.env.VITE_BACKEND_MODE !== 'local' && import.meta.env.DEV);
+const useApi =
+  import.meta.env.VITE_BACKEND_MODE === 'api' ||
+  (import.meta.env.VITE_BACKEND_MODE !== 'local' && import.meta.env.DEV);
 
 export const BackendAPI: BackendContract = useApi ? remoteBackend : localContract;

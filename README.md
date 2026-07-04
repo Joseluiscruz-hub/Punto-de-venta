@@ -32,10 +32,10 @@ La API aplica migraciones y crea los datos provisionales durante el primer arran
 
 ## Acceso provisional
 
-| Organizacion | Usuario | PIN | Rol |
-| --- | --- | --- | --- |
+| Organizacion | Usuario | PIN    | Rol           |
+| ------------ | ------- | ------ | ------------- |
 | `EL-TRIUNFO` | `admin` | `1234` | Administrador |
-| `EL-TRIUNFO` | `caja1` | `0000` | Cajero |
+| `EL-TRIUNFO` | `caja1` | `0000` | Cajero        |
 
 Estos PIN deben cambiarse antes de publicar el sistema.
 

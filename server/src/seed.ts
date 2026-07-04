@@ -11,12 +11,19 @@ export const seedIds = {
 };
 
 export async function seedDatabase() {
-  const existing = await database.query<{ id: string }>('SELECT id FROM tenants WHERE id = $1', [seedIds.tenant]);
+  const existing = await database.query<{ id: string }>('SELECT id FROM tenants WHERE id = $1', [
+    seedIds.tenant,
+  ]);
   if (existing.rowCount > 0) return;
 
   const [adminHash, cashierHash] = await Promise.all([hashPin('1234'), hashPin('0000')]);
   await database.transaction(async (client) => {
-    await client.query('INSERT INTO tenants (id, code, name, plan) VALUES ($1, $2, $3, $4)', [seedIds.tenant, 'EL-TRIUNFO', 'El Triunfo', 'PREMIUM']);
+    await client.query('INSERT INTO tenants (id, code, name, plan) VALUES ($1, $2, $3, $4)', [
+      seedIds.tenant,
+      'EL-TRIUNFO',
+      'El Triunfo',
+      'PREMIUM',
+    ]);
     await client.query(
       'INSERT INTO stores (id, tenant_id, code, name, address) VALUES ($1, $2, $3, $4, $5)',
       [seedIds.store, seedIds.tenant, 'SUC-001', 'Sucursal Principal', 'Domicilio provisional'],
@@ -28,8 +35,19 @@ export async function seedDatabase() {
     await client.query(
       `INSERT INTO users (id, tenant_id, username, display_name, role, pin_hash)
        VALUES ($1, $2, $3, $4, $5, $6), ($7, $2, $8, $9, $10, $11)`,
-      [seedIds.admin, seedIds.tenant, 'admin', 'Administrador', 'ADMIN', adminHash,
-        seedIds.cashier, 'caja1', 'Cajero Principal', 'CASHIER', cashierHash],
+      [
+        seedIds.admin,
+        seedIds.tenant,
+        'admin',
+        'Administrador',
+        'ADMIN',
+        adminHash,
+        seedIds.cashier,
+        'caja1',
+        'Cajero Principal',
+        'CASHIER',
+        cashierHash,
+      ],
     );
     await client.query(
       `INSERT INTO user_store_access (user_id, store_id, is_default)

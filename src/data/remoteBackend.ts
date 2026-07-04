@@ -23,7 +23,7 @@ interface ApiErrorBody {
 }
 
 async function responseError(response: Response) {
-  const body = await response.json().catch(() => ({})) as ApiErrorBody;
+  const body = (await response.json().catch(() => ({}))) as ApiErrorBody;
   return new Error(body.error?.message ?? body.message ?? `Error HTTP ${response.status}`);
 }
 
@@ -39,7 +39,7 @@ async function refreshAccessToken() {
       window.dispatchEvent(new Event('el-triunfo:session-expired'));
       throw await responseError(response);
     }
-    const session = await response.json() as Session;
+    const session = (await response.json()) as Session;
     accessToken = session.token;
   })().finally(() => {
     refreshPromise = null;
@@ -72,10 +72,14 @@ function contextHeaders(context: Pick<RequestContext, 'storeId'>) {
 
 export const remoteBackend = {
   async login(username: string, pin: string): Promise<LoginResponse> {
-    const session = await request<LoginResponse>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ organization: 'EL-TRIUNFO', username, pin }),
-    }, false);
+    const session = await request<LoginResponse>(
+      '/auth/login',
+      {
+        method: 'POST',
+        body: JSON.stringify({ organization: 'EL-TRIUNFO', username, pin }),
+      },
+      false,
+    );
     accessToken = session.token;
     return session;
   },
@@ -92,7 +96,10 @@ export const remoteBackend = {
     return request('/products', { headers: contextHeaders(context) });
   },
 
-  async saveProduct(context: RequestContext, product: CreateProductInput | UpdateProductInput): Promise<ProductView> {
+  async saveProduct(
+    context: RequestContext,
+    product: CreateProductInput | UpdateProductInput,
+  ): Promise<ProductView> {
     const isUpdate = 'id' in product && Boolean(product.id);
     return request(isUpdate ? `/products/${product.id}` : '/products', {
       method: isUpdate ? 'PUT' : 'POST',
@@ -154,7 +161,10 @@ export const remoteBackend = {
     return request('/customers', { headers: contextHeaders(context) });
   },
 
-  async saveClient(context: Pick<RequestContext, 'tenantId' | 'storeId'>, client: Partial<Client>): Promise<Client> {
+  async saveClient(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    client: Partial<Client>,
+  ): Promise<Client> {
     const isUpdate = Boolean(client.id);
     return request(isUpdate ? `/customers/${client.id}` : '/customers', {
       method: isUpdate ? 'PUT' : 'POST',
@@ -163,15 +173,26 @@ export const remoteBackend = {
     });
   },
 
-  async deleteClient(context: Pick<RequestContext, 'tenantId' | 'storeId'>, clientId: string): Promise<void> {
+  async deleteClient(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    clientId: string,
+  ): Promise<void> {
     await request(`/customers/${clientId}`, { method: 'DELETE', headers: contextHeaders(context) });
   },
 
-  async getSales(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<Sale[]> {
-    return request('/sales', { headers: context.storeId ? contextHeaders({ storeId: context.storeId }) : undefined });
+  async getSales(
+    context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>,
+  ): Promise<Sale[]> {
+    return request('/sales', {
+      headers: context.storeId ? contextHeaders({ storeId: context.storeId }) : undefined,
+    });
   },
 
-  async getStockMovements(context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>): Promise<StockMovementView[]> {
-    return request('/stock-movements', { headers: context.storeId ? contextHeaders({ storeId: context.storeId }) : undefined });
+  async getStockMovements(
+    context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>,
+  ): Promise<StockMovementView[]> {
+    return request('/stock-movements', {
+      headers: context.storeId ? contextHeaders({ storeId: context.storeId }) : undefined,
+    });
   },
 };
