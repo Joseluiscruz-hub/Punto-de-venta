@@ -70,7 +70,7 @@ export function MainLayout() {
         onMouseEnter={() => setIsSidebarExpanded(true)}
         onMouseLeave={() => setIsSidebarExpanded(false)}
         className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out
+          side-rail fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out
           ${isSidebarExpanded ? 'w-64' : 'w-20'}
           ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           lg:static
@@ -156,10 +156,10 @@ export function MainLayout() {
           />
         </nav>
 
-        <div className="p-4 mt-auto border-t border-slate-100 dark:border-slate-800">
+        <div className="p-4 mt-auto border-t border-slate-100/70 dark:border-slate-800/70">
           <button
             onClick={logout}
-            className={`flex items-center h-12 rounded-xl text-slate-500 hover:bg-error/10 hover:text-error transition-all duration-200 w-full ${isSidebarExpanded ? 'px-4 gap-4' : 'justify-center'}`}
+            className={`btn-secondary flex items-center h-12 w-full ${isSidebarExpanded ? 'px-4 gap-4' : 'justify-center'}`}
           >
             <LogOut size={20} />
             {isSidebarExpanded && <span className="text-sm font-semibold">Salir</span>}
@@ -168,7 +168,7 @@ export function MainLayout() {
           <div
             className={`mt-4 flex items-center ${isSidebarExpanded ? 'gap-3 px-2' : 'justify-center'}`}
           >
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-light to-accent flex items-center justify-center text-white shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-linear-to-br from-primary-light to-accent flex items-center justify-center text-white shrink-0 shadow-sm">
               <span className="text-[10px] font-bold">{user?.name?.[0].toUpperCase()}</span>
             </div>
             {isSidebarExpanded && (
@@ -188,24 +188,24 @@ export function MainLayout() {
 
       <main className="main-canvas flex-1 flex flex-col min-w-0 transition-colors">
         <SyncManager />
-        <div className="hidden lg:flex items-center justify-between px-8 py-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+        <div className="hidden lg:flex items-center justify-between px-8 py-4 top-command-strip">
           <div className="flex items-center gap-8">
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-label text-slate-400">
                 Colaborador
               </p>
               <p className="text-sm font-bold text-slate-900 dark:text-white">{user?.name}</p>
             </div>
             <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-label text-slate-400">
                 Sucursal
               </p>
               <p className="text-sm font-bold text-slate-900 dark:text-white">{store?.name}</p>
             </div>
             <div className="h-8 w-px bg-slate-100 dark:bg-slate-800" />
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              <p className="text-label text-slate-400">
                 Terminal
               </p>
               <p className="text-sm font-bold text-slate-900 dark:text-white">Caja Principal</p>
@@ -228,7 +228,7 @@ export function MainLayout() {
               <p className="text-lg font-black text-slate-900 dark:text-white leading-none">
                 {time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>
-              <p className="text-[10px] font-bold text-primary-light uppercase tracking-wider mt-1">
+                <p className="text-caption text-primary-light mt-1">
                 {time.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'short' })}
               </p>
             </div>

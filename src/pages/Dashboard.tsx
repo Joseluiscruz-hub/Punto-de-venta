@@ -15,7 +15,7 @@ import {
 import { Sale, ProductView } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppTheme } from '../contexts/ThemeContext';
+import { useAppTheme } from '../contexts/theme-context';
 import { formatCurrency, startOfPeriod, PERIOD_OPTIONS } from '../utils/helpers';
 import { StatCard } from '../components/StatCard';
 

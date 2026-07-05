@@ -758,19 +758,43 @@ button:disabled {
 
 .input-premium {
   background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  border: 2px solid rgba(15, 23, 42, 0.15);
   border-radius: 18px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    outline 160ms ease;
+  outline: 3px solid transparent;
+  outline-offset: 2px;
 }
 
 .dark .input-premium {
   background: rgba(2, 6, 23, 0.34);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.input-premium:hover:not(:disabled) {
+  border-color: rgba(20, 184, 166, 0.3);
 }
 
 .input-premium:focus {
   border-color: rgba(20, 184, 166, 0.68);
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.14);
+  box-shadow:
+    0 0 0 4px rgba(20, 184, 166, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  outline-color: rgba(20, 184, 166, 0.5);
+}
+
+.dark .input-premium:focus {
+  box-shadow:
+    0 0 0 4px rgba(94, 234, 212, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.input-premium:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-primary,
@@ -784,7 +808,17 @@ button:disabled {
     transform 160ms ease,
     box-shadow 160ms ease,
     background 160ms ease,
-    opacity 160ms ease;
+    opacity 160ms ease,
+    outline 160ms ease;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  padding: 0.75rem 1.5rem;
+  outline: 3px solid transparent;
+  outline-offset: 2px;
 }
 
 .btn-primary {
@@ -798,25 +832,39 @@ button:disabled {
   box-shadow: 0 22px 44px rgba(14, 165, 233, 0.3);
 }
 
+.btn-primary:focus:not(:disabled) {
+  outline-color: rgba(14, 165, 233, 0.5);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 .btn-secondary {
   background: rgba(255, 255, 255, 0.56);
-  border: 1px solid rgba(15, 23, 42, 0.1);
+  border: 2px solid rgba(15, 23, 42, 0.2);
   color: #334155;
 }
 
 .dark .btn-secondary {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: rgba(20, 184, 166, 0.1);
+  background: rgba(20, 184, 166, 0.12);
   color: #0f766e;
+  border-color: rgba(20, 184, 166, 0.3);
 }
 
 .dark .btn-secondary:hover:not(:disabled) {
   color: #5eead4;
+  border-color: rgba(94, 234, 212, 0.3);
+}
+
+.btn-secondary:focus:not(:disabled) {
+  outline-color: rgba(20, 184, 166, 0.5);
 }
 
 .btn-danger {
@@ -825,12 +873,22 @@ button:disabled {
   box-shadow: 0 16px 34px rgba(225, 29, 72, 0.22);
 }
 
+.btn-danger:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 22px 44px rgba(225, 29, 72, 0.3);
+}
+
+.btn-danger:focus:not(:disabled) {
+  outline-color: rgba(225, 29, 72, 0.5);
+}
+
 .btn-primary:disabled,
 .btn-secondary:disabled,
 .btn-danger:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   transform: none;
   box-shadow: none;
+  cursor: not-allowed;
 }
 
 .status-chip {
@@ -946,7 +1004,7 @@ button:disabled {
 }
 
 body {
-  font-family: var(--corp-font);
+  font-family: var(--corp-font), sans-serif;
   letter-spacing: -0.012em;
 }
 
@@ -960,7 +1018,7 @@ button,
 input,
 select,
 textarea {
-  font-family: var(--corp-font);
+  font-family: var(--corp-font), sans-serif;
 }
 
 h1,
@@ -1215,15 +1273,7 @@ h6,
   border-color: rgba(82, 82, 91, 0.24) !important;
 }
 
-[class*='from-teal-'] {
-  --tw-gradient-from: #52525b var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgb(82 82 91 / 0) var(--tw-gradient-to-position) !important;
-  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
-}
-
-[class*='to-blue-'] {
-  --tw-gradient-to: #27272a var(--tw-gradient-to-position) !important;
-}
+/* Se evita sobreescribir variables internas de Tailwind para no romper gradientes. */
 
 /* Pulido visual final: mas contraste, jerarquia clara y cambios visibles por vista */
 :root {
@@ -1464,6 +1514,70 @@ tbody tr {
   background: linear-gradient(135deg, #0f766e, #2563eb 62%, #111827);
 }
 
+/* Utilidades de tipografía reutilizables */
+.text-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.text-caption {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.text-subtitle {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.text-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Utilidades de espaciado y layout */
+.gap-xs { gap: 0.5rem; }
+.gap-sm { gap: 0.75rem; }
+.gap-md { gap: 1rem; }
+.gap-lg { gap: 1.5rem; }
+.gap-xl { gap: 2rem; }
+
+.p-xs { padding: 0.5rem; }
+.p-sm { padding: 0.75rem; }
+.p-md { padding: 1rem; }
+.p-lg { padding: 1.5rem; }
+
+/* Estados de interacción consistentes */
+.focus-ring {
+  outline: 3px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus {
+  outline-color: rgba(20, 184, 166, 0.5);
+}
+
+/* Superposición para modales/overlays */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Animación de transición suave para cambios de tema */
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+}
+
 @media (max-width: 640px) {
   .panel-card,
   .search-hero,
@@ -1478,7 +1592,7 @@ tbody tr {
 
 /* Estilos de impresion para recibo */
 @page {
-  size: 80mm auto;
+  size: 80mm;
   margin: 4mm;
 }
 

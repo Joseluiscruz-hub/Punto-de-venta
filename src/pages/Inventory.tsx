@@ -465,18 +465,20 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     setLoading(true);
     setError(null);
     try {
-      const rows = (await readXlsxFile(file)) as unknown as any[][];
+      const rows = (await readXlsxFile(file)) as unknown[][];
       const [headerRow, ...dataRows] = rows;
       if (!headerRow || dataRows.length === 0)
         throw new Error('El archivo esta vacio o no contiene productos.');
-      const headers = headerRow.map((value: any) => String(value ?? '').trim());
+      const headers = (headerRow as unknown[]).map((value) => String(value ?? '').trim());
 
-      const formattedProducts = dataRows.map((values: any[], index: number): CreateProductInput => {
-        const row = Object.fromEntries(headers.map((header, column) => [header, values[column]]));
-        const name = String(row.producto ?? row.Producto ?? row.Name ?? '').trim();
-        const cost = Number(row['Costo proveedor'] ?? row.Costo ?? row.cost ?? 0);
-        const price = Number(row['Venta publico'] ?? row.Precio ?? row.price ?? 0);
-        const stock = Number(row.Items ?? row.Stock ?? row.stock ?? 0);
+      const formattedProducts = dataRows.map((values: unknown[], index: number): CreateProductInput => {
+        const rowObj = Object.fromEntries(
+          headers.map((header, column) => [header, (values as unknown[])[column]]),
+        ) as Record<string, unknown>;
+        const name = String(rowObj.producto ?? rowObj.Producto ?? rowObj.Name ?? '').trim();
+        const cost = Number(rowObj['Costo proveedor'] ?? rowObj.Costo ?? rowObj.cost ?? 0);
+        const price = Number(rowObj['Venta publico'] ?? rowObj.Precio ?? rowObj.price ?? 0);
+        const stock = Number(rowObj.Items ?? rowObj.Stock ?? rowObj.stock ?? 0);
         if (!name) throw new Error(`Fila ${index + 2}: El nombre del producto es obligatorio.`);
 
         return {
