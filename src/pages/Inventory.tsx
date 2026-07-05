@@ -465,7 +465,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     setLoading(true);
     setError(null);
     try {
-      const rows = (await readXlsxFile(file)) as unknown[][];
+      const rows = ((await readXlsxFile(file)) as unknown) as unknown[][];
       const [headerRow, ...dataRows] = rows;
       if (!headerRow || dataRows.length === 0)
         throw new Error('El archivo esta vacio o no contiene productos.');
