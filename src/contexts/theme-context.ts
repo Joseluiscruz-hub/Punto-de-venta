@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components, @typescript-eslint/no-unused-vars */
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext } from 'react';
 
 export interface ThemeContextType {
