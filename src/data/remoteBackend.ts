@@ -109,7 +109,11 @@ export const remoteBackend = {
   },
 
   async saveProductsBulk(context: RequestContext, products: CreateProductInput[]): Promise<void> {
-    for (const product of products) await this.saveProduct(context, product);
+    await request('/products/bulk', {
+      method: 'POST',
+      headers: contextHeaders(context),
+      body: JSON.stringify({ products }),
+    });
   },
 
   async deleteProduct(context: RequestContext, productId: string): Promise<void> {

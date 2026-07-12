@@ -415,7 +415,56 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
     },
 
     async saveProductsBulk(context: RequestContext, products: CreateProductInput[]): Promise<void> {
-      for (const product of products) await this.saveProduct(context, product);
+      await wait();
+      const normalized = products.map((product) => normalizeProduct(product) as CreateProductInput);
+      transaction((draft) => {
+        const seen = new Set<string>();
+        for (const productData of normalized) {
+          if (seen.has(productData.barcode))
+            throw new Error(`El archivo contiene codigos repetidos: ${productData.barcode}`);
+          seen.add(productData.barcode);
+          const duplicate = draft.products.find(
+            (item) => item.tenantId === context.tenantId && item.barcode === productData.barcode,
+          );
+          if (duplicate)
+            throw new Error(`Ya existe un producto con el codigo ${productData.barcode}`);
+        }
+
+        for (const productData of normalized) {
+          const product: Product = {
+            id: createId('product'),
+            tenantId: context.tenantId,
+            barcode: productData.barcode,
+            name: productData.name,
+            category: productData.category,
+            cost: productData.cost,
+            price: productData.price,
+          };
+          const inventory: StoreProduct = {
+            id: createId('inventory'),
+            tenantId: context.tenantId,
+            storeId: context.storeId,
+            productId: product.id,
+            stock: productData.stock,
+            minStock: productData.minStock,
+          };
+          draft.products.push(product);
+          draft.storeProducts.push(inventory);
+          if (inventory.stock > 0) {
+            draft.movements.push({
+              id: createId('movement'),
+              tenantId: context.tenantId,
+              storeId: context.storeId,
+              productId: product.id,
+              userId: context.userId,
+              type: 'PURCHASE',
+              quantity: inventory.stock,
+              date: now().toISOString(),
+              reason: 'Importacion inicial',
+            });
+          }
+        }
+      });
     },
 
     async processSale(context: RequestContext, input: ProcessSaleInput): Promise<Sale> {
@@ -455,6 +504,19 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           throw new Error('El importe recibido no es valido');
         if (input.paymentMethod === 'CASH' && input.amountTendered < total)
           throw new Error('El efectivo recibido es menor al total');
+        if (
+          input.paymentMethod === 'MIXED' &&
+          (input.amountTendered <= 0 || input.amountTendered >= total)
+        )
+          throw new Error('El pago mixto requiere una parte en efectivo menor al total');
+
+        const cashPortion =
+          input.paymentMethod === 'CASH'
+            ? total
+            : input.paymentMethod === 'MIXED'
+              ? input.amountTendered
+              : 0;
+        const electronicPortion = total - cashPortion;
 
         const sale: Sale = {
           id: createId('sale'),
@@ -513,11 +575,12 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             item.storeId === context.storeId,
         );
         if (shift) {
-          if (input.paymentMethod === 'CASH') {
-            shift.salesCash += total;
-            shift.expectedCash += total;
-          } else {
-            shift.salesCard += total;
+          if (cashPortion > 0) {
+            shift.salesCash += cashPortion;
+            shift.expectedCash += cashPortion;
+          }
+          if (electronicPortion > 0) {
+            shift.salesCard += electronicPortion;
           }
         }
 

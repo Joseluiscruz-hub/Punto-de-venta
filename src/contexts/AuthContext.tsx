@@ -43,9 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await BackendAPI.login(username, pin);
       localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, token: '' }));
       setSession(data);
-      addNotification('Login successful!', 'success');
+      addNotification('Sesion iniciada correctamente.', 'success');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'Ocurrio un error inesperado';
       setError(errorMessage);
       addNotification(errorMessage, 'error');
     } finally {
@@ -58,13 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(SESSION_KEY);
     setSession(null);
     setError(null);
-    addNotification('You have been logged out.', 'info');
+    addNotification('Sesion cerrada.', 'info');
   };
 
   useEffect(() => {
     const expireSession = () => {
       setSession(null);
-      const message = 'Your session has expired. Please log in again.';
+      const message = 'Tu sesion expiro. Inicia sesion nuevamente.';
       setError(message);
       addNotification(message, 'error');
     };

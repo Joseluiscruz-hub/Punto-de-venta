@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
 type NotificationType = 'success' | 'error' | 'info';
 
@@ -15,11 +14,17 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+function createNotificationId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `notification-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const addNotification = (message: string, type: NotificationType) => {
-    const id = uuidv4();
+    const id = createNotificationId();
     setNotifications((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
 import {
   ShoppingCart,
   Search,
@@ -10,6 +10,8 @@ import {
   X,
   Printer,
   Wallet,
+  CreditCard,
+  ArrowLeftRight,
 } from 'lucide-react';
 import {
   ProductView,
@@ -20,6 +22,7 @@ import {
   SaleItemWithName,
 } from '../models/types';
 import { BackendAPI } from '../data/backend';
+import { enqueueOfflineSale } from '../data/offlineSalesQueue';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import {
@@ -31,6 +34,13 @@ import {
   hasFeature,
 } from '../utils/helpers';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+
+const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  CASH: 'Efectivo',
+  CARD: 'Tarjeta',
+  TRANSFER: 'Transferencia',
+  MIXED: 'Mixto',
+};
 
 export function POSView() {
   const { reqContext, tenant } = useAuth();
@@ -194,19 +204,22 @@ export function POSView() {
       };
 
       let result: Sale;
+      const soldItems = cart.map((item) => ({ id: item.id, quantity: item.quantity }));
       if (isOnline) {
         result = await BackendAPI.processSale(reqContext, saleData);
       } else {
         if (!hasFeature(tenant, 'OFFLINE'))
           throw new Error('Modo offline no disponible en tu plan.');
         const offlineId = createOfflineId();
+        const offlineDate = new Date().toISOString();
+        const offlineSaleData = { ...saleData, offlineDate };
         const offlineSale: Sale = {
           id: offlineId,
           tenantId: reqContext.tenantId,
           storeId: reqContext.storeId,
           cashierId: reqContext.userId,
           clientId: selectedClientId,
-          datetime: new Date().toISOString(),
+          datetime: offlineDate,
           total: cartTotal,
           paymentMethod,
           amountTendered,
@@ -223,9 +236,7 @@ export function POSView() {
             subtotal: item.subtotal,
           })) as SaleItemWithName[],
         };
-        const offlineSales = JSON.parse(localStorage.getItem('offline_sales') ?? '[]');
-        offlineSales.push({ saleId: offlineId, reqContext, saleData });
-        localStorage.setItem('offline_sales', JSON.stringify(offlineSales));
+        enqueueOfflineSale({ saleId: offlineId, reqContext, saleData: offlineSaleData });
         result = offlineSale;
       }
 
@@ -239,8 +250,23 @@ export function POSView() {
         saleData: result,
       });
 
-      const updatedProducts = await BackendAPI.getStoreProducts(reqContext);
-      setProducts(updatedProducts);
+      if (isOnline) {
+        try {
+          const updatedProducts = await BackendAPI.getStoreProducts(reqContext);
+          setProducts(updatedProducts);
+        } catch (refreshError) {
+          showActionToast(errorMessage(refreshError, 'Venta guardada; no se actualizo catalogo'));
+        }
+      } else {
+        setProducts((currentProducts) =>
+          currentProducts.map((product) => {
+            const sold = soldItems.find((item) => item.id === product.id);
+            return sold
+              ? { ...product, stock: Math.max(0, product.stock - sold.quantity) }
+              : product;
+          }),
+        );
+      }
     } catch (error) {
       setAlertInfo({
         title: 'Error en Transacción',
@@ -335,7 +361,12 @@ export function POSView() {
       </div>
 
       {/* Cart Sidebar */}
-      {isCartOpen && <div className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm xl:hidden" onClick={() => setIsCartOpen(false)} />}
+      {isCartOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm xl:hidden"
+          onClick={() => setIsCartOpen(false)}
+        />
+      )}
       <div
         className={`
         fixed inset-y-0 right-0 z-40 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col transition-transform duration-300
@@ -436,7 +467,9 @@ export function POSView() {
                 <ShoppingCart size={40} />
               </div>
               <div>
-                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">Carrito Vacío</p>
+                <p className="text-sm font-bold text-slate-500 dark:text-slate-400">
+                  Carrito Vacío
+                </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-500 uppercase tracking-widest mt-1">
                   Empieza a cobrar
                 </p>
@@ -447,7 +480,7 @@ export function POSView() {
 
         <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex justify-between items-end mb-2">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
               Total a Pagar
             </p>
             <h2 className="text-3xl font-black text-slate-950 dark:text-slate-50 tracking-tighter tabular-nums">
@@ -549,21 +582,32 @@ function PaymentModal({
   const [method, setMethod] = useState<PaymentMethod>('CASH');
   const [amount, setAmount] = useState(total.toString());
 
-  useEffect(() => {
-    setMethod('CASH');
-    setAmount(total.toString());
-  }, [total]);
+  const paymentOptions: Array<{
+    key: PaymentMethod;
+    label: string;
+    icon: ReactNode;
+  }> = [
+    { key: 'CASH', label: 'Efectivo', icon: <Wallet size={30} /> },
+    { key: 'CARD', label: 'Tarjeta', icon: <CreditCard size={30} /> },
+    { key: 'TRANSFER', label: 'Transferencia', icon: <Landmark size={30} /> },
+    { key: 'MIXED', label: 'Mixto', icon: <ArrowLeftRight size={30} /> },
+  ];
 
   const amountNum = parseFloat(amount) || 0;
+  const requiresCashAmount = method === 'CASH' || method === 'MIXED';
+  const amountTendered = requiresCashAmount ? amountNum : total;
   const change = amountNum - total;
-  const isInvalid = method === 'CASH' && amountNum < total;
+  const mixedRemainder = Math.max(0, total - amountNum);
+  const isInvalid =
+    (method === 'CASH' && amountNum < total) ||
+    (method === 'MIXED' && (amountNum <= 0 || amountNum >= total));
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!isInvalid) onConfirm(method, amountNum);
+          if (!isInvalid) onConfirm(method, amountTendered);
         }}
         className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-lg shadow-2xl border border-white/20 dark:border-slate-800 animate-slideInUp"
       >
@@ -571,23 +615,23 @@ function PaymentModal({
           Finalizar Venta
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <button
-            onClick={() => setMethod('CASH')}
-            type="button"
-            className={`p-4 sm:p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CASH' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400'}`}
-          >
-            <Wallet size={32} />
-            <span className="text-xs font-black uppercase tracking-widest">Efectivo</span>
-          </button>
-          <button
-            onClick={() => setMethod('CARD')}
-            type="button"
-            className={`p-4 sm:p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CARD' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400'}`}
-          >
-            <Landmark size={32} />
-            <span className="text-xs font-black uppercase tracking-widest">Tarjeta</span>
-          </button>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-8">
+          {paymentOptions.map((option) => (
+            <button
+              key={option.key}
+              onClick={() => {
+                setMethod(option.key);
+                setAmount(option.key === 'MIXED' ? '' : total.toString());
+              }}
+              type="button"
+              className={`p-4 sm:p-5 rounded-[20px] border-2 transition-all flex flex-col items-center gap-3 ${method === option.key ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400'}`}
+            >
+              {option.icon}
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest">
+                {option.label}
+              </span>
+            </button>
+          ))}
         </div>
 
         <div className="space-y-6">
@@ -600,18 +644,26 @@ function PaymentModal({
                 {formatCurrency(total)}
               </p>
             </div>
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
-                Monto Recibido
-              </p>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 p-4 rounded-xl text-xl sm:text-2xl font-black text-slate-950 dark:text-white outline-none focus:ring-2 focus:ring-primary-light transition-all tabular-nums"
-                autoFocus
-              />
-            </div>
+            {requiresCashAmount ? (
+              <div className="space-y-2">
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                  {method === 'MIXED' ? 'Efectivo Recibido' : 'Monto Recibido'}
+                </p>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full bg-white dark:bg-slate-900 p-4 rounded-xl text-xl sm:text-2xl font-black text-slate-950 dark:text-white outline-none focus:ring-2 focus:ring-primary-light transition-all tabular-nums"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <div className="rounded-xl bg-white dark:bg-slate-900 p-4 text-xs font-bold uppercase tracking-widest text-slate-500">
+                Cobro completo por {PAYMENT_LABELS[method].toLowerCase()}
+              </div>
+            )}
           </div>
 
           {method === 'CASH' && (
@@ -625,6 +677,20 @@ function PaymentModal({
                 </p>
               </div>
               <p className="text-2xl font-black tabular-nums">{formatCurrency(Math.abs(change))}</p>
+            </div>
+          )}
+
+          {method === 'MIXED' && (
+            <div
+              className={`p-6 rounded-[24px] border flex justify-between items-center transition-colors ${isInvalid ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-blue-50 border-blue-100 text-blue-600'}`}
+            >
+              <div className="flex items-center gap-3">
+                <ArrowLeftRight size={24} />
+                <p className="text-xs font-bold uppercase tracking-widest">
+                  {isInvalid ? 'Efectivo invalido' : 'Restante electronico'}
+                </p>
+              </div>
+              <p className="text-2xl font-black tabular-nums">{formatCurrency(mixedRemainder)}</p>
             </div>
           )}
 
@@ -653,7 +719,9 @@ function SaleSuccessDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
         <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
           <Printer size={48} className="text-white" />
         </div>
-        <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4 text-white">¡Venta Realizada!</h2>
+        <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4 text-white">
+          ¡Venta Realizada!
+        </h2>
         <p className="text-white/60 font-medium mb-12">
           Ticket #{sale.id.slice(-8).toUpperCase()} generado y enviado al sistema de impresión
           central.
@@ -668,7 +736,9 @@ function SaleSuccessDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
           </div>
           <div className="flex justify-between text-xs font-bold text-white/40">
             <span>METODO</span>
-            <span className="text-white uppercase tracking-widest">{sale.paymentMethod}</span>
+            <span className="text-white uppercase tracking-widest">
+              {PAYMENT_LABELS[sale.paymentMethod]}
+            </span>
           </div>
         </div>
 

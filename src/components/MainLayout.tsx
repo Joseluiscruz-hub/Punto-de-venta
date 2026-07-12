@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ViewManager } from './ViewManager';
 import { SyncManager } from './SyncManager';
-import { OpenShiftModal } from '../pages/CorteCaja';
+import { OpenShiftModal } from './OpenShiftModal';
 
 export function MainLayout() {
   const { reqContext } = useAuth();

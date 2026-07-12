@@ -4,21 +4,16 @@ import { RequestContext, ProcessSaleInput } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
 import { hasFeature } from '../utils/helpers';
+import {
+  OFFLINE_SALES_CHANGED,
+  reconcileOfflineSales,
+  readOfflineSales,
+} from '../data/offlineSalesQueue';
 
 interface OfflineSaleRecord {
   saleId: string;
   reqContext: RequestContext;
   saleData: ProcessSaleInput;
-}
-
-function readOfflineSales(): OfflineSaleRecord[] {
-  try {
-    const parsed: unknown = JSON.parse(localStorage.getItem('offline_sales') ?? '[]');
-    return Array.isArray(parsed) ? (parsed as OfflineSaleRecord[]) : [];
-  } catch {
-    localStorage.setItem('offline_sales', '[]');
-    return [];
-  }
 }
 
 export function SyncManager() {
@@ -35,7 +30,9 @@ export function SyncManager() {
     try {
       const failed: OfflineSaleRecord[] = [];
       const currentOffline = readOfflineSales();
+      const attemptedIds = new Set<string>();
       for (const record of currentOffline) {
+        attemptedIds.add(record.saleId);
         try {
           await BackendAPI.processSale(record.reqContext, {
             ...record.saleData,
@@ -46,8 +43,8 @@ export function SyncManager() {
           failed.push(record);
         }
       }
-      localStorage.setItem('offline_sales', JSON.stringify(failed));
-      setPendingCount(failed.length);
+      const pending = reconcileOfflineSales(attemptedIds, failed);
+      setPendingCount(pending.length);
     } finally {
       syncingRef.current = false;
       setIsSyncing(false);
@@ -62,17 +59,20 @@ export function SyncManager() {
     };
     const handleOnline = () => {
       setIsOnline(true);
-      void syncSales();
+      if (hasFeature(tenant, 'OFFLINE')) void syncSales();
     };
     const handleOffline = () => setIsOnline(false);
+    const handleQueueChanged = () => setPendingCount(readOfflineSales().length);
     const initialRefresh = window.setTimeout(refresh, 0);
     const interval = window.setInterval(refresh, 5000);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener(OFFLINE_SALES_CHANGED, handleQueueChanged);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener(OFFLINE_SALES_CHANGED, handleQueueChanged);
       clearTimeout(initialRefresh);
       clearInterval(interval);
     };
