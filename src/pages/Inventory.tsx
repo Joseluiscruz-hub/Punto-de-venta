@@ -152,7 +152,7 @@ export function InventoryView() {
   const outOfStockCount = products.filter((product) => product.stock <= 0).length;
 
   return (
-    <div className="view-shell p-4 lg:p-8 h-full flex flex-col relative text-slate-900 dark:text-[#E2E8F0] transition-colors">
+    <div className="view-shell p-4 lg:p-8 h-full flex flex-col relative text-slate-900 dark:text-[#E2E8F0] transition-colors animate-fadeIn">
       {confirmDelete && (
         <ConfirmDialog
           title="Eliminar Objeto Maestro"
@@ -367,10 +367,10 @@ function ProductFormModal({
     setLoading(false);
   };
   return (
-    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
       <form
         onSubmit={submit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-xl p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-xl p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors animate-slideInUp"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-form-title"
@@ -513,8 +513,8 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-lg p-6 text-slate-900 dark:text-[#E2E8F0]">
+    <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-lg p-6 text-slate-900 dark:text-[#E2E8F0] animate-slideInUp">
         <h2 className="text-2xl font-black mb-4 tracking-tighter">Importar desde Excel</h2>
 
         {!confirmData ? (

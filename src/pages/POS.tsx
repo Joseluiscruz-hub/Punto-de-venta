@@ -252,7 +252,7 @@ export function POSView() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f8fafc] dark:bg-slate-950 transition-colors">
+    <div className="flex h-full overflow-hidden bg-[#f8fafc] dark:bg-slate-950 transition-colors animate-fadeIn">
       {confirmSaleInfo && (
         <ConfirmDialog
           title="Confirmar Movimiento"
@@ -497,7 +497,7 @@ function ProductCard({ product, onClick }: { product: ProductView; onClick: () =
       onClick={onClick}
       disabled={isOutOfStock}
       className={`
-        group relative flex flex-col text-left bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 disabled:opacity-60 disabled:hover:translate-y-0
+        group relative flex flex-col text-left bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 disabled:opacity-60 disabled:hover:translate-y-0 animate-fadeIn
       `}
     >
       <div className="w-full aspect-square bg-slate-50 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center font-black text-slate-300 text-2xl group-hover:scale-105 transition-transform">
@@ -552,8 +552,8 @@ function PaymentModal({
   const isInvalid = method === 'CASH' && amountNum < total;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-lg shadow-2xl border border-white/20 dark:border-slate-800">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-lg shadow-2xl border border-white/20 dark:border-slate-800 animate-slideInUp">
         <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-8">
           Finalizar Venta
         </h2>
@@ -633,8 +633,8 @@ function PaymentModal({
 
 function SaleSuccessDialog({ sale, onClose }: { sale: Sale; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary/95 backdrop-blur-xl animate-in fade-in zoom-in duration-300">
-      <div className="w-full max-w-sm text-center text-white">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary/95 backdrop-blur-xl animate-fadeIn">
+      <div className="w-full max-w-sm text-center text-white animate-slideInUp">
         <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
           <Printer size={48} className="text-white" />
         </div>

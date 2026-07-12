@@ -11,7 +11,7 @@ interface StatCardProps {
 
 export function StatCard({ icon, title, value, delta, suffix }: StatCardProps) {
   return (
-    <div className="metric-card p-6 transition-all duration-200 hover:-translate-y-0.5">
+    <div className="metric-card p-6 transition-all duration-200 hover:-translate-y-0.5 animate-fadeIn bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-900/80 dark:to-slate-900/60">
       <div className="flex items-center justify-between mb-4">
         <div className="w-10 h-10 rounded-xl bg-white/60 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400">
           {icon}

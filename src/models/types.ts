@@ -9,6 +9,7 @@ export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH
 export type Feature =
   'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
+export type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients';
 
 export interface Shift {
   id: Id;

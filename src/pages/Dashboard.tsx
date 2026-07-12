@@ -15,11 +15,25 @@ import {
 import { Sale, ProductView } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppTheme } from '../contexts/theme-context';
+import { useAppTheme } from '../contexts/ThemeContext';
 import { formatCurrency, startOfPeriod, PERIOD_OPTIONS } from '../utils/helpers';
 import { StatCard } from '../components/StatCard';
 
 type SalesPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700">
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{`${
+          payload[0].name
+        }: ${formatCurrency(payload[0].value)}`}</p>
+      </div>
+    );
+  }
+
+  return null;
+};
 
 export function DashboardView() {
   const { reqContext } = useAuth();
@@ -102,7 +116,7 @@ export function DashboardView() {
     yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : null;
 
   return (
-    <div className="view-shell p-6 lg:p-10 h-full overflow-y-auto bg-[#f8fafc] dark:bg-slate-950 flex flex-col gap-8 transition-colors">
+    <div className="view-shell p-6 lg:p-10 h-full overflow-y-auto bg-[#f8fafc] dark:bg-slate-950 flex flex-col gap-8 transition-colors animate-fadeIn">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -188,12 +202,7 @@ export function DashboardView() {
                   tickFormatter={(val) => `$${val}`}
                 />
                 <Tooltip
-                  contentStyle={{
-                    borderRadius: '16px',
-                    border: 'none',
-                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                    fontWeight: 700,
-                  }}
+                  content={<CustomTooltip />}
                 />
                 <Line
                   type="monotone"
@@ -230,7 +239,7 @@ export function DashboardView() {
                     />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>

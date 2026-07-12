@@ -2,34 +2,23 @@ import React, { useState } from 'react';
 import { Store as StoreIcon, Users, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
-import { errorMessage } from '../utils/helpers';
 
 export function LoginScreen() {
-  const { login } = useAuth();
+  const { login, isLoading, error } = useAuth();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      await login(username, pin);
-    } catch (error) {
-      setError(errorMessage(error, 'Error al iniciar sesión'));
-    } finally {
-      setLoading(false);
-    }
+    await login(username, pin);
   };
 
   return (
-    <div className="login-shell min-h-screen flex items-center justify-center relative overflow-hidden font-sans px-4 py-8">
+    <div className="login-shell min-h-screen flex items-center justify-center relative overflow-hidden font-sans px-4 py-8 animate-fadeIn">
       <div className="absolute inset-0 z-0 opacity-70" />
 
-      <div className="login-stage relative z-10 w-full animate-in fade-in zoom-in duration-500">
-        <div className="login-card rounded-4xl overflow-hidden">
+      <div className="login-stage relative z-10 w-full">
+        <div className="login-card rounded-4xl overflow-hidden animate-slideInUp">
           <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
             <div className="hidden lg:flex flex-col justify-between p-10 xl:p-12 text-white brand-panel">
               <div>
@@ -117,10 +106,10 @@ export function LoginScreen() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={isLoading}
                   className="btn-primary w-full mt-4"
                 >
-                  {loading ? 'Verificando...' : 'Entrar al Sistema'}
+                  {isLoading ? 'Verificando...' : 'Entrar al Sistema'}
                 </button>
               </form>
 

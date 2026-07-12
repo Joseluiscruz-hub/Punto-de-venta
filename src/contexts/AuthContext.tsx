@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { User, Tenant, Store, RequestContext, Role, Session } from '../models/types';
 import { BackendAPI } from '../data/backend';
+import { useNotification } from './NotificationContext';
 
 const SESSION_KEY = 'el-triunfo.enterprise-session.v2';
 
@@ -9,6 +10,8 @@ interface AuthContextType {
   user: User | null;
   tenant: Tenant | null;
   store: Store | null;
+  isLoading: boolean;
+  error: string | null;
   login: (u: string, p: string) => Promise<void>;
   logout: () => void;
   hasPermission: (roles: Role[]) => boolean;
@@ -29,24 +32,45 @@ function loadSession(): Session | null {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(loadSession);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { addNotification } = useNotification();
 
   const login = async (username: string, pin: string) => {
-    const data = await BackendAPI.login(username, pin);
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, token: '' }));
-    setSession(data);
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await BackendAPI.login(username, pin);
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, token: '' }));
+      setSession(data);
+      addNotification('Login successful!', 'success');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+      setError(errorMessage);
+      addNotification(errorMessage, 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const logout = () => {
     void BackendAPI.logout();
     localStorage.removeItem(SESSION_KEY);
     setSession(null);
+    setError(null);
+    addNotification('You have been logged out.', 'info');
   };
 
   useEffect(() => {
-    const expireSession = () => setSession(null);
+    const expireSession = () => {
+      setSession(null);
+      const message = 'Your session has expired. Please log in again.';
+      setError(message);
+      addNotification(message, 'error');
+    };
     window.addEventListener('el-triunfo:session-expired', expireSession);
     return () => window.removeEventListener('el-triunfo:session-expired', expireSession);
-  }, []);
+  }, [addNotification]);
 
   const hasPermission = (roles: Role[]) => {
     return session ? roles.includes(session.user.role) : false;
@@ -68,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: session?.user || null,
     tenant: session?.tenant || null,
     store: session?.store || null,
+    isLoading,
+    error,
     login,
     logout,
     hasPermission,
