@@ -52,10 +52,10 @@ export function Sidebar({
           />
           {isExpanded && (
             <div className="overflow-hidden transition-all duration-300">
-              <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white leading-none">
+              <h1 className="text-sm font-bold tracking-tight uppercase text-slate-950 dark:text-white leading-none">
                 EL TRIUNFO
               </h1>
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
                 Punto de Venta
               </p>
             </div>

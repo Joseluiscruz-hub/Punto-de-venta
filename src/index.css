@@ -1110,7 +1110,7 @@ h6,
 
 .side-rail {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 243, 239, 0.72)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 246, 242, 0.92)),
     linear-gradient(180deg, rgba(82, 82, 91, 0.07), transparent 48%);
 }
 
