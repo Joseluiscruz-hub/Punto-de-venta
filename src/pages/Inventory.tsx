@@ -182,7 +182,7 @@ export function InventoryView() {
       <div className="flex flex-col md:flex-row md:justify-between tracking-tight gap-4 mb-6 lg:mb-8">
         <div>
           <p className="section-kicker">Catalogo vivo</p>
-          <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-[-0.06em]">
+          <h2 className="text-3xl font-black text-slate-950 dark:text-white tracking-[-0.06em]">
             Maestro de Materiales ERP
           </h2>
         </div>
@@ -238,7 +238,7 @@ export function InventoryView() {
               <button
                 key={option.key}
                 onClick={() => setStockFilter(option.key)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${stockFilter === option.key ? 'bg-white dark:bg-slate-700 text-primary-light shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${stockFilter === option.key ? 'bg-white dark:bg-slate-700 text-primary-light shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white'}`}
               >
                 {option.label}
               </button>
@@ -248,33 +248,33 @@ export function InventoryView() {
 
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse text-[10px] sm:text-[11px]">
-            <thead className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
+            <thead className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-10">
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                  <th
+                <th
                   onClick={() => toggleInventorySort('name')}
-                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
                 >
                   Producto{sortMarker('name')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('category')}
-                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
                 >
                   Categoría{sortMarker('category')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('price')}
-                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
                 >
                   Precio{sortMarker('price')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('stock')}
-                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
                 >
                   Existencia{sortMarker('stock')}
                 </th>
-                  <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 text-right">
                   Acciones
                 </th>
               </tr>
@@ -286,15 +286,15 @@ export function InventoryView() {
                   className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group"
                 >
                   <td className="px-4 sm:px-6 py-4">
-                    <p className="font-bold text-slate-900 dark:text-white">{p.name}</p>
-                    <p className="text-[10px] font-mono text-slate-400">{p.barcode}</p>
+                    <p className="font-bold text-slate-950 dark:text-white">{p.name}</p>
+                    <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{p.barcode}</p>
                   </td>
                   <td className="px-4 sm:px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500 uppercase">
+                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">
                       {p.category}
                     </span>
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-950 dark:text-white tabular-nums">
                     {formatCurrency(p.price)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right">
@@ -378,7 +378,7 @@ function ProductFormModal({
         <p className="section-kicker mb-2">{product.id ? 'Edicion' : 'Alta'}</p>
         <h2
           id="product-form-title"
-          className="text-2xl font-black text-slate-900 dark:text-white tracking-[-0.04em] mb-4"
+          className="text-2xl font-black text-slate-950 dark:text-white tracking-[-0.04em] mb-4"
         >
           {product.id ? 'Editar' : 'Nuevo'} Producto
         </h2>
@@ -388,21 +388,21 @@ function ProductFormModal({
             placeholder="Código (ej. 12345)"
             value={data.barcode || ''}
             onChange={(e) => setData({ ...data, barcode: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
             placeholder="Categoría (ej. General)"
             value={data.category || ''}
             onChange={(e) => setData({ ...data, category: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
             placeholder="Nombre ('producto')"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
-            className="input-premium sm:col-span-2 p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium sm:col-span-2 p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
@@ -411,7 +411,7 @@ function ProductFormModal({
             placeholder="Costo proveedor"
             value={data.cost || ''}
             onChange={(e) => setData({ ...data, cost: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
@@ -420,7 +420,7 @@ function ProductFormModal({
             placeholder="Venta publico"
             value={data.price || ''}
             onChange={(e) => setData({ ...data, price: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
@@ -428,7 +428,7 @@ function ProductFormModal({
             placeholder="Items (Stock)"
             value={data.stock || 0}
             onChange={(e) => setData({ ...data, stock: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
             required
@@ -436,7 +436,7 @@ function ProductFormModal({
             placeholder="Min Stock"
             value={data.minStock || 0}
             onChange={(e) => setData({ ...data, minStock: e.target.value })}
-            className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
         </div>
         <div className="flex flex-col sm:flex-row gap-4">

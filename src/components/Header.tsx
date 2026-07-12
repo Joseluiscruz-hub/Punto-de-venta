@@ -10,6 +10,7 @@ interface HeaderProps {
 export function Header({ isSidebarOpen, onMenuClick }: HeaderProps) {
   const { user, store } = useAuth();
   const [time, setTime] = useState(new Date());
+  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.png.png`;
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -59,25 +60,23 @@ export function Header({ isSidebarOpen, onMenuClick }: HeaderProps) {
         </div>
       </div>
 
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b-2 border-slate-200 dark:border-slate-700 shadow-sm">
         <button
           onClick={onMenuClick}
           aria-label={isSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
           aria-expanded={isSidebarOpen}
-          className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+          className="p-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
         >
           {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
-        <div className="text-center">
-          <img
-            src="/el-triunfo-logo.png.png"
-            alt="El Triunfo"
-            className="h-6 w-6 object-contain mx-auto mb-1"
-          />
-          <h1 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">
+
+        <div className="text-center flex flex-col items-center gap-1">
+          <img src={logoSrc} alt="El Triunfo" className="h-7 w-7 object-contain" />
+          <h1 className="text-sm font-bold text-slate-950 dark:text-white uppercase tracking-tight">
             EL TRIUNFO
           </h1>
         </div>
+
         <div className="w-10" />
       </div>
     </>

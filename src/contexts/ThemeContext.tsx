@@ -4,7 +4,7 @@ import { ThemeContext } from './theme-context';
 const THEME_KEY = 'el-triunfo.theme';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(() => localStorage.getItem(THEME_KEY) !== 'light');
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     if (isDark) {

@@ -12,7 +12,7 @@ export function MainLayout() {
   const { reqContext } = useAuth();
   const [currentView, setCurrentView] = useState<View>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 

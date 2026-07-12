@@ -31,6 +31,7 @@ export function Sidebar({
   onRequestClose,
 }: SidebarProps) {
   const { user, logout, hasPermission } = useAuth();
+  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.png.png`;
 
   return (
     <aside
@@ -43,19 +44,19 @@ export function Sidebar({
         lg:static lg:translate-x-0 lg:pointer-events-auto
       `}
     >
-      <div className={`p-4 h-20 flex items-center ${isExpanded ? 'px-6' : 'justify-center'}`}>
-        <div className="flex items-center gap-3">
+      <div className={`p-4 h-24 flex items-center ${isExpanded ? 'px-6' : 'justify-center'}`}>
+        <div className="flex items-center gap-3 overflow-visible">
           <img
-            src="/el-triunfo-logo.png.png"
+            src={logoSrc}
             alt="El Triunfo"
-            className="w-10 h-10 shrink-0 object-contain"
+            className="w-12 h-12 shrink-0 object-contain"
           />
           {isExpanded && (
             <div className="overflow-hidden transition-all duration-300">
-              <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white leading-none">
+              <h1 className="text-sm font-bold tracking-tight uppercase text-slate-950 dark:text-white leading-none">
                 EL TRIUNFO
               </h1>
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
+              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
                 Punto de Venta
               </p>
             </div>
