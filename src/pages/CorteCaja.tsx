@@ -40,7 +40,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
   };
 
   return (
-    <div className="view-shell p-4 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
+    <div className="view-shell p-4 sm:p-6 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
       <div>
         <p className="section-kicker">Caja segura</p>
         <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white flex items-center gap-2">
@@ -48,7 +48,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
         {/* Active Shift Card */}
         <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl xl:col-span-2 p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -61,7 +61,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
           </div>
 
           {activeShift ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Fondo Inicial</p>
                 <p className="text-2xl font-mono font-bold">
@@ -125,7 +125,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
 
         {/* Quick Info */}
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <Landmark className="text-primary-light" />
               <h4 className="font-bold text-xs uppercase">Resumen de Seguridad</h4>
@@ -145,37 +145,37 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
           Historial de Cortes de Caja
         </div>
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
+          <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap min-w-[600px]">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-400 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-4">FECHA CIERRE</th>
-                <th className="px-6 py-4 text-right">ESPERADO</th>
-                <th className="px-6 py-4 text-right">CONTADO</th>
-                <th className="px-6 py-4 text-right">DIFERENCIA</th>
-                <th className="px-6 py-4">STATUS</th>
+                <th className="px-4 sm:px-6 py-4">FECHA CIERRE</th>
+                <th className="px-4 sm:px-6 py-4 text-right">ESPERADO</th>
+                <th className="px-4 sm:px-6 py-4 text-right">CONTADO</th>
+                <th className="px-4 sm:px-6 py-4 text-right">DIFERENCIA</th>
+                <th className="px-4 sm:px-6 py-4">STATUS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {shifts.map((s) => (
                 <tr key={s.id} className="hover:bg-primary/5 transition-colors">
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <p className="font-bold text-slate-900 dark:text-white">
                       {s.endTime ? new Date(s.endTime).toLocaleString() : 'En curso'}
                     </p>
                     <p className="text-[9px] text-slate-400 font-mono">{s.id}</p>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold tabular-nums">
                     {formatCurrency(s.expectedCash)}
                   </td>
-                  <td className="px-6 py-4 text-right font-bold tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold tabular-nums">
                     {formatCurrency(s.actualCash || 0)}
                   </td>
                   <td
-                    className={`px-6 py-4 text-right font-black tabular-nums ${(s.difference || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                    className={`px-4 sm:px-6 py-4 text-right font-black tabular-nums ${(s.difference || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}
                   >
                     {formatCurrency(s.difference || 0)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <span
                       className={`px-2 py-1 rounded-[6px] text-[9px] font-black uppercase ${s.status === 'CLOSED' ? 'bg-slate-100 dark:bg-slate-800 text-slate-500' : 'bg-emerald-100 text-emerald-600'}`}
                     >
@@ -221,12 +221,12 @@ export function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-xl animate-in fade-in duration-300">
       <form
         onSubmit={handleSubmit}
-        className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-sm shadow-2xl border border-white/20 dark:border-slate-800"
+        className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-sm shadow-2xl border border-white/20 dark:border-slate-800"
       >
         <div className="w-16 h-16 bg-primary text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
           <Banknote size={32} />
         </div>
-        <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-2">
           Abrir Turno
         </h2>
         <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-8">
@@ -247,7 +247,7 @@ export function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
                 type="number"
                 value={initialCash}
                 onChange={(e) => setInitialCash(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 p-5 pl-10 rounded-[20px] text-3xl font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-primary-light/10 transition-all shadow-sm"
+                className="w-full bg-slate-50 dark:bg-slate-800 p-4 sm:p-5 pl-10 rounded-[20px] text-2xl sm:text-3xl font-black text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-primary-light/10 transition-all shadow-sm"
                 autoFocus
               />
             </div>
@@ -257,7 +257,7 @@ export function OpenShiftModal({ onOpen }: { onOpen: (s: Shift) => void }) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-5 bg-primary hover:bg-primary-light text-white rounded-[24px] font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+          className="w-full py-4 sm:py-5 bg-primary hover:bg-primary-light text-white rounded-[24px] font-black text-sm uppercase tracking-widest shadow-xl shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
         >
           {loading ? 'Inicializando...' : 'Comenzar Operaciones'}
         </button>

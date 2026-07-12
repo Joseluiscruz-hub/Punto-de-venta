@@ -117,7 +117,7 @@ export function SalesView() {
         </button>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3">
         <div className="mini-metric">
           <p>Transacciones</p>
           <strong>{summary.count}</strong>
@@ -136,8 +136,8 @@ export function SalesView() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-hidden flex flex-col transition-colors shadow-sm">
-        <div className="p-3 lg:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-hidden flex flex-col transition-colors shadow-sm min-h-0">
+        <div className="p-3 sm:p-4 lg:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
@@ -176,15 +176,15 @@ export function SalesView() {
           </div>
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[600px]">
+          <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap min-w-[600px]">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
               <tr>
-                <th className="px-6 py-4">UUID TRANSACCIÓN</th>
-                <th className="px-6 py-4">MARCA DE TIEMPO</th>
-                <th className="px-6 py-4">MÉTODO PAGO</th>
-                <th className="px-6 py-4 text-right">VALOR NETO</th>
-                <th className="px-6 py-4 text-center">UM</th>
-                <th className="px-6 py-4 text-center">ACCIONES</th>
+                <th className="px-4 sm:px-6 py-4">UUID TRANSACCIÓN</th>
+                <th className="px-4 sm:px-6 py-4">MARCA DE TIEMPO</th>
+                <th className="px-4 sm:px-6 py-4">MÉTODO PAGO</th>
+                <th className="px-4 sm:px-6 py-4 text-right">VALOR NETO</th>
+                <th className="px-4 sm:px-6 py-4 text-center">UM</th>
+                <th className="px-4 sm:px-6 py-4 text-center">ACCIONES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 transition-colors">
@@ -193,20 +193,20 @@ export function SalesView() {
                   key={s.id}
                   className="hover:bg-primary/5 transition-colors text-slate-700 dark:text-slate-300"
                 >
-                  <td className="px-6 py-4 font-mono text-slate-500 text-[10px]">{s.id}</td>
-                  <td className="px-6 py-4 font-semibold">
+                  <td className="px-4 sm:px-6 py-4 font-mono text-slate-500 text-[10px]">{s.id}</td>
+                  <td className="px-4 sm:px-6 py-4 font-semibold">
                     {new Date(s.datetime).toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 font-bold text-primary-light uppercase tracking-tighter">
+                  <td className="px-4 sm:px-6 py-4 font-bold text-primary-light uppercase tracking-tighter">
                     {PAYMENT_LABELS[s.paymentMethod] ?? s.paymentMethod}
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
                     {formatCurrency(s.total)}
                   </td>
-                  <td className="px-6 py-4 text-center font-bold text-slate-500">
+                  <td className="px-4 sm:px-6 py-4 text-center font-bold text-slate-500">
                     {s.itemsCount} LIN
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 sm:px-6 py-4 text-center">
                     <button
                       onClick={() => setSelectedReceipt(s)}
                       className="p-2 text-primary-light hover:bg-primary/10 rounded-full transition-colors"
@@ -220,7 +220,7 @@ export function SalesView() {
                 <tr>
                   <td
                     colSpan={6}
-                    className="px-6 py-20 text-center text-slate-400 font-medium italic"
+                    className="px-4 sm:px-6 py-20 text-center text-slate-400 font-medium italic"
                   >
                     No se encontraron registros coincidentes
                   </td>

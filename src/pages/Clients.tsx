@@ -88,7 +88,7 @@ export function ClientsView() {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-3 sm:p-4 rounded-2xl shadow-sm">
         <div className="relative">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -103,15 +103,15 @@ export function ClientsView() {
 
       <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-left text-[11px] whitespace-nowrap min-w-[800px]">
+          <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap min-w-[800px]">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
               <tr>
-                <th className="px-6 py-4">CLIENTE</th>
-                <th className="px-6 py-4">CONTACTO</th>
-                <th className="px-6 py-4">RFC / TAX ID</th>
-                <th className="px-6 py-4 text-center">PUNTOS</th>
-                <th className="px-6 py-4 text-right">TOTAL COMPRADO</th>
-                <th className="px-6 py-4 text-center">ACCIONES</th>
+                <th className="px-4 sm:px-6 py-4">CLIENTE</th>
+                <th className="px-4 sm:px-6 py-4">CONTACTO</th>
+                <th className="px-4 sm:px-6 py-4">RFC / TAX ID</th>
+                <th className="px-4 sm:px-6 py-4 text-center">PUNTOS</th>
+                <th className="px-4 sm:px-6 py-4 text-right">TOTAL COMPRADO</th>
+                <th className="px-4 sm:px-6 py-4 text-center">ACCIONES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -120,7 +120,7 @@ export function ClientsView() {
                   key={c.id}
                   className="hover:bg-primary/5 transition-colors text-slate-700 dark:text-slate-300"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary-light">
                         {c.name[0]?.toUpperCase()}
@@ -133,7 +133,7 @@ export function ClientsView() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <div className="space-y-1">
                       {c.email && (
                         <div className="flex items-center gap-1">
@@ -147,18 +147,18 @@ export function ClientsView() {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-mono font-bold text-slate-500">
+                  <td className="px-4 sm:px-6 py-4 font-mono font-bold text-slate-500">
                     {c.taxId || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 sm:px-6 py-4 text-center">
                     <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg font-black">
                       {c.points} PTS
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
                     {formatCurrency(c.totalSpent)}
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 sm:px-6 py-4 text-center">
                     <div className="flex justify-center gap-2">
                       <button
                         onClick={() => setEditingClient(c)}
@@ -209,11 +209,11 @@ function ClientModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <form
+        <form
         onSubmit={onSave}
-        className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800"
+          className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800"
       >
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-6 sm:mb-8">
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
             {client.id ? 'Editar' : 'Nuevo'} Cliente
           </h2>
@@ -239,7 +239,7 @@ function ClientModal({
               placeholder="Ej. Juan Pérez"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">
                 Teléfono
@@ -280,7 +280,7 @@ function ClientModal({
         <button
           type="submit"
           disabled={loading}
-          className="w-full mt-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50"
+          className="w-full mt-6 sm:mt-8 py-4 bg-primary hover:bg-primary-light text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? 'Guardando...' : 'Registrar Cliente'}
         </button>

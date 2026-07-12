@@ -6,7 +6,6 @@ import {
   Receipt,
   History,
   Wallet,
-  Store as StoreIcon,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,15 +16,19 @@ import { View } from '../models/types';
 interface SidebarProps {
   currentView: View;
   isExpanded: boolean;
+  isOpen: boolean;
   onNavItemClick: (view: View) => void;
   onToggleExpand: (isExpanded: boolean) => void;
+  onRequestClose: () => void;
 }
 
 export function Sidebar({
   currentView,
   isExpanded,
+  isOpen,
   onNavItemClick,
   onToggleExpand,
+  onRequestClose,
 }: SidebarProps) {
   const { user, logout, hasPermission } = useAuth();
 
@@ -34,23 +37,26 @@ export function Sidebar({
       onMouseEnter={() => onToggleExpand(true)}
       onMouseLeave={() => onToggleExpand(false)}
       className={`
-        side-rail fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out
-        ${isExpanded ? 'w-64' : 'w-20'}
-        lg:static
+        side-rail fixed inset-y-0 left-0 z-50 flex h-screen flex-col transition-all duration-300 ease-in-out
+        w-72 lg:w-20 ${isExpanded ? 'lg:w-64' : ''}
+        ${isOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'}
+        lg:static lg:translate-x-0 lg:pointer-events-auto
       `}
     >
       <div className={`p-4 h-20 flex items-center ${isExpanded ? 'px-6' : 'justify-center'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary text-white rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
-            <StoreIcon size={20} />
-          </div>
+          <img
+            src="/el-triunfo-logo.png.png"
+            alt="El Triunfo"
+            className="w-10 h-10 shrink-0 object-contain"
+          />
           {isExpanded && (
             <div className="overflow-hidden transition-all duration-300">
               <h1 className="text-sm font-bold tracking-tight uppercase text-slate-900 dark:text-white leading-none">
                 EL TRIUNFO
               </h1>
-              <p className="text-[10px] text-primary-light font-semibold uppercase tracking-wider mt-1">
-                SaaS Retail
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
+                Punto de Venta
               </p>
             </div>
           )}
@@ -62,28 +68,40 @@ export function Sidebar({
           icon={<LayoutDashboard size={20} />}
           label="Dashboard"
           active={currentView === 'dashboard'}
-          onClick={() => onNavItemClick('dashboard')}
+          onClick={() => {
+            onNavItemClick('dashboard');
+            onRequestClose();
+          }}
           expanded={isExpanded}
         />
         <NavItem
           icon={<ShoppingCart size={20} />}
           label="Ventas"
           active={currentView === 'pos'}
-          onClick={() => onNavItemClick('pos')}
+          onClick={() => {
+            onNavItemClick('pos');
+            onRequestClose();
+          }}
           expanded={isExpanded}
         />
         <NavItem
           icon={<PackageSearch size={20} />}
           label="Inventario"
           active={currentView === 'inventory'}
-          onClick={() => onNavItemClick('inventory')}
+          onClick={() => {
+            onNavItemClick('inventory');
+            onRequestClose();
+          }}
           expanded={isExpanded}
         />
         <NavItem
           icon={<Users size={20} />}
           label="Clientes"
           active={currentView === 'clients'}
-          onClick={() => onNavItemClick('clients')}
+          onClick={() => {
+            onNavItemClick('clients');
+            onRequestClose();
+          }}
           expanded={isExpanded}
         />
 
@@ -95,14 +113,20 @@ export function Sidebar({
               icon={<Receipt size={20} />}
               label="Reportes"
               active={currentView === 'sales'}
-              onClick={() => onNavItemClick('sales')}
+              onClick={() => {
+                onNavItemClick('sales');
+                onRequestClose();
+              }}
               expanded={isExpanded}
             />
             <NavItem
               icon={<History size={20} />}
               label="Auditoría"
               active={currentView === 'movements'}
-              onClick={() => onNavItemClick('movements')}
+              onClick={() => {
+                onNavItemClick('movements');
+                onRequestClose();
+              }}
               expanded={isExpanded}
             />
           </>
@@ -112,14 +136,20 @@ export function Sidebar({
           icon={<Wallet size={20} />}
           label="Configuración"
           active={currentView === 'corte'}
-          onClick={() => onNavItemClick('corte')}
+          onClick={() => {
+            onNavItemClick('corte');
+            onRequestClose();
+          }}
           expanded={isExpanded}
         />
       </nav>
 
       <div className="p-4 mt-auto border-t border-slate-100/70 dark:border-slate-800/70">
         <button
-          onClick={logout}
+          onClick={() => {
+            onRequestClose();
+            logout();
+          }}
           className={`btn-secondary flex items-center h-12 w-full ${isExpanded ? 'px-4 gap-4' : 'justify-center'}`}
         >
           <LogOut size={20} />

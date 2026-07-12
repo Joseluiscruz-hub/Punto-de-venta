@@ -186,7 +186,7 @@ export function InventoryView() {
             Maestro de Materiales ERP
           </h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={() => setShowBulkImport(true)}
             className="btn-secondary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"
@@ -202,7 +202,7 @@ export function InventoryView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3 mb-5">
         <div className="mini-metric">
           <p>Valor inventario</p>
           <strong>{formatCurrency(inventoryValue)}</strong>
@@ -233,7 +233,7 @@ export function InventoryView() {
               className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary-light transition-all outline-none"
             />
           </div>
-          <div className="flex gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl">
+            <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl">
             {stockFilterOptions.map((option) => (
               <button
                 key={option.key}
@@ -247,34 +247,34 @@ export function InventoryView() {
         </div>
 
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse text-[10px] sm:text-[11px]">
             <thead className="sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
               <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th
+                  <th
                   onClick={() => toggleInventorySort('name')}
-                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
+                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
                 >
                   Producto{sortMarker('name')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('category')}
-                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
+                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light"
                 >
                   Categoría{sortMarker('category')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('price')}
-                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
+                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
                 >
                   Precio{sortMarker('price')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('stock')}
-                  className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
+                    className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer hover:text-primary-light text-right"
                 >
                   Existencia{sortMarker('stock')}
                 </th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
                   Acciones
                 </th>
               </tr>
@@ -285,26 +285,26 @@ export function InventoryView() {
                   key={p.id}
                   className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group"
                 >
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <p className="font-bold text-slate-900 dark:text-white">{p.name}</p>
                     <p className="text-[10px] font-mono text-slate-400">{p.barcode}</p>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-500 uppercase">
                       {p.category}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
                     {formatCurrency(p.price)}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 sm:px-6 py-4 text-right">
                     <div
                       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${p.stock <= 0 ? 'bg-rose-100 text-rose-600' : p.stock <= p.minStock ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}
                     >
                       {p.stock}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-4 sm:px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => setIsEditing(p)}
@@ -370,7 +370,7 @@ function ProductFormModal({
     <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
       <form
         onSubmit={submit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-xl p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors animate-slideInUp"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[24px] sm:rounded-[30px] w-full max-w-xl p-5 sm:p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors animate-slideInUp"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-form-title"
@@ -382,7 +382,7 @@ function ProductFormModal({
         >
           {product.id ? 'Editar' : 'Nuevo'} Producto
         </h2>
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <input
             required
             placeholder="Código (ej. 12345)"
@@ -402,7 +402,7 @@ function ProductFormModal({
             placeholder="Nombre ('producto')"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
-            className="input-premium col-span-2 p-3 text-slate-900 dark:text-white outline-none transition-colors"
+            className="input-premium sm:col-span-2 p-3 text-slate-900 dark:text-white outline-none transition-colors"
           />
           <input
             required
@@ -439,7 +439,7 @@ function ProductFormModal({
             className="input-premium p-3 text-slate-900 dark:text-white outline-none transition-colors"
           />
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <button type="button" onClick={onClose} className="btn-secondary flex-1 py-3 text-xs">
             Cancelar
           </button>

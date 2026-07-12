@@ -22,7 +22,7 @@ export function MovementsView() {
   );
 
   return (
-    <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
+    <div className="view-shell p-4 sm:p-6 lg:p-8 h-full min-h-0 flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
       <div>
         <p className="section-kicker">Kardex digital</p>
         <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white">
@@ -33,7 +33,7 @@ export function MovementsView() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-hidden flex flex-col transition-colors shadow-sm">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-hidden flex flex-col transition-colors shadow-sm min-h-0">
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20">
           <div className="relative">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -47,15 +47,15 @@ export function MovementsView() {
           </div>
         </div>
         <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left text-[11px] whitespace-nowrap">
+          <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
               <tr>
-                <th className="px-6 py-4">FECHA</th>
-                <th className="px-6 py-4">PRODUCTO</th>
-                <th className="px-6 py-4">OPERACIÓN</th>
-                <th className="px-6 py-4 text-right">CANTIDAD</th>
-                <th className="px-6 py-4">MOTIVO</th>
-                <th className="px-6 py-4">USUARIO</th>
+                <th className="px-4 sm:px-6 py-4">FECHA</th>
+                <th className="px-4 sm:px-6 py-4">PRODUCTO</th>
+                <th className="px-4 sm:px-6 py-4">OPERACIÓN</th>
+                <th className="px-4 sm:px-6 py-4 text-right">CANTIDAD</th>
+                <th className="px-4 sm:px-6 py-4">MOTIVO</th>
+                <th className="px-4 sm:px-6 py-4">USUARIO</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 transition-colors">
@@ -64,13 +64,13 @@ export function MovementsView() {
                   key={m.id}
                   className="hover:bg-primary/5 transition-colors text-slate-700 dark:text-slate-300"
                 >
-                  <td className="px-6 py-4 font-semibold">{new Date(m.date).toLocaleString()}</td>
-                  <td className="px-6 py-4 font-bold text-slate-900 dark:text-white uppercase">
+                  <td className="px-4 sm:px-6 py-4 font-semibold">{new Date(m.date).toLocaleString()}</td>
+                  <td className="px-4 sm:px-6 py-4 font-bold text-slate-900 dark:text-white uppercase">
                     {m.productName}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 sm:px-6 py-4">
                     <span
-                      className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.quantity > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}
+                        className={`px-2 py-1 rounded text-[9px] font-black uppercase ${m.quantity > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}
                     >
                       {m.type}
                     </span>
@@ -81,8 +81,8 @@ export function MovementsView() {
                     {m.quantity > 0 ? '+' : ''}
                     {m.quantity}
                   </td>
-                  <td className="px-6 py-4 italic text-slate-500">{m.reason}</td>
-                  <td className="px-6 py-4 font-bold">{m.userName}</td>
+                  <td className="px-4 sm:px-6 py-4 italic text-slate-500">{m.reason}</td>
+                  <td className="px-4 sm:px-6 py-4 font-bold">{m.userName}</td>
                 </tr>
               ))}
               {filtered.length === 0 && (

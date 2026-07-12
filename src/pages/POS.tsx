@@ -252,7 +252,7 @@ export function POSView() {
   };
 
   return (
-    <div className="flex h-full overflow-hidden bg-[#f8fafc] dark:bg-slate-950 transition-colors animate-fadeIn">
+    <div className="flex min-h-dvh overflow-hidden bg-[#f8fafc] dark:bg-slate-950 transition-colors animate-fadeIn">
       {confirmSaleInfo && (
         <ConfirmDialog
           title="Confirmar Movimiento"
@@ -276,8 +276,8 @@ export function POSView() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 border-r border-slate-100 dark:border-slate-800">
-        <div className="p-4 lg:p-6 space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="p-3 sm:p-4 lg:p-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="relative flex-1">
               <Search
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -292,10 +292,10 @@ export function POSView() {
                 className="w-full pl-12 pr-4 py-4 bg-white dark:bg-slate-900 border-none rounded-[20px] shadow-sm text-sm focus:ring-2 focus:ring-primary-light transition-all outline-none font-medium"
               />
             </div>
-            <div className="flex gap-1 bg-white dark:bg-slate-900 p-1 rounded-[20px] shadow-sm">
+            <div className="flex flex-wrap gap-1 bg-white dark:bg-slate-900 p-1 rounded-[20px] shadow-sm">
               <button
                 onClick={() => setSelectedCategory('Todos')}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${selectedCategory === 'Todos' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                className={`px-3 sm:px-4 py-2 rounded-2xl text-xs font-bold transition-all ${selectedCategory === 'Todos' ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 Todos
               </button>
@@ -303,7 +303,7 @@ export function POSView() {
                 <button
                   key={cat.name}
                   onClick={() => setSelectedCategory(cat.name)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${selectedCategory === cat.name ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                  className={`px-3 sm:px-4 py-2 rounded-2xl text-xs font-bold transition-all ${selectedCategory === cat.name ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                   {cat.name}
                 </button>
@@ -312,7 +312,7 @@ export function POSView() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 lg:px-6 pb-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 lg:px-6 pb-6 custom-scrollbar">
           {isCatalogLoading ? (
             <div className="h-full flex items-center justify-center">
               <div className="flex flex-col items-center gap-4 text-slate-400">
@@ -321,7 +321,7 @@ export function POSView() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 sm:gap-4">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
@@ -335,13 +335,14 @@ export function POSView() {
       </div>
 
       {/* Cart Sidebar */}
+      {isCartOpen && <div className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-sm xl:hidden" onClick={() => setIsCartOpen(false)} />}
       <div
         className={`
         fixed inset-y-0 right-0 z-40 w-full sm:w-[400px] bg-white dark:bg-slate-900 border-l border-slate-100 dark:border-slate-800 flex flex-col transition-transform duration-300
         ${isCartOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0 xl:static'}
       `}
       >
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
               <ShoppingCart size={20} />
@@ -361,7 +362,7 @@ export function POSView() {
           </button>
         </div>
 
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800">
           <div className="relative group">
             <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -386,7 +387,7 @@ export function POSView() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 custom-scrollbar">
           {cart.map((item) => (
             <div key={item.id} className="flex gap-4 group">
               <div className="w-12 h-12 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center shrink-0 font-black text-slate-400 text-xs">
@@ -444,7 +445,7 @@ export function POSView() {
           )}
         </div>
 
-        <div className="p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
+        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-800/50 space-y-4 border-t border-slate-100 dark:border-slate-800">
           <div className="flex justify-between items-end mb-2">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
               Total a Pagar
@@ -473,7 +474,7 @@ export function POSView() {
 
       <button
         onClick={() => setIsCartOpen(true)}
-        className="xl:hidden fixed bottom-6 right-6 z-30 w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center transition-transform active:scale-95"
+        className="xl:hidden fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center transition-transform active:scale-95"
       >
         <div className="relative">
           <ShoppingCart size={24} />
@@ -553,22 +554,22 @@ function PaymentModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-lg shadow-2xl border border-white/20 dark:border-slate-800 animate-slideInUp">
-        <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-8">
+      <div className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-lg shadow-2xl border border-white/20 dark:border-slate-800 animate-slideInUp">
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter mb-6 sm:mb-8">
           Finalizar Venta
         </h2>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <button
             onClick={() => setMethod('CASH')}
-            className={`p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CASH' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+            className={`p-4 sm:p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CASH' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
           >
             <Wallet size={32} />
             <span className="text-xs font-black uppercase tracking-widest">Efectivo</span>
           </button>
           <button
             onClick={() => setMethod('CARD')}
-            className={`p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CARD' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
+            className={`p-4 sm:p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-3 ${method === 'CARD' ? 'border-primary bg-primary/5 text-primary' : 'border-slate-100 dark:border-slate-800 text-slate-400'}`}
           >
             <Landmark size={32} />
             <span className="text-xs font-black uppercase tracking-widest">Tarjeta</span>
@@ -593,7 +594,7 @@ function PaymentModal({
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full bg-white dark:bg-slate-900 p-4 rounded-xl text-2xl font-black text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-light transition-all tabular-nums"
+                className="w-full bg-white dark:bg-slate-900 p-4 rounded-xl text-xl sm:text-2xl font-black text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-light transition-all tabular-nums"
                 autoFocus
               />
             </div>
@@ -613,7 +614,7 @@ function PaymentModal({
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button onClick={onClose} className="btn-secondary flex-1 py-4 text-xs">
               Cancelar
             </button>
@@ -638,7 +639,7 @@ function SaleSuccessDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
         <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
           <Printer size={48} className="text-white" />
         </div>
-        <h2 className="text-4xl font-black tracking-tighter mb-4">¡Venta Realizada!</h2>
+        <h2 className="text-3xl sm:text-4xl font-black tracking-tighter mb-4">¡Venta Realizada!</h2>
         <p className="text-white/60 font-medium mb-12">
           Ticket #{sale.id.slice(-8).toUpperCase()} generado y enviado al sistema de impresión
           central.

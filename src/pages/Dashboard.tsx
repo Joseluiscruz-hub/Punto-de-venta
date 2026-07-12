@@ -116,8 +116,8 @@ export function DashboardView() {
     yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : null;
 
   return (
-    <div className="view-shell p-6 lg:p-10 h-full overflow-y-auto bg-[#f8fafc] dark:bg-slate-950 flex flex-col gap-8 transition-colors animate-fadeIn">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="view-shell p-4 sm:p-6 lg:p-10 h-full overflow-y-auto bg-[#f8fafc] dark:bg-slate-950 flex flex-col gap-6 lg:gap-8 transition-colors animate-fadeIn">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Panel de Control
@@ -127,13 +127,13 @@ export function DashboardView() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+        <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-1.5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
           {PERIOD_OPTIONS.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => setPeriod(option.key as SalesPeriod)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${period === option.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+              className={`px-3 sm:px-4 py-2 rounded-xl text-xs font-bold transition-all ${period === option.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
             >
               {option.label}
             </button>
@@ -141,7 +141,7 @@ export function DashboardView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           icon={<Banknote size={24} />}
           title="Ventas de Hoy"
@@ -166,9 +166,9 @@ export function DashboardView() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
             <h3 className="font-black text-lg text-slate-900 dark:text-white flex items-center gap-2">
               <BarChart3 size={20} className="text-primary-light" />
               Curva de Ingresos
@@ -180,7 +180,7 @@ export function DashboardView() {
               </span>
             </div>
           </div>
-          <div className="h-80 w-full">
+          <div className="h-64 sm:h-72 lg:h-80 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={salesByDate}>
                 <CartesianGrid
@@ -217,12 +217,12 @@ export function DashboardView() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
-          <h3 className="font-black text-lg text-slate-900 dark:text-white mb-8 flex items-center gap-2">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+          <h3 className="font-black text-lg text-slate-900 dark:text-white mb-6 sm:mb-8 flex items-center gap-2">
             <PieIcon size={20} className="text-accent" />
             Mix de Inventario
           </h3>
-          <div className="h-64 w-full">
+          <div className="h-56 sm:h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

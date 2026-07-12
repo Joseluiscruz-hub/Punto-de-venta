@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Search, Menu } from 'lucide-react';
+import { Search, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
+  isSidebarOpen: boolean;
   onMenuClick: () => void;
 }
 
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header({ isSidebarOpen, onMenuClick }: HeaderProps) {
   const { user, store } = useAuth();
   const [time, setTime] = useState(new Date());
 
@@ -61,11 +62,18 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
         <button
           onClick={onMenuClick}
+          aria-label={isSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
+          aria-expanded={isSidebarOpen}
           className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
         >
-          <Menu size={24} />
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
         <div className="text-center">
+          <img
+            src="/el-triunfo-logo.png.png"
+            alt="El Triunfo"
+            className="h-6 w-6 object-contain mx-auto mb-1"
+          />
           <h1 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">
             EL TRIUNFO
           </h1>

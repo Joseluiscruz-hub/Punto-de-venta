@@ -46,13 +46,18 @@ export function MainLayout() {
       <Sidebar
         currentView={currentView}
         isExpanded={isSidebarExpanded}
+        isOpen={isSidebarOpen}
         onNavItemClick={handleNavItemClick}
         onToggleExpand={setIsSidebarExpanded}
+        onRequestClose={() => setIsSidebarOpen(false)}
       />
 
-      <main className="main-canvas flex-1 flex flex-col min-w-0 transition-colors">
+      <main className="main-canvas flex-1 flex min-w-0 min-h-0 flex-col transition-colors">
         <SyncManager />
-        <Header onMenuClick={() => setIsSidebarOpen(true)} />
+        <Header
+          isSidebarOpen={isSidebarOpen}
+          onMenuClick={() => setIsSidebarOpen((open) => !open)}
+        />
         <ViewManager currentView={currentView} onShiftClosed={handleShiftClosed} />
         {showOpenShiftModal && (
           <OpenShiftModal
