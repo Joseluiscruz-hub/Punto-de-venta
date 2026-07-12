@@ -15,19 +15,31 @@ import {
 import { Sale, ProductView } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { useAppTheme } from '../contexts/ThemeContext';
+import { useAppTheme } from '../contexts/theme-context';
 import { formatCurrency, startOfPeriod, PERIOD_OPTIONS } from '../utils/helpers';
 import { StatCard } from '../components/StatCard';
 
 type SalesPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
+interface ChartTooltipPayload {
+  name?: string | number;
+  value?: string | number;
+}
+
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: ChartTooltipPayload[];
+}
+
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
+  const item = payload?.[0];
+  if (active && item) {
+    const value = Number(item.value ?? 0);
     return (
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700">
-        <p className="text-sm font-bold text-slate-900 dark:text-white">{`${
-          payload[0].name
-        }: ${formatCurrency(payload[0].value)}`}</p>
+        <p className="text-sm font-bold text-slate-900 dark:text-white">{`${String(
+          item.name ?? '',
+        )}: ${formatCurrency(value)}`}</p>
       </div>
     );
   }
@@ -201,9 +213,7 @@ export function DashboardView() {
                   tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
                   tickFormatter={(val) => `$${val}`}
                 />
-                <Tooltip
-                  content={<CustomTooltip />}
-                />
+                <Tooltip content={<CustomTooltip />} />
                 <Line
                   type="monotone"
                   dataKey="total"

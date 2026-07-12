@@ -233,7 +233,7 @@ export function InventoryView() {
               className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary-light transition-all outline-none"
             />
           </div>
-            <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl">
+          <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl">
             {stockFilterOptions.map((option) => (
               <button
                 key={option.key}
@@ -287,7 +287,9 @@ export function InventoryView() {
                 >
                   <td className="px-4 sm:px-6 py-4">
                     <p className="font-bold text-slate-950 dark:text-white">{p.name}</p>
-                    <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">{p.barcode}</p>
+                    <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                      {p.barcode}
+                    </p>
                   </td>
                   <td className="px-4 sm:px-6 py-4">
                     <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">
@@ -465,32 +467,49 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     setLoading(true);
     setError(null);
     try {
-      const rows = ((await readXlsxFile(file)) as unknown) as unknown[][];
+      const rows = (await readXlsxFile(file)) as unknown as unknown[][];
       const [headerRow, ...dataRows] = rows;
       if (!headerRow || dataRows.length === 0)
         throw new Error('El archivo esta vacio o no contiene productos.');
-      const headers = (headerRow as unknown[]).map((value) => String(value ?? '').trim());
+      const headers = (headerRow as unknown[]).map((value) => normalizeText(String(value ?? '')));
 
-      const formattedProducts = dataRows.map((values: unknown[], index: number): CreateProductInput => {
-        const rowObj = Object.fromEntries(
-          headers.map((header, column) => [header, (values as unknown[])[column]]),
-        ) as Record<string, unknown>;
-        const name = String(rowObj.producto ?? rowObj.Producto ?? rowObj.Name ?? '').trim();
-        const cost = Number(rowObj['Costo proveedor'] ?? rowObj.Costo ?? rowObj.cost ?? 0);
-        const price = Number(rowObj['Venta publico'] ?? rowObj.Precio ?? rowObj.price ?? 0);
-        const stock = Number(rowObj.Items ?? rowObj.Stock ?? rowObj.stock ?? 0);
-        if (!name) throw new Error(`Fila ${index + 2}: El nombre del producto es obligatorio.`);
+      const formattedProducts = dataRows.map(
+        (values: unknown[], index: number): CreateProductInput => {
+          const rowObj = Object.fromEntries(
+            headers.map((header, column) => [header, (values as unknown[])[column]]),
+          ) as Record<string, unknown>;
+          const cellText = (keys: string[]) =>
+            String(keys.map((key) => rowObj[key]).find((value) => value != null) ?? '').trim();
+          const cellNumber = (keys: string[], fallback: number) => {
+            const raw = keys.map((key) => rowObj[key]).find((value) => value != null) ?? fallback;
+            const value = Number(String(raw).replace(/[$,]/g, ''));
+            if (!Number.isFinite(value) || value < 0)
+              throw new Error(`Fila ${index + 2}: valor numerico invalido.`);
+            return value;
+          };
+          const name = cellText(['producto', 'nombre', 'name']);
+          const barcode = cellText(['codigo', 'codigo de barras', 'barcode', 'sku']);
+          const category = cellText(['categoria', 'category']) || 'General';
+          const cost = cellNumber(['costo proveedor', 'costo', 'cost'], 0);
+          const price = cellNumber(['venta publico', 'precio', 'price'], 0);
+          const stock = cellNumber(['items', 'stock', 'existencia'], 0);
+          const minStock = cellNumber(['stock minimo', 'min stock', 'minstock'], 5);
+          if (!barcode) throw new Error(`Fila ${index + 2}: el codigo de barras es obligatorio.`);
+          if (!name) throw new Error(`Fila ${index + 2}: El nombre del producto es obligatorio.`);
+          if (!Number.isInteger(stock) || !Number.isInteger(minStock))
+            throw new Error(`Fila ${index + 2}: stock y minimo deben ser enteros.`);
 
-        return {
-          name,
-          cost,
-          price,
-          stock,
-          minStock: 5,
-          category: 'General',
-          barcode: crypto.randomUUID().replaceAll('-', '').slice(0, 12),
-        };
-      });
+          return {
+            barcode,
+            name,
+            category,
+            cost,
+            price,
+            stock,
+            minStock,
+          };
+        },
+      );
 
       setConfirmData(formattedProducts);
     } catch (uploadError) {
@@ -522,7 +541,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             <p className="text-sm text-slate-500">
               Carga un archivo .xlsx con las columnas: <br />
               <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">
-                producto, "Costo proveedor", "Venta publico", Items
+                codigo, producto, categoria, "Costo proveedor", "Venta publico", Items
               </code>
             </p>
 

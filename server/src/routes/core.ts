@@ -14,6 +14,9 @@ const productSchema = z.object({
   stock: z.coerce.number().int().min(0).max(99_999_999),
   minStock: z.coerce.number().int().min(0).max(99_999_999),
 });
+const productsBulkSchema = z.object({
+  products: z.array(productSchema).min(1).max(1000),
+});
 const customerSchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(200).optional().or(z.literal('')),
@@ -304,6 +307,97 @@ export async function coreRoutes(app: FastifyInstance) {
     return reply.status(201).send(created);
   });
 
+  app.post(
+    '/products/bulk',
+    { preHandler: authorize('ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const input = parse(productsBulkSchema, request.body);
+      const created = await database.transaction(async (client) => {
+        const context = await resolveStoreContext(request, client);
+        const seen = new Set<string>();
+        for (const product of input.products) {
+          if (seen.has(product.barcode)) {
+            throw new HttpError(
+              400,
+              `El archivo contiene codigos repetidos: ${product.barcode}`,
+              'DUPLICATE_IMPORT_BARCODE',
+            );
+          }
+          seen.add(product.barcode);
+        }
+
+        for (const product of input.products) {
+          const duplicate = await client.query<{ id: string }>(
+            'SELECT id FROM products WHERE tenant_id = $1 AND barcode = $2 LIMIT 1',
+            [request.user.tenantId, product.barcode],
+          );
+          if (duplicate.rowCount > 0) {
+            throw new HttpError(
+              409,
+              `Ya existe un producto con el codigo ${product.barcode}`,
+              'DUPLICATE_RECORD',
+            );
+          }
+        }
+
+        const createdProducts: Array<ReturnType<typeof mapProduct>> = [];
+        for (const product of input.products) {
+          const productId = randomUUID();
+          await client.query(
+            `INSERT INTO products (id, tenant_id, barcode, name, category, cost, price)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+              productId,
+              request.user.tenantId,
+              product.barcode,
+              product.name,
+              product.category,
+              product.cost,
+              product.price,
+            ],
+          );
+          await client.query(
+            `INSERT INTO inventory (tenant_id, store_id, product_id, stock, min_stock)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [request.user.tenantId, context.storeId, productId, product.stock, product.minStock],
+          );
+          if (product.stock > 0) {
+            await client.query(
+              `INSERT INTO stock_movements
+                (id, tenant_id, store_id, product_id, user_id, type, quantity, reason)
+               VALUES ($1, $2, $3, $4, $5, 'PURCHASE', $6, 'Importacion inicial')`,
+              [
+                randomUUID(),
+                request.user.tenantId,
+                context.storeId,
+                productId,
+                request.user.sub,
+                product.stock,
+              ],
+            );
+          }
+          createdProducts.push({
+            id: productId,
+            tenantId: request.user.tenantId,
+            barcode: product.barcode,
+            name: product.name,
+            category: product.category,
+            cost: product.cost,
+            price: product.price,
+            stock: product.stock,
+            minStock: product.minStock,
+          });
+        }
+
+        await audit(client, request, 'PRODUCTS_BULK_IMPORTED', 'product_import', undefined, {
+          count: createdProducts.length,
+        });
+        return createdProducts;
+      });
+      return reply.status(201).send({ created });
+    },
+  );
+
   app.put('/products/:id', { preHandler: authorize('ADMIN', 'MANAGER') }, async (request) => {
     const { id } = parse(z.object({ id: uuid }), request.params);
     const input = parse(productSchema, request.body);
@@ -561,6 +655,23 @@ export async function coreRoutes(app: FastifyInstance) {
       if (input.paymentMethod === 'CASH' && input.amountTendered < total) {
         throw new HttpError(400, 'El efectivo recibido es menor al total', 'INSUFFICIENT_PAYMENT');
       }
+      if (
+        input.paymentMethod === 'MIXED' &&
+        (input.amountTendered <= 0 || input.amountTendered >= total)
+      ) {
+        throw new HttpError(
+          400,
+          'El pago mixto requiere una parte en efectivo menor al total',
+          'INVALID_MIXED_PAYMENT',
+        );
+      }
+      const cashPortion =
+        input.paymentMethod === 'CASH'
+          ? total
+          : input.paymentMethod === 'MIXED'
+            ? roundMoney(input.amountTendered)
+            : 0;
+      const electronicPortion = roundMoney(total - cashPortion);
       const change = input.paymentMethod === 'CASH' ? roundMoney(input.amountTendered - total) : 0;
       const saleId = randomUUID();
       const inserted = await client.query<SaleRow>(
@@ -642,15 +753,16 @@ export async function coreRoutes(app: FastifyInstance) {
         );
       }
 
-      if (input.paymentMethod === 'CASH') {
+      if (cashPortion > 0) {
         await client.query(
           'UPDATE shifts SET sales_cash = sales_cash + $2, expected_cash = expected_cash + $2 WHERE id = $1',
-          [shift.id, total],
+          [shift.id, cashPortion],
         );
-      } else {
+      }
+      if (electronicPortion > 0) {
         await client.query('UPDATE shifts SET sales_card = sales_card + $2 WHERE id = $1', [
           shift.id,
-          total,
+          electronicPortion,
         ]);
       }
       await audit(client, request, 'SALE_CREATED', 'sale', saleId, {

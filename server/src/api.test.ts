@@ -44,6 +44,26 @@ async function login(username: string, pin: string) {
   };
 }
 
+async function authHeaders() {
+  const { body: session } = await login('admin', '1234');
+  return { authorization: `Bearer ${session.token}` };
+}
+
+async function ensureOpenShift(headers: { authorization: string }) {
+  const active = await app.inject({ method: 'GET', url: '/api/shifts/active', headers });
+  assert.equal(active.statusCode, 200);
+  if (active.body !== 'null') return active.json();
+
+  const opened = await app.inject({
+    method: 'POST',
+    url: '/api/shifts/open',
+    headers,
+    payload: { initialCash: 500 },
+  });
+  assert.equal(opened.statusCode, 201);
+  return opened.json();
+}
+
 test('autentica, renueva la sesion y respeta permisos por rol', async () => {
   const admin = await login('admin', '1234');
   assert.equal(admin.body.user.role, 'ADMIN');
@@ -76,19 +96,12 @@ test('autentica, renueva la sesion y respeta permisos por rol', async () => {
 });
 
 test('registra una venta atomica e idempotente y descuenta stock una sola vez', async () => {
-  const { body: session } = await login('admin', '1234');
-  const headers = { authorization: `Bearer ${session.token}` };
+  const headers = await authHeaders();
   const productsResponse = await app.inject({ method: 'GET', url: '/api/products', headers });
   assert.equal(productsResponse.statusCode, 200);
   const product = productsResponse.json()[0];
 
-  const shiftResponse = await app.inject({
-    method: 'POST',
-    url: '/api/shifts/open',
-    headers,
-    payload: { initialCash: 500 },
-  });
-  assert.equal(shiftResponse.statusCode, 201);
+  await ensureOpenShift(headers);
 
   const payload = {
     externalId: 'OFF-TEST-001',
@@ -105,4 +118,106 @@ test('registra una venta atomica e idempotente y descuenta stock una sola vez', 
   const updatedProducts = await app.inject({ method: 'GET', url: '/api/products', headers });
   const updated = updatedProducts.json().find((item: { id: string }) => item.id === product.id);
   assert.equal(updated.stock, product.stock - 2);
+});
+
+test('importa productos en bloque de forma atomica', async () => {
+  const headers = await authHeaders();
+  const duplicateBarcode = `BULK-DUP-${Date.now()}`;
+  const failed = await app.inject({
+    method: 'POST',
+    url: '/api/products/bulk',
+    headers,
+    payload: {
+      products: [
+        {
+          barcode: duplicateBarcode,
+          name: 'Producto duplicado A',
+          category: 'Test',
+          cost: 1,
+          price: 2,
+          stock: 1,
+          minStock: 0,
+        },
+        {
+          barcode: duplicateBarcode,
+          name: 'Producto duplicado B',
+          category: 'Test',
+          cost: 1,
+          price: 2,
+          stock: 1,
+          minStock: 0,
+        },
+      ],
+    },
+  });
+  assert.equal(failed.statusCode, 400);
+
+  const afterFailed = await app.inject({ method: 'GET', url: '/api/products', headers });
+  assert.equal(
+    afterFailed.json().some((product: { barcode: string }) => product.barcode === duplicateBarcode),
+    false,
+  );
+
+  const firstBarcode = `BULK-OK-${Date.now()}-1`;
+  const secondBarcode = `BULK-OK-${Date.now()}-2`;
+  const created = await app.inject({
+    method: 'POST',
+    url: '/api/products/bulk',
+    headers,
+    payload: {
+      products: [
+        {
+          barcode: firstBarcode,
+          name: 'Producto masivo A',
+          category: 'Test',
+          cost: 3,
+          price: 5,
+          stock: 4,
+          minStock: 1,
+        },
+        {
+          barcode: secondBarcode,
+          name: 'Producto masivo B',
+          category: 'Test',
+          cost: 4,
+          price: 6,
+          stock: 5,
+          minStock: 1,
+        },
+      ],
+    },
+  });
+  assert.equal(created.statusCode, 201);
+  assert.equal(created.json().created.length, 2);
+});
+
+test('distribuye un pago mixto entre efectivo y pago electronico', async () => {
+  const headers = await authHeaders();
+  await ensureOpenShift(headers);
+
+  const productsResponse = await app.inject({ method: 'GET', url: '/api/products', headers });
+  assert.equal(productsResponse.statusCode, 200);
+  const product = productsResponse.json()[0];
+  const shiftBefore = await app.inject({ method: 'GET', url: '/api/shifts/active', headers });
+  const before = shiftBefore.json();
+  const cashPart = Math.max(1, Math.min(product.price - 1, 5));
+
+  const sale = await app.inject({
+    method: 'POST',
+    url: '/api/sales',
+    headers,
+    payload: {
+      externalId: `MIXED-${Date.now()}`,
+      items: [{ id: product.id, quantity: 1 }],
+      paymentMethod: 'MIXED',
+      amountTendered: cashPart,
+    },
+  });
+  assert.equal(sale.statusCode, 201);
+
+  const shiftAfter = await app.inject({ method: 'GET', url: '/api/shifts/active', headers });
+  const after = shiftAfter.json();
+  assert.equal(Number(after.expectedCash), Number(before.expectedCash) + cashPart);
+  assert.equal(Number(after.salesCash), Number(before.salesCash) + cashPart);
+  assert.equal(Number(after.salesCard), Number(before.salesCard) + product.price - cashPart);
 });

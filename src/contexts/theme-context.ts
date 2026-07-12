@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext } from 'react';
 
 export interface ThemeContextType {
@@ -13,5 +12,3 @@ export function useAppTheme() {
   if (!ctx) throw new Error('useAppTheme must be used within ThemeProvider');
   return ctx;
 }
-
-
