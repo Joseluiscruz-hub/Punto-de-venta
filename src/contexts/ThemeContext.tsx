@@ -1,10 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { ThemeContext } from './theme-context';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const THEME_KEY = 'el-triunfo.theme';
 
+export interface ThemeContextType {
+  isDark: boolean;
+  toggleTheme: () => void;
+}
+
+export const ThemeContext = createContext<ThemeContextType | null>(null);
+
+export function useAppTheme() {
+  const ctx = useContext(ThemeContext);
+  if (!ctx) throw new Error('useAppTheme must be used within ThemeProvider');
+  return ctx;
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
   useEffect(() => {
     if (isDark) {
@@ -17,7 +33,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(THEME_KEY, isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  // Atajo global: Ctrl/Cmd + J para alternar tema (convención usada en muchas apps)
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const key = e.key.toLowerCase();

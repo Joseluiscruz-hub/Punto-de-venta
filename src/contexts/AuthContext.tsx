@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     try {
       const data = await BackendAPI.login(username, pin);
-      localStorage.setItem(SESSION_KEY, JSON.stringify({ ...data, token: '' }));
+      localStorage.setItem(SESSION_KEY, JSON.stringify(data));
       setSession(data);
       addNotification('Sesion iniciada correctamente.', 'success');
     } catch (err) {
