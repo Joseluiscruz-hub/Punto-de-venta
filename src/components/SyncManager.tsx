@@ -3,7 +3,7 @@ import { WifiOff, CloudUpload } from 'lucide-react';
 import { RequestContext, ProcessSaleInput } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { hasFeature } from '../utils/helpers';
+import { hasFeature, SALES_UPDATED_EVENT } from '../utils/helpers';
 import {
   OFFLINE_SALES_CHANGED,
   reconcileOfflineSales,
@@ -45,6 +45,9 @@ export function SyncManager() {
       }
       const pending = reconcileOfflineSales(attemptedIds, failed);
       setPendingCount(pending.length);
+      if (attemptedIds.size > failed.length) {
+        window.dispatchEvent(new Event(SALES_UPDATED_EVENT));
+      }
     } finally {
       syncingRef.current = false;
       setIsSyncing(false);
@@ -85,7 +88,7 @@ export function SyncManager() {
       <div className="bg-rose-600 text-white text-[10px] sm:text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2 shadow-sm z-50">
         <WifiOff size={14} className="animate-pulse" />
         <span>
-          Conexión Interrumpida. Modo Reserva ERP Activo.{' '}
+          ConexiÃ³n Interrumpida. Modo Reserva ERP Activo.{' '}
           {pendingCount > 0 ? `(${pendingCount} transacciones en cola)` : ''}
         </span>
       </div>
