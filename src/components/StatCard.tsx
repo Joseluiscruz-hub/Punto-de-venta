@@ -11,9 +11,9 @@ interface StatCardProps {
 
 export function StatCard({ icon, title, value, delta, suffix }: StatCardProps) {
   return (
-    <div className="metric-card p-6 transition-all duration-200 hover:-translate-y-0.5 animate-fadeIn bg-gradient-to-br from-white/80 to-white/60 dark:from-slate-900/80 dark:to-slate-900/60">
-      <div className="flex items-center justify-between mb-4">
-        <div className="w-10 h-10 rounded-xl bg-white/60 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-slate-400">
+    <div className="metric-card animate-fadeIn p-5">
+      <div className="mb-5 flex items-center justify-between">
+        <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-primary dark:bg-emerald-950/50 dark:text-emerald-300">
           {icon}
         </div>
         {delta !== undefined && delta !== null && (
@@ -27,11 +27,9 @@ export function StatCard({ icon, title, value, delta, suffix }: StatCardProps) {
         )}
       </div>
       <div>
-        <p className="text-label text-slate-400 mb-1">{title}</p>
+        <p className="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">{title}</p>
         <div className="flex items-baseline gap-1">
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            {value}
-          </h3>
+          <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white">{value}</h3>
           {suffix && <span className="text-xs font-bold text-slate-400">{suffix}</span>}
         </div>
       </div>
