@@ -1,5 +1,7 @@
 import { Tenant, Feature } from '../models/types';
 
+export const SALES_UPDATED_EVENT = 'el-triunfo:sales-updated';
+
 export function hasFeature(tenant: Tenant | null, feature: Feature) {
   if (!tenant) return false;
   const planFeatures: Record<Tenant['plan'], Feature[]> = {
