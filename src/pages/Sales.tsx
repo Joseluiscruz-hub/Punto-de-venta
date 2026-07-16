@@ -212,9 +212,9 @@ export function SalesView() {
           <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap min-w-[600px]">
             <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
               <tr>
-                <th className="px-4 sm:px-6 py-4">UUID TRANSACCIÃ“N</th>
+                <th className="px-4 sm:px-6 py-4">UUID TRANSACCIÓN</th>
                 <th className="px-4 sm:px-6 py-4">MARCA DE TIEMPO</th>
-                <th className="px-4 sm:px-6 py-4">MÃ‰TODO PAGO</th>
+                <th className="px-4 sm:px-6 py-4">MÉTODO PAGO</th>
                 <th className="px-4 sm:px-6 py-4 text-right">VALOR NETO</th>
                 <th className="px-4 sm:px-6 py-4 text-center">UM</th>
                 <th className="px-4 sm:px-6 py-4 text-center">ACCIONES</th>
