@@ -5,37 +5,28 @@ interface NavItemProps {
   label: string;
   active: boolean;
   onClick: () => void;
-  expanded: boolean;
 }
 
-export function NavItem({ icon, label, active, onClick, expanded }: NavItemProps) {
+export function NavItem({ icon, label, active, onClick }: NavItemProps) {
   return (
     <button
       onClick={onClick}
+      aria-current={active ? 'page' : undefined}
       className={`
-        nav-link relative flex items-center h-12 transition-all duration-200 group
-        ${expanded ? 'px-4 gap-4 w-full' : 'px-0 justify-center w-12 mx-auto'}
+        nav-link group relative flex h-11 w-full items-center gap-3 px-3 transition-colors duration-150
         ${
           active
-            ? 'nav-link-active bg-white/90 dark:bg-white/10 text-slate-900 dark:text-slate-50 shadow-lg'
-            : 'text-slate-500 hover:bg-white/70 dark:text-slate-400 dark:hover:bg-white/5'
+            ? 'nav-link-active text-slate-950 dark:text-white'
+            : 'text-slate-600 hover:text-slate-950 dark:text-slate-400 dark:hover:text-white'
         }
       `}
-      title={!expanded ? label : undefined}
     >
       <div
-        className={`shrink-0 ${active ? 'text-slate-900 dark:text-slate-50' : 'text-slate-500 group-hover:text-teal-600 dark:group-hover:text-teal-300'}`}
+        className={`shrink-0 ${active ? 'text-primary' : 'text-slate-500 group-hover:text-primary-light'}`}
       >
         {icon}
       </div>
-      {expanded && (
-        <span
-          className={`text-sm font-semibold whitespace-nowrap overflow-hidden transition-opacity duration-200 ${active ? 'text-slate-900 dark:text-white' : ''}`}
-        >
-          {label}
-        </span>
-      )}
-      {active && !expanded && <div className="absolute left-0 w-1 h-6 bg-teal-500 rounded-r-full" />}
+      <span className="truncate text-sm font-semibold">{label}</span>
     </button>
   );
 }

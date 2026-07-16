@@ -1,4 +1,5 @@
 import {
+  Crown,
   LayoutDashboard,
   ShoppingCart,
   PackageSearch,
@@ -15,75 +16,55 @@ import { View } from '../models/types';
 
 interface SidebarProps {
   currentView: View;
-  isExpanded: boolean;
   isOpen: boolean;
   onNavItemClick: (view: View) => void;
-  onToggleExpand: (isExpanded: boolean) => void;
   onRequestClose: () => void;
 }
 
-export function Sidebar({
-  currentView,
-  isExpanded,
-  isOpen,
-  onNavItemClick,
-  onToggleExpand,
-  onRequestClose,
-}: SidebarProps) {
+export function Sidebar({ currentView, isOpen, onNavItemClick, onRequestClose }: SidebarProps) {
   const { user, logout, hasPermission } = useAuth();
-  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.png.png`;
 
   return (
     <aside
-      onMouseEnter={() => onToggleExpand(true)}
-      onMouseLeave={() => onToggleExpand(false)}
       className={`
-        side-rail fixed inset-y-0 left-0 z-50 flex h-screen flex-col transition-all duration-300 ease-in-out
-        w-72 lg:w-20 ${isExpanded ? 'lg:w-64' : ''}
+        side-rail fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col transition-transform duration-200
         ${isOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'}
-        lg:static lg:translate-x-0 lg:pointer-events-auto
+        lg:static lg:w-64 lg:translate-x-0 lg:pointer-events-auto
       `}
     >
-      <div className={`p-4 h-24 flex items-center ${isExpanded ? 'px-6' : 'justify-center'}`}>
-        <div className="flex items-center gap-3 overflow-visible">
-          <img
-            src={logoSrc}
-            alt="El Triunfo"
-            className="w-12 h-12 shrink-0 object-contain"
-          />
-          {isExpanded && (
-            <div className="overflow-hidden transition-all duration-300">
-              <h1 className="text-sm font-bold tracking-tight uppercase text-slate-950 dark:text-white leading-none">
-                EL TRIUNFO
-              </h1>
-              <p className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold uppercase tracking-wider mt-1">
-                Punto de Venta
-              </p>
-            </div>
-          )}
+      <div className="flex h-20 items-center gap-3 border-b border-slate-200/80 px-5 dark:border-slate-800">
+        <div className="brand-mark flex h-10 w-10 shrink-0 items-center justify-center">
+          <Crown size={21} aria-hidden="true" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-extrabold text-slate-950 dark:text-white">
+            El Triunfo
+          </h1>
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+            Punto de venta
+          </p>
         </div>
       </div>
 
-      <nav className="flex-1 py-4 px-3 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5 custom-scrollbar">
+        <p className="px-3 pb-2 text-xs font-bold text-slate-400">Operación</p>
         <NavItem
           icon={<LayoutDashboard size={20} />}
-          label="Dashboard"
+          label="Resumen"
           active={currentView === 'dashboard'}
           onClick={() => {
             onNavItemClick('dashboard');
             onRequestClose();
           }}
-          expanded={isExpanded}
         />
         <NavItem
           icon={<ShoppingCart size={20} />}
-          label="Ventas"
+          label="Punto de venta"
           active={currentView === 'pos'}
           onClick={() => {
             onNavItemClick('pos');
             onRequestClose();
           }}
-          expanded={isExpanded}
         />
         <NavItem
           icon={<PackageSearch size={20} />}
@@ -93,7 +74,6 @@ export function Sidebar({
             onNavItemClick('inventory');
             onRequestClose();
           }}
-          expanded={isExpanded}
         />
         <NavItem
           icon={<Users size={20} />}
@@ -103,76 +83,68 @@ export function Sidebar({
             onNavItemClick('clients');
             onRequestClose();
           }}
-          expanded={isExpanded}
         />
 
-        <div className={`my-4 border-t border-slate-100 dark:border-slate-800 mx-2`} />
+        <div className="mx-3 my-4 border-t border-slate-200 dark:border-slate-800" />
 
         {hasPermission(['ADMIN', 'MANAGER']) && (
           <>
+            <p className="px-3 pb-2 text-xs font-bold text-slate-400">Control</p>
             <NavItem
               icon={<Receipt size={20} />}
-              label="Reportes"
+              label="Ventas registradas"
               active={currentView === 'sales'}
               onClick={() => {
                 onNavItemClick('sales');
                 onRequestClose();
               }}
-              expanded={isExpanded}
             />
             <NavItem
               icon={<History size={20} />}
-              label="Auditoría"
+              label="Movimientos"
               active={currentView === 'movements'}
               onClick={() => {
                 onNavItemClick('movements');
                 onRequestClose();
               }}
-              expanded={isExpanded}
             />
           </>
         )}
 
         <NavItem
           icon={<Wallet size={20} />}
-          label="Configuración"
+          label="Caja y turnos"
           active={currentView === 'corte'}
           onClick={() => {
             onNavItemClick('corte');
             onRequestClose();
           }}
-          expanded={isExpanded}
         />
       </nav>
 
-      <div className="p-4 mt-auto border-t border-slate-100/70 dark:border-slate-800/70">
+      <div className="mt-auto border-t border-slate-200/80 p-4 dark:border-slate-800">
+        <div className="mb-3 flex items-center gap-3 px-2">
+          <div className="user-avatar flex h-9 w-9 shrink-0 items-center justify-center">
+            <span className="text-xs font-extrabold">{user?.name?.[0]?.toUpperCase()}</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+              {user?.name}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{user?.role}</p>
+          </div>
+          <ThemeToggle />
+        </div>
         <button
           onClick={() => {
             onRequestClose();
             logout();
           }}
-          className={`btn-secondary flex items-center h-12 w-full ${isExpanded ? 'px-4 gap-4' : 'justify-center'}`}
+          className="btn-secondary flex h-11 w-full items-center gap-3 px-4"
         >
-          <LogOut size={20} />
-          {isExpanded && <span className="text-sm font-semibold">Salir</span>}
+          <LogOut size={18} />
+          <span className="text-sm font-semibold">Cerrar sesión</span>
         </button>
-
-        <div className={`mt-4 flex items-center ${isExpanded ? 'gap-3 px-2' : 'justify-center'}`}>
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-primary-light to-accent flex items-center justify-center text-white shrink-0 shadow-sm">
-            <span className="text-[10px] font-bold">{user?.name?.[0].toUpperCase()}</span>
-          </div>
-          {isExpanded && (
-            <div className="overflow-hidden">
-              <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                {user?.name}
-              </p>
-              <p className="text-[10px] text-slate-400 font-medium">{user?.role}</p>
-            </div>
-          )}
-        </div>
-        <div className="mt-4 flex justify-center">
-          <ThemeToggle />
-        </div>
       </div>
     </aside>
   );

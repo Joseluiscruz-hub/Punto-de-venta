@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Store as StoreIcon, Users, ShieldCheck, AlertCircle } from 'lucide-react';
+import { AlertCircle, LockKeyhole, UserRound } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ThemeToggle } from '../components/ThemeToggle';
 
@@ -7,135 +7,106 @@ export function LoginScreen() {
   const { login, isLoading, error } = useAuth();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
+  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.png.png`;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     await login(username, pin);
   };
 
   return (
-    <div className="login-shell min-h-screen flex items-center justify-center relative overflow-hidden font-sans px-4 py-8 animate-fadeIn">
-      <div className="absolute inset-0 z-0 opacity-70" />
-
-      <div className="login-stage relative z-10 w-full">
-        <div className="login-card rounded-4xl overflow-hidden animate-slideInUp">
-          <div className="grid lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="hidden lg:flex flex-col justify-between p-10 xl:p-12 text-white brand-panel">
-              <div>
-                <div className="inline-flex items-center gap-3 rounded-full bg-white/15 px-4 py-2 text-[10px] font-black uppercase tracking-[0.28em]">
-                  <StoreIcon size={14} />
-                  Punto de venta premium
-                </div>
-                <h1 className="mt-8 text-5xl font-black tracking-tight leading-none">
-                  El Triunfo
-                </h1>
-                <p className="mt-4 max-w-md text-white/80 text-sm leading-6">
-                  Acceso rápido, ventas ágiles y una interfaz pensada para trabajar todo el día sin fatiga visual.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 text-[10px] font-black uppercase tracking-[0.18em]">
-                {['POS', 'Inventario', 'Clientes'].map((item) => (
-                  <div key={item} className="rounded-2xl bg-white/10 p-4 text-center backdrop-blur-sm">
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="p-6 sm:p-8 xl:p-12 bg-(--ui-surface-solid)">
-              <div className="flex flex-col items-center text-center mb-8">
-                <div className="w-18 h-18 bg-primary text-white rounded-3xl flex items-center justify-center shadow-xl shadow-primary/20 mb-5">
-                  <StoreIcon size={36} />
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-                  Bienvenido
-                </h1>
-                <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">
-                  El Triunfo SaaS Retail System
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-1.5">
-                <label className="text-label text-slate-400 ml-1">
-                  Usuario
-                </label>
-                  <div className="relative group">
-                    <Users
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors"
-                      size={18}
-                    />
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      className="input-premium w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 font-bold text-slate-900 dark:text-white"
-                      placeholder="ej. admin"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                <label className="text-label text-slate-400 ml-1">
-                  PIN de Acceso
-                </label>
-                  <div className="relative group">
-                    <ShieldCheck
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-teal-600 transition-colors"
-                      size={18}
-                    />
-                    <input
-                      type="password"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      placeholder="••••"
-                      className="input-premium w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 font-bold tracking-[0.5em] text-xl text-slate-900 dark:text-white"
-                      maxLength={4}
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="bg-error/10 border border-error/20 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
-                    <AlertCircle size={18} className="text-error" />
-                    <p className="text-error text-xs font-bold">{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary w-full mt-4"
-                >
-                  {isLoading ? 'Verificando...' : 'Entrar al Sistema'}
-                </button>
-              </form>
-
-              <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 text-center">
-                <p className="text-label text-slate-400 mb-4">
-                  Módulos Corporativos
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {['POS', 'ERP', 'CRM', 'BI'].map((mod) => (
-                    <span
-                      key={mod}
-                      className="px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-lg text-caption text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-800"
-                    >
-                      {mod}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+    <main className="login-shell animate-fadeIn">
+      <section className="login-brand" aria-label="El Triunfo Punto de Venta">
+        <img src={logoSrc} alt="El Triunfo Punto de Venta" className="login-brand-logo" />
+        <div className="login-brand-footer">
+          <span>Sistema operativo de tienda</span>
+          <span>{new Date().getFullYear()}</span>
         </div>
+      </section>
 
-        <div className="mt-6 flex justify-center gap-6 text-white/40">
+      <section className="login-access">
+        <div className="absolute right-5 top-5">
           <ThemeToggle />
         </div>
-      </div>
-    </div>
+
+        <div className="login-form-shell">
+          <img src={logoSrc} alt="" className="login-mobile-logo lg:hidden" />
+          <p className="section-kicker">Acceso seguro</p>
+          <h1 className="mt-2 text-3xl font-extrabold text-slate-950 dark:text-white">
+            Iniciar sesión
+          </h1>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            Ingresa tus credenciales asignadas.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="space-y-2">
+              <label htmlFor="username" className="form-label">
+                Usuario
+              </label>
+              <div className="relative">
+                <UserRound
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="input-premium w-full py-3.5 pl-11 pr-4"
+                  placeholder="Nombre de usuario"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoFocus
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="pin" className="form-label">
+                PIN
+              </label>
+              <div className="relative">
+                <LockKeyhole
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={18}
+                />
+                <input
+                  id="pin"
+                  name="pin"
+                  type="password"
+                  value={pin}
+                  onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
+                  className="input-premium w-full py-3.5 pl-11 pr-4 text-lg font-bold tabular-nums"
+                  placeholder="4 dígitos"
+                  autoComplete="current-password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  required
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="flex items-start gap-3 border border-rose-200 bg-rose-50 p-3 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+                <AlertCircle size={18} className="mt-0.5 shrink-0" />
+                <p className="text-sm font-semibold">{error}</p>
+              </div>
+            )}
+
+            <button type="submit" disabled={isLoading} className="btn-primary h-12 w-full">
+              {isLoading ? 'Verificando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-xs text-slate-400">
+            Acceso exclusivo para personal autorizado
+          </p>
+        </div>
+      </section>
+    </main>
   );
 }

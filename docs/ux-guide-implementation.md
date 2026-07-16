@@ -23,6 +23,21 @@ Esta nota traduce la guia `punto_de_venta_guia_mejoras.html` a cambios seguros d
 - Recibo: precio unitario por linea, conteo de articulos y desglose de efectivo recibido/cambio en ventas en efectivo.
 - POS: accion para vaciar el carrito desde el encabezado del checkout.
 
+## Renovacion UX operativa (julio 2026)
+
+- Navegacion lateral estable para evitar desplazamientos al mover el cursor.
+- Encabezado contextual por modulo con estado de conexion, sucursal y hora.
+- Navegacion rapida funcional con `Ctrl/Cmd + K` y filtrado por permisos.
+- Login simplificado con identidad visual de El Triunfo y mayor contraste.
+- POS redisenado para mostrar mas productos por pantalla sin perder legibilidad.
+- Atajos `F1` y `F10` conectados a la busqueda y al flujo de cobro.
+- Lectura de codigo con `Enter` para agregar coincidencias exactas al carrito.
+- Categorias completas con conteo y desplazamiento horizontal en pantallas pequenas.
+- Carrito tactil con acciones visibles, cantidades estables y vaciado rapido.
+- Cobro en efectivo con montos sugeridos y cambio destacado.
+- Producto Coca-Cola mostrado con su recurso visual real del catalogo.
+- Sistema visual consolidado: superficies, bordes, radios, sombras y estados de foco.
+
 ## Base preparada, pendiente de fase mayor
 
 - Refactor por features (`features/pos`, `features/inventory`, `features/dashboard`): recomendable, pero requiere dividir `App.tsx`, actualizar imports y cubrir regresiones con pruebas de UI.

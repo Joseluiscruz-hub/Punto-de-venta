@@ -69,6 +69,15 @@ npm run build
 npm audit
 ```
 
+## Atajos de operacion
+
+| Atajo          | Accion                            |
+| -------------- | --------------------------------- |
+| `F1`           | Enfocar la busqueda del catalogo  |
+| `F10`          | Abrir el cobro de la venta actual |
+| `Ctrl/Cmd + K` | Abrir la navegacion rapida        |
+| `Ctrl/Cmd + J` | Cambiar entre tema claro y oscuro |
+
 ## Estructura
 
 - `src/`: PWA y adaptadores de datos.
