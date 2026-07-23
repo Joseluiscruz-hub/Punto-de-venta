@@ -81,10 +81,11 @@ export function LoginScreen() {
                   value={pin}
                   onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))}
                   className="input-premium w-full py-3.5 pl-11 pr-4 text-lg font-bold tabular-nums"
-                  placeholder="4 dígitos"
+                  placeholder="4 a 12 dígitos"
                   autoComplete="current-password"
                   inputMode="numeric"
-                  maxLength={4}
+                  minLength={4}
+                  maxLength={12}
                   required
                 />
               </div>

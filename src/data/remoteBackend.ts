@@ -62,11 +62,22 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   return response.json() as Promise<T>;
 }
 
+function storedRegisterId() {
+  try {
+    const session = JSON.parse(localStorage.getItem(sessionKey) ?? 'null') as {
+      register?: { id?: unknown };
+    } | null;
+    return typeof session?.register?.id === 'string' ? session.register.id : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function contextHeaders(context: Pick<RequestContext, 'storeId'>) {
-  const session = JSON.parse(localStorage.getItem(sessionKey) ?? 'null') as Session | null;
+  const registerId = storedRegisterId();
   return {
     'x-store-id': context.storeId,
-    ...(session?.register?.id ? { 'x-register-id': session.register.id } : {}),
+    ...(registerId ? { 'x-register-id': registerId } : {}),
   };
 }
 

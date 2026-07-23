@@ -10,11 +10,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'El Triunfo ERP',
         short_name: 'TriunfoERP',
         description: 'Sistema ERP de alto rendimiento para Retail',
+        lang: 'es-MX',
+        display: 'standalone',
+        background_color: '#f8fafc',
         theme_color: '#0070b2',
         icons: [
           {
@@ -37,7 +39,9 @@ export default defineConfig({
       },
     }),
   ],
-  base: process.env.VITE_BASE_PATH || (process.env.NODE_ENV === 'production' ? '/Punto-de-venta/' : '/'),
+  base:
+    process.env.VITE_BASE_PATH ||
+    (process.env.NODE_ENV === 'production' ? '/Punto-de-venta/' : '/'),
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:3001',

@@ -5,10 +5,21 @@ import { database, type QueryClient } from '../database.js';
 import { audit, authenticate, authorize, HttpError, parse, resolveStoreContext } from '../http.js';
 
 const uuid = z.string().uuid();
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .refine(
+    (value) => value === '' || /^https?:\/\//i.test(value) || value.startsWith('/'),
+    'La imagen debe ser una URL http(s) o una ruta local que empiece con /',
+  )
+  .optional()
+  .transform((value) => value || undefined);
 const productSchema = z.object({
   barcode: z.string().trim().min(1).max(80),
   name: z.string().trim().min(1).max(200),
   category: z.string().trim().min(1).max(100),
+  imageUrl: imageUrlSchema,
   cost: z.coerce.number().min(0).max(99_999_999),
   price: z.coerce.number().min(0).max(99_999_999),
   stock: z.coerce.number().int().min(0).max(99_999_999),
@@ -41,6 +52,7 @@ interface ProductRow {
   barcode: string;
   name: string;
   category: string;
+  image_url?: string | null;
   cost: string | number;
   price: string | number;
   stock: number;
@@ -115,6 +127,7 @@ function mapProduct(row: ProductRow) {
     barcode: row.barcode,
     name: row.name,
     category: row.category,
+    imageUrl: row.image_url ?? undefined,
     cost: money(row.cost) ?? 0,
     price: money(row.price) ?? 0,
     stock: row.stock,
@@ -191,7 +204,7 @@ async function saleDetails(client: QueryClient, sale: SaleRow) {
 
 async function productRows(client: QueryClient, tenantId: string, storeId: string) {
   return client.query<ProductRow>(
-    `SELECT p.id, p.tenant_id, p.barcode, p.name, p.category, p.cost, p.price,
+    `SELECT p.id, p.tenant_id, p.barcode, p.name, p.category, p.image_url, p.cost, p.price,
             COALESCE(i.stock, 0)::integer AS stock, COALESCE(i.min_stock, 0)::integer AS min_stock
      FROM products p
      LEFT JOIN inventory i ON i.product_id = p.id AND i.store_id = $2
@@ -264,14 +277,15 @@ export async function coreRoutes(app: FastifyInstance) {
       const context = await resolveStoreContext(request, client);
       const productId = randomUUID();
       await client.query(
-        `INSERT INTO products (id, tenant_id, barcode, name, category, cost, price)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        `INSERT INTO products (id, tenant_id, barcode, name, category, image_url, cost, price)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           productId,
           request.user.tenantId,
           input.barcode,
           input.name,
           input.category,
+          input.imageUrl ?? null,
           input.cost,
           input.price,
         ],
@@ -344,14 +358,15 @@ export async function coreRoutes(app: FastifyInstance) {
         for (const product of input.products) {
           const productId = randomUUID();
           await client.query(
-            `INSERT INTO products (id, tenant_id, barcode, name, category, cost, price)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            `INSERT INTO products (id, tenant_id, barcode, name, category, image_url, cost, price)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [
               productId,
               request.user.tenantId,
               product.barcode,
               product.name,
               product.category,
+              product.imageUrl ?? null,
               product.cost,
               product.price,
             ],
@@ -382,6 +397,7 @@ export async function coreRoutes(app: FastifyInstance) {
             barcode: product.barcode,
             name: product.name,
             category: product.category,
+            imageUrl: product.imageUrl,
             cost: product.cost,
             price: product.price,
             stock: product.stock,
@@ -411,7 +427,7 @@ export async function coreRoutes(app: FastifyInstance) {
       if (!existing.rows[0])
         throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
       await client.query(
-        `UPDATE products SET barcode = $3, name = $4, category = $5, cost = $6, price = $7, updated_at = now()
+        `UPDATE products SET barcode = $3, name = $4, category = $5, image_url = $6, cost = $7, price = $8, updated_at = now()
          WHERE id = $1 AND tenant_id = $2`,
         [
           id,
@@ -419,6 +435,7 @@ export async function coreRoutes(app: FastifyInstance) {
           input.barcode,
           input.name,
           input.category,
+          input.imageUrl ?? null,
           input.cost,
           input.price,
         ],
@@ -622,7 +639,7 @@ export async function coreRoutes(app: FastifyInstance) {
       const lines: Array<{ product: ProductRow; quantity: number }> = [];
       for (const requested of input.items) {
         const product = await client.query<ProductRow>(
-          `SELECT p.id, p.tenant_id, p.barcode, p.name, p.category, p.cost, p.price,
+          `SELECT p.id, p.tenant_id, p.barcode, p.name, p.category, p.image_url, p.cost, p.price,
                   i.stock::integer, i.min_stock::integer
            FROM products p JOIN inventory i ON i.product_id = p.id AND i.store_id = $3
            WHERE p.id = $1 AND p.tenant_id = $2 AND p.active = true FOR UPDATE`,

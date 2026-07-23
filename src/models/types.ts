@@ -69,6 +69,7 @@ export interface Product {
   barcode: string;
   name: string;
   category: string;
+  imageUrl?: string;
   cost: Money;
   price: Money;
 }
@@ -152,6 +153,7 @@ export interface CreateProductInput {
   barcode: string;
   name: string;
   category: string;
+  imageUrl?: string;
   cost: Money;
   price: Money;
   stock: number;

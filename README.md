@@ -69,6 +69,16 @@ npm run build
 npm audit
 ```
 
+## Importacion de productos
+
+El importador de inventario acepta archivos `.xlsx` con estas columnas:
+
+```text
+codigo, producto, categoria, imagen, Costo proveedor, Venta publico, Items, stock minimo
+```
+
+La columna `imagen` es opcional y puede contener una URL `https://...` o una ruta local publicada por la app, por ejemplo `/productos/leche-1l.webp`.
+
 ## Atajos de operacion
 
 | Atajo          | Accion                            |
