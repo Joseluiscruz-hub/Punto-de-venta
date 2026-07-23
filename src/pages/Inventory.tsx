@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import readXlsxFile from 'read-excel-file/browser';
+import { readSheet } from 'read-excel-file/browser';
 import { Plus, Search, Trash2, Edit, Upload } from 'lucide-react';
 import { ProductView, CreateProductInput, UpdateProductInput } from '../models/types';
 import { BackendAPI } from '../data/backend';
@@ -495,7 +495,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
     setLoading(true);
     setError(null);
     try {
-      const rows = (await readXlsxFile(file)) as unknown as unknown[][];
+      const rows = (await readSheet(file)) as unknown[][];
       const [headerRow, ...dataRows] = rows;
       if (!headerRow || dataRows.length === 0)
         throw new Error('El archivo esta vacio o no contiene productos.');
