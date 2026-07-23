@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { BackendAPI } from '../data/backend';
 import { Shift, View } from '../models/types';
+import { errorMessage } from '../utils/helpers';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { ViewManager } from './ViewManager';
@@ -10,17 +12,29 @@ import { OpenShiftModal } from './OpenShiftModal';
 
 export function MainLayout() {
   const { reqContext } = useAuth();
+  const { addNotification } = useNotification();
   const [currentView, setCurrentView] = useState<View>('pos');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [, setActiveShift] = useState<Shift | null>(null);
   const [showOpenShiftModal, setShowOpenShiftModal] = useState(false);
 
   useEffect(() => {
-    BackendAPI.getActiveShift(reqContext).then((shift) => {
-      if (!shift) setShowOpenShiftModal(true);
-      else setActiveShift(shift);
-    });
-  }, [reqContext]);
+    let active = true;
+    BackendAPI.getActiveShift(reqContext)
+      .then((shift) => {
+        if (!active) return;
+        if (!shift) setShowOpenShiftModal(true);
+        else setActiveShift(shift);
+      })
+      .catch((error) => {
+        if (active && navigator.onLine) {
+          addNotification(errorMessage(error, 'No se pudo validar el turno activo.'), 'error');
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [addNotification, reqContext]);
 
   const handleNavItemClick = (view: View) => {
     setCurrentView(view);

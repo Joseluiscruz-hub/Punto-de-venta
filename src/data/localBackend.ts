@@ -165,15 +165,25 @@ function defaultStorage(): StorageAdapter {
 function normalizeProduct(
   input: CreateProductInput | UpdateProductInput,
 ): CreateProductInput | UpdateProductInput {
+  const imageUrl = input.imageUrl?.trim();
   const product = {
     ...input,
     barcode: input.barcode.trim(),
     name: input.name.trim(),
     category: input.category.trim(),
+    imageUrl: imageUrl || undefined,
   };
 
   if (!product.barcode || !product.name || !product.category) {
     throw new Error('Codigo, nombre y categoria son obligatorios');
+  }
+
+  if (
+    product.imageUrl &&
+    !/^https?:\/\//i.test(product.imageUrl) &&
+    !product.imageUrl.startsWith('/')
+  ) {
+    throw new Error('La imagen debe ser una URL http(s) o una ruta local que empiece con /');
   }
 
   for (const [label, value] of [
@@ -329,6 +339,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             barcode: productData.barcode,
             name: productData.name,
             category: productData.category,
+            imageUrl: productData.imageUrl,
             cost: productData.cost,
             price: productData.price,
           };
@@ -367,6 +378,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           barcode: productData.barcode,
           name: productData.name,
           category: productData.category,
+          imageUrl: productData.imageUrl,
           cost: productData.cost,
           price: productData.price,
         };
@@ -437,6 +449,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             barcode: productData.barcode,
             name: productData.name,
             category: productData.category,
+            imageUrl: productData.imageUrl,
             cost: productData.cost,
             price: productData.price,
           };

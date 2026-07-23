@@ -28,8 +28,16 @@ interface ViewManagerProps {
 
 function ViewFallback() {
   return (
-    <div className="h-full flex items-center justify-center bg-[#f8fafc] dark:bg-slate-950">
-      <div className="w-10 h-10 border-4 border-slate-200 dark:border-slate-800 border-t-primary rounded-full animate-spin" />
+    <div
+      className="h-full flex items-center justify-center bg-[#f8fafc] dark:bg-slate-950"
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="w-10 h-10 border-4 border-slate-200 dark:border-slate-800 border-t-primary rounded-full animate-spin"
+        aria-hidden="true"
+      />
+      <span className="sr-only">Cargando vista…</span>
     </div>
   );
 }

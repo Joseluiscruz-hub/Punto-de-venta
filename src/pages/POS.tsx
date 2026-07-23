@@ -43,7 +43,12 @@ import {
 } from '../utils/helpers';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
-import cocaColaImage from '../assets/KOMX_MX_CCSO_600ML_EASYGRIP_PNR_SECO_FRONT_1024 (2).png';
+import cocaColaBottleImage from '../assets/KOMX_MX_CCSO_600ML_EASYGRIP_PNR_SECO_FRONT_1024 (2).png';
+import cocaColaCanImage from '../assets/KOMX_MX_CCSO_355ML_SLEEKCAN_FRONT_0823 (1) (1).png';
+import cocaColaLightCanImage from '../assets/KOMX_MX_CCL_355ML_SLEEKCAN_FRONT_0823 (1).png';
+import cocaColaOriginalCanImage from '../assets/CCO_355ml_LATA_SELLOS.png';
+import cocaColaOriginalBottleImage from '../assets/CCO_355ml_CHUBBY_PET-NO-RETORNABLE_SELLOS.png';
+import spriteBottleImage from '../assets/CCL_600ml_PET-NO-RETORNABLE_SELLOS (2).png';
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Efectivo',
@@ -51,6 +56,39 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   TRANSFER: 'Transferencia',
   MIXED: 'Mixto',
 };
+
+const beverageImages = [
+  cocaColaBottleImage,
+  cocaColaCanImage,
+  cocaColaOriginalCanImage,
+  cocaColaOriginalBottleImage,
+  cocaColaLightCanImage,
+  spriteBottleImage,
+];
+
+const namedProductImages: Array<{ tokens: string[]; src: string }> = [
+  { tokens: ['coca-cola 600', 'coca cola 600', 'coca 600'], src: cocaColaBottleImage },
+  { tokens: ['coca-cola lata', 'coca cola lata', 'coca lata'], src: cocaColaCanImage },
+  { tokens: ['coca-cola light', 'coca cola light', 'light'], src: cocaColaLightCanImage },
+  { tokens: ['coca-cola original', 'coca cola original'], src: cocaColaOriginalBottleImage },
+  { tokens: ['sprite', 'limon', 'lima'], src: spriteBottleImage },
+];
+
+function pickImageByProduct(product: ProductView) {
+  const name = normalizeText(product.name);
+  const category = normalizeText(product.category);
+  const exact = namedProductImages.find((item) =>
+    item.tokens.some((token) => name.includes(normalizeText(token))),
+  );
+  if (exact) return exact.src;
+  if (!category.includes('bebida') && !name.includes('refresco') && !name.includes('soda')) {
+    return null;
+  }
+  const seed = `${product.barcode}${product.name}`.split('').reduce((sum, char) => {
+    return sum + char.charCodeAt(0);
+  }, 0);
+  return beverageImages[seed % beverageImages.length];
+}
 
 export function POSView() {
   const { reqContext, tenant } = useAuth();
@@ -692,12 +730,16 @@ function ProductCard({ product, onClick }: { product: ProductView; onClick: () =
 }
 
 function ProductVisual({ product, compact = false }: { product: ProductView; compact?: boolean }) {
-  if (normalizeText(product.name).includes('coca')) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const productImage = imageFailed ? null : product.imageUrl?.trim() || pickImageByProduct(product);
+  if (productImage) {
     return (
       <img
-        src={cocaColaImage}
+        src={productImage}
         alt=""
-        className={`h-full w-full object-contain ${compact ? 'p-1' : 'p-3'}`}
+        className={`product-packshot h-full w-full object-contain ${compact ? 'p-1' : 'p-3'}`}
+        loading="lazy"
+        onError={() => setImageFailed(true)}
       />
     );
   }
@@ -710,13 +752,25 @@ function ProductVisual({ product, compact = false }: { product: ProductView; com
   ) : (
     <Package size={compact ? 21 : 30} />
   );
+  const placeholderClass = category.includes('lacteo')
+    ? 'product-placeholder-lacteos'
+    : category.includes('pan')
+      ? 'product-placeholder-pan'
+      : 'product-placeholder-general';
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center text-slate-400 dark:text-slate-500">
-      {icon}
+    <div
+      className={`product-placeholder ${placeholderClass} relative flex h-full w-full items-center justify-center text-slate-500 dark:text-slate-300`}
+    >
+      <div
+        className={`product-placeholder-pack ${compact ? 'product-placeholder-pack-compact' : ''}`}
+      >
+        {icon}
+        {!compact && <span>{productInitials(product.name)}</span>}
+      </div>
       {!compact && (
-        <span className="absolute bottom-2 left-2 text-xs font-extrabold text-slate-400">
-          {productInitials(product.name)}
+        <span className="product-placeholder-label absolute bottom-2 left-2">
+          {product.category}
         </span>
       )}
     </div>

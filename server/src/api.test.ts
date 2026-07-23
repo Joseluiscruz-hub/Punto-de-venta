@@ -170,6 +170,7 @@ test('importa productos en bloque de forma atomica', async () => {
           barcode: firstBarcode,
           name: 'Producto masivo A',
           category: 'Test',
+          imageUrl: 'https://example.com/producto-masivo-a.webp',
           cost: 3,
           price: 5,
           stock: 4,
@@ -189,6 +190,7 @@ test('importa productos en bloque de forma atomica', async () => {
   });
   assert.equal(created.statusCode, 201);
   assert.equal(created.json().created.length, 2);
+  assert.equal(created.json().created[0].imageUrl, 'https://example.com/producto-masivo-a.webp');
 });
 
 test('distribuye un pago mixto entre efectivo y pago electronico', async () => {

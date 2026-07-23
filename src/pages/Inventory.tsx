@@ -18,6 +18,7 @@ interface ProductFormData {
   barcode?: string;
   name?: string;
   category?: string;
+  imageUrl?: string;
   cost?: number | string;
   price?: number | string;
   stock?: number | string;
@@ -286,10 +287,27 @@ export function InventoryView() {
                   className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group"
                 >
                   <td className="px-4 sm:px-6 py-4">
-                    <p className="font-bold text-slate-950 dark:text-white">{p.name}</p>
-                    <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                      {p.barcode}
-                    </p>
+                    <div className="flex items-center gap-3">
+                      {p.imageUrl && (
+                        <img
+                          src={p.imageUrl}
+                          alt=""
+                          className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-1 dark:border-slate-700 dark:bg-slate-950"
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="truncate font-bold text-slate-950 dark:text-white">
+                          {p.name}
+                        </p>
+                        <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                          {p.barcode}
+                        </p>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 sm:px-6 py-4">
                     <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">
@@ -360,13 +378,17 @@ function ProductFormModal({
       barcode: data.barcode ?? '',
       name: data.name ?? '',
       category: data.category ?? '',
+      imageUrl: data.imageUrl?.trim() || undefined,
       cost: Number(data.cost),
       price: Number(data.price),
       stock: Number(data.stock),
       minStock: Number(data.minStock),
     };
-    await onSave(data.id ? { ...normalized, id: data.id } : (normalized as CreateProductInput));
-    setLoading(false);
+    try {
+      await onSave(data.id ? { ...normalized, id: data.id } : (normalized as CreateProductInput));
+    } finally {
+      setLoading(false);
+    }
   };
   return (
     <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
@@ -404,6 +426,12 @@ function ProductFormModal({
             placeholder="Nombre ('producto')"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
+            className="input-premium sm:col-span-2 p-3 text-slate-950 dark:text-white outline-none transition-colors"
+          />
+          <input
+            placeholder="Imagen URL o ruta local (/productos/imagen.webp)"
+            value={data.imageUrl || ''}
+            onChange={(e) => setData({ ...data, imageUrl: e.target.value })}
             className="input-premium sm:col-span-2 p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
@@ -490,6 +518,14 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
           const name = cellText(['producto', 'nombre', 'name']);
           const barcode = cellText(['codigo', 'codigo de barras', 'barcode', 'sku']);
           const category = cellText(['categoria', 'category']) || 'General';
+          const imageUrl = cellText([
+            'imagen',
+            'image',
+            'image url',
+            'image_url',
+            'url imagen',
+            'foto',
+          ]);
           const cost = cellNumber(['costo proveedor', 'costo', 'cost'], 0);
           const price = cellNumber(['venta publico', 'precio', 'price'], 0);
           const stock = cellNumber(['items', 'stock', 'existencia'], 0);
@@ -503,6 +539,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             barcode,
             name,
             category,
+            imageUrl: imageUrl || undefined,
             cost,
             price,
             stock,
@@ -541,7 +578,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             <p className="text-sm text-slate-500">
               Carga un archivo .xlsx con las columnas: <br />
               <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded text-xs">
-                codigo, producto, categoria, "Costo proveedor", "Venta publico", Items
+                codigo, producto, categoria, imagen, "Costo proveedor", "Venta publico", Items
               </code>
             </p>
 

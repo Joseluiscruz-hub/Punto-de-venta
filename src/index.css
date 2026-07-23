@@ -2,8 +2,8 @@
 @import './styles/animations.css';
 
 @theme {
-  --color-primary: #0f766e;
-  --color-primary-light: #0d9488;
+  --color-primary: #0070b2;
+  --color-primary-light: #0b8bd6;
   --color-accent: #2563eb;
   --color-alert: #d97706;
   --color-error: #dc2626;
@@ -12,7 +12,6 @@
 
 :root {
   font-family:
-    Inter,
     Manrope,
     ui-sans-serif,
     system-ui,
@@ -34,8 +33,8 @@
   --ui-border-strong: #cbd7d3;
   --ui-text: #17211f;
   --ui-muted: #66736f;
-  --ui-brand: #0f766e;
-  --ui-brand-soft: #e7f4f0;
+  --ui-brand: #0070b2;
+  --ui-brand-soft: #e6f3fb;
   --ui-blue: #2563eb;
   --ui-gold: #c79a45;
   --ui-shadow: 0 10px 28px rgba(23, 33, 31, 0.08);
@@ -51,8 +50,8 @@
   --ui-border-strong: #35433f;
   --ui-text: #f3f6f5;
   --ui-muted: #9aa8a3;
-  --ui-brand: #5eead4;
-  --ui-brand-soft: rgba(15, 118, 110, 0.2);
+  --ui-brand: #68c8ff;
+  --ui-brand-soft: rgba(0, 112, 178, 0.22);
   --ui-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
 }
 
@@ -91,7 +90,7 @@ button:disabled {
 }
 
 ::selection {
-  background: rgba(15, 118, 110, 0.2);
+  background: rgba(0, 112, 178, 0.2);
 }
 
 ::-webkit-scrollbar {
@@ -109,7 +108,7 @@ button:disabled {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 118, 110, 0.58);
+  background: rgba(0, 112, 178, 0.58);
 }
 
 .app-bg,
@@ -159,7 +158,7 @@ button:disabled {
 }
 
 .nav-link-active {
-  border-color: rgba(15, 118, 110, 0.16);
+  border-color: rgba(0, 112, 178, 0.18);
   background: var(--ui-brand-soft);
 }
 
@@ -169,11 +168,11 @@ button:disabled {
   inset: 8px auto 8px 0;
   width: 3px;
   border-radius: 0 2px 2px 0;
-  background: #0f766e;
+  background: #0070b2;
 }
 
 .dark .nav-link-active::before {
-  background: #5eead4;
+  background: #68c8ff;
 }
 
 .top-command-strip {
@@ -225,7 +224,7 @@ button:disabled {
 }
 
 .command-trigger:hover {
-  border-color: rgba(15, 118, 110, 0.38);
+  border-color: rgba(0, 112, 178, 0.38);
   background: var(--ui-surface);
   color: var(--ui-text);
 }
@@ -287,7 +286,7 @@ kbd {
 
 .command-item:hover,
 .command-item-active {
-  border-color: rgba(15, 118, 110, 0.14);
+  border-color: rgba(0, 112, 178, 0.14);
   background: var(--ui-brand-soft);
 }
 
@@ -448,13 +447,13 @@ kbd {
 }
 
 .input-premium:hover:not(:disabled) {
-  border-color: rgba(15, 118, 110, 0.42);
+  border-color: rgba(0, 112, 178, 0.42);
 }
 
 .input-premium:focus {
-  border-color: rgba(15, 118, 110, 0.72);
-  outline-color: rgba(15, 118, 110, 0.2);
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+  border-color: rgba(0, 112, 178, 0.72);
+  outline-color: rgba(0, 112, 178, 0.2);
+  box-shadow: 0 0 0 3px rgba(0, 112, 178, 0.1);
 }
 
 .btn-primary,
@@ -478,16 +477,16 @@ kbd {
 }
 
 .btn-primary {
-  border: 1px solid #0f766e;
-  background: #0f766e;
+  border: 1px solid #0070b2;
+  background: #0070b2;
   color: white;
-  box-shadow: 0 8px 18px rgba(15, 118, 110, 0.2);
+  box-shadow: 0 8px 18px rgba(0, 112, 178, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  border-color: #0b5f59;
-  background: #0b5f59;
-  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.26);
+  border-color: #005f97;
+  background: #005f97;
+  box-shadow: 0 10px 22px rgba(0, 112, 178, 0.26);
 }
 
 .btn-secondary {
@@ -497,7 +496,7 @@ kbd {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: rgba(15, 118, 110, 0.42);
+  border-color: rgba(0, 112, 178, 0.42);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -556,7 +555,7 @@ kbd {
 
 .category-filter:hover,
 .category-filter-active {
-  border-color: rgba(15, 118, 110, 0.34);
+  border-color: rgba(0, 112, 178, 0.34);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -580,7 +579,7 @@ kbd {
 
 .pos-product-card:hover:not(:disabled) {
   transform: translateY(-2px);
-  border-color: rgba(15, 118, 110, 0.36);
+  border-color: rgba(0, 112, 178, 0.36);
   box-shadow: 0 12px 24px rgba(23, 33, 31, 0.11);
 }
 
@@ -590,7 +589,85 @@ kbd {
   aspect-ratio: 4 / 3;
   overflow: hidden;
   border-bottom: 1px solid var(--ui-border);
-  background: var(--ui-surface-muted);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(230, 243, 251, 0.88)),
+    var(--ui-surface-muted);
+}
+
+.dark .product-visual {
+  background:
+    linear-gradient(180deg, rgba(18, 26, 24, 0.92), rgba(14, 38, 55, 0.78)), var(--ui-surface-muted);
+}
+
+.product-packshot {
+  filter: drop-shadow(0 12px 18px rgba(15, 23, 42, 0.2));
+  transition:
+    filter 140ms ease,
+    transform 140ms ease;
+}
+
+.pos-product-card:hover:not(:disabled) .product-packshot {
+  filter: drop-shadow(0 16px 22px rgba(15, 23, 42, 0.26));
+  transform: scale(1.035);
+}
+
+.product-placeholder {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(248, 250, 252, 0.92)),
+    var(--ui-surface-muted);
+}
+
+.product-placeholder-lacteos {
+  color: #0070b2;
+}
+
+.product-placeholder-pan {
+  color: #a16207;
+}
+
+.product-placeholder-general {
+  color: var(--ui-brand);
+}
+
+.product-placeholder-pack {
+  display: inline-flex;
+  width: min(48%, 76px);
+  min-width: 48px;
+  aspect-ratio: 3 / 4;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 34%, white);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 22px rgba(15, 23, 42, 0.12);
+}
+
+.product-placeholder-pack span {
+  color: currentColor;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.product-placeholder-pack-compact {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  aspect-ratio: auto;
+  gap: 0;
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.product-placeholder-label {
+  max-width: calc(100% - 16px);
+  overflow: hidden;
+  color: color-mix(in srgb, currentColor 82%, #475569);
+  font-size: 0.66rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .product-stock {
@@ -625,15 +702,15 @@ kbd {
   flex: 0 0 30px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(15, 118, 110, 0.22);
+  border: 1px solid rgba(0, 112, 178, 0.22);
   border-radius: 6px;
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
 
 .pos-product-card:hover:not(:disabled) .product-add-button {
-  border-color: #0f766e;
-  background: #0f766e;
+  border-color: #0070b2;
+  background: #0070b2;
   color: white;
 }
 
@@ -659,9 +736,9 @@ kbd {
   min-height: 52px;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #0f766e;
+  border: 1px solid #0070b2;
   border-radius: 8px;
-  background: #0f766e;
+  background: #0070b2;
   padding: 0 18px;
   color: white;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.28);
@@ -716,7 +793,7 @@ kbd {
 
 .payment-option:hover,
 .payment-option-active {
-  border-color: rgba(15, 118, 110, 0.42);
+  border-color: rgba(0, 112, 178, 0.42);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -733,14 +810,14 @@ kbd {
 
 .quick-cash:hover,
 .quick-cash-active {
-  border-color: rgba(15, 118, 110, 0.4);
+  border-color: rgba(0, 112, 178, 0.4);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
 
 .status-chip,
 .payment-change {
-  border: 1px solid rgba(15, 118, 110, 0.2);
+  border: 1px solid rgba(0, 112, 178, 0.2);
   border-radius: 999px;
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
@@ -769,7 +846,7 @@ kbd {
 }
 
 .surface-hover:hover {
-  border-color: rgba(15, 118, 110, 0.3);
+  border-color: rgba(0, 112, 178, 0.3);
   background: var(--ui-brand-soft);
 }
 
