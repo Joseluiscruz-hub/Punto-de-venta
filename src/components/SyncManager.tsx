@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { WifiOff, CloudUpload } from 'lucide-react';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { hasFeature } from '../utils/helpers';
+import { hasFeature, SALES_UPDATED_EVENT } from '../utils/helpers';
 import {
   OFFLINE_SALES_CHANGED,
   reconcileOfflineSales,
@@ -49,6 +49,9 @@ export function SyncManager() {
           ? `${failed.length} ${failed.length === 1 ? 'venta sigue pendiente' : 'ventas siguen pendientes'}.`
           : null,
       );
+      if (attemptedIds.size > failed.length) {
+        window.dispatchEvent(new Event(SALES_UPDATED_EVENT));
+      }
     } finally {
       syncingRef.current = false;
       setIsSyncing(false);
@@ -97,7 +100,7 @@ export function SyncManager() {
       >
         <WifiOff size={14} className="animate-pulse" />
         <span>
-          Conexión Interrumpida. Modo Reserva ERP Activo.{' '}
+          ConexiÃ³n Interrumpida. Modo Reserva ERP Activo.{' '}
           {pendingCount > 0 ? `(${pendingCount} transacciones en cola)` : ''}
         </span>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Search, Download, CalendarDays, Printer, X, QrCode } from 'lucide-react';
 import { Sale, PaymentMethod } from '../models/types';
 import { BackendAPI } from '../data/backend';
@@ -11,6 +11,8 @@ import {
   formatCurrency,
   escapeCsv,
   downloadTextFile,
+  errorMessage,
+  SALES_UPDATED_EVENT,
 } from '../utils/helpers';
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
@@ -30,12 +32,42 @@ export function SalesView() {
   const debouncedSearch = useDebouncedValue(search, 140);
   const [period, setPeriod] = useState<SalesPeriod>('ALL');
   const [methodFilter, setMethodFilter] = useState<'ALL' | PaymentMethod>('ALL');
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadSales = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const data = await BackendAPI.getSales({
+        tenantId: reqContext.tenantId,
+        storeId: reqContext.storeId,
+      });
+      setSales(data);
+    } catch (error) {
+      setLoadError(errorMessage(error, 'No se pudieron cargar las ventas registradas.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [reqContext]);
 
   useEffect(() => {
-    BackendAPI.getSales({ tenantId: reqContext.tenantId, storeId: reqContext.storeId }).then(
-      setSales,
-    );
-  }, [reqContext]);
+    void loadSales();
+
+    const refreshSales = () => void loadSales();
+    const refreshWhenVisible = () => {
+      if (!document.hidden) void loadSales();
+    };
+
+    window.addEventListener(SALES_UPDATED_EVENT, refreshSales);
+    window.addEventListener('online', refreshSales);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.removeEventListener(SALES_UPDATED_EVENT, refreshSales);
+      window.removeEventListener('online', refreshSales);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [loadSales]);
 
   const filtered = useMemo(() => {
     const query = normalizeText(debouncedSearch);
@@ -68,6 +100,7 @@ export function SalesView() {
     { key: 'CASH', label: 'Efectivo' },
     { key: 'CARD', label: 'Tarjeta' },
     { key: 'TRANSFER', label: 'Transferencia' },
+    { key: 'MIXED', label: 'Mixto' },
   ];
 
   const exportCsv = () => {
@@ -216,13 +249,30 @@ export function SalesView() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {((isLoading && sales.length === 0) || loadError || filtered.length === 0) && (
                 <tr>
                   <td
                     colSpan={6}
                     className="px-4 sm:px-6 py-20 text-center text-slate-400 font-medium italic"
                   >
-                    No se encontraron registros coincidentes
+                    {isLoading ? (
+                      'Cargando ventas registradas...'
+                    ) : loadError ? (
+                      <span className="inline-flex flex-col items-center gap-3 not-italic">
+                        <span>{loadError}</span>
+                        <button
+                          type="button"
+                          onClick={() => void loadSales()}
+                          className="btn-secondary px-4 py-2 text-xs"
+                        >
+                          Reintentar
+                        </button>
+                      </span>
+                    ) : sales.length === 0 ? (
+                      'Aun no hay ventas registradas para esta sucursal.'
+                    ) : (
+                      'No se encontraron registros coincidentes'
+                    )}
                   </td>
                 </tr>
               )}
