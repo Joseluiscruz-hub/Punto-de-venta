@@ -52,8 +52,7 @@ export function SalesView() {
   }, [reqContext]);
 
   useEffect(() => {
-    void loadSales();
-
+    const initialRefresh = window.setTimeout(() => void loadSales(), 0);
     const refreshSales = () => void loadSales();
     const refreshWhenVisible = () => {
       if (!document.hidden) void loadSales();
@@ -63,6 +62,7 @@ export function SalesView() {
     window.addEventListener('online', refreshSales);
     document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
+      window.clearTimeout(initialRefresh);
       window.removeEventListener(SALES_UPDATED_EVENT, refreshSales);
       window.removeEventListener('online', refreshSales);
       document.removeEventListener('visibilitychange', refreshWhenVisible);

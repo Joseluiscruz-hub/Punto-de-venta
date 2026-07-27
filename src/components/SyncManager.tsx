@@ -100,7 +100,7 @@ export function SyncManager() {
       >
         <WifiOff size={14} className="animate-pulse" />
         <span>
-          ConexiÃ³n Interrumpida. Modo Reserva ERP Activo.{' '}
+          Conexión Interrumpida. Modo Reserva ERP Activo.{' '}
           {pendingCount > 0 ? `(${pendingCount} transacciones en cola)` : ''}
         </span>
       </div>
