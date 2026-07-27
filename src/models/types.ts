@@ -72,6 +72,7 @@ export interface Product {
   imageUrl?: string;
   cost: Money;
   price: Money;
+  active?: boolean;
 }
 
 export interface StoreProduct {

@@ -56,6 +56,7 @@ const genericSeedProductNames = new Map([
   ['Pan Bimbo Blanco', 'Pan blanco 680g'],
   ['Coca-Cola 600ml', 'Refresco cola 600ml'],
 ]);
+const demoProductBarcodes = new Set(['75010001', '75010002', '75010003']);
 
 function seedDatabase(): DatabaseState {
   return {
@@ -83,40 +84,8 @@ function seedDatabase(): DatabaseState {
         role: 'CASHIER',
       },
     ],
-    products: [
-      {
-        id: 'p1',
-        tenantId: 't1',
-        barcode: '75010001',
-        name: 'Leche entera 1L',
-        category: 'Lacteos',
-        cost: 18.5,
-        price: 25,
-      },
-      {
-        id: 'p2',
-        tenantId: 't1',
-        barcode: '75010002',
-        name: 'Pan blanco 680g',
-        category: 'Panaderia',
-        cost: 30,
-        price: 42,
-      },
-      {
-        id: 'p3',
-        tenantId: 't1',
-        barcode: '75010003',
-        name: 'Refresco cola 600ml',
-        category: 'Bebidas',
-        cost: 11,
-        price: 18,
-      },
-    ],
-    storeProducts: [
-      { id: 'sp1', tenantId: 't1', storeId: 's1', productId: 'p1', stock: 45, minStock: 10 },
-      { id: 'sp2', tenantId: 't1', storeId: 's1', productId: 'p2', stock: 12, minStock: 15 },
-      { id: 'sp3', tenantId: 't1', storeId: 's1', productId: 'p3', stock: 120, minStock: 24 },
-    ],
+    products: [],
+    storeProducts: [],
     sales: [],
     saleItems: [],
     movements: [],
@@ -163,6 +132,10 @@ function migrateLocalDatabase(database: DatabaseState) {
     const genericName = genericSeedProductNames.get(product.name);
     if (genericName) {
       product.name = genericName;
+      changed = true;
+    }
+    if (demoProductBarcodes.has(product.barcode)) {
+      product.active = false;
       changed = true;
     }
   }
@@ -333,7 +306,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
       await wait();
       return clone(
         database.products
-          .filter((product) => product.tenantId === context.tenantId)
+          .filter((product) => product.tenantId === context.tenantId && product.active !== false)
           .map((product) => productView(database, context, product)),
       );
     },

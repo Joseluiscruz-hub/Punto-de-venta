@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { hasFeature, SALES_UPDATED_EVENT } from '../utils/helpers';
 import {
   OFFLINE_SALES_CHANGED,
+  OFFLINE_SALES_KEY,
+  markOfflineSaleSyncFailure,
   reconcileOfflineSales,
   readOfflineSales,
   type OfflineSaleRecord,
@@ -20,6 +22,10 @@ export function SyncManager() {
 
   const syncSales = useCallback(async () => {
     if (syncingRef.current) return;
+    if (!navigator.onLine) {
+      setIsOnline(false);
+      return;
+    }
     syncingRef.current = true;
     setIsSyncing(true);
     try {
@@ -39,7 +45,7 @@ export function SyncManager() {
           });
         } catch (error) {
           console.error('Error al sincronizar venta:', error);
-          failed.push(record);
+          failed.push(markOfflineSaleSyncFailure(record, error));
         }
       }
       const pending = reconcileOfflineSales(attemptedIds, failed);
@@ -74,16 +80,21 @@ export function SyncManager() {
       setPendingCount(count);
       if (count === 0) setSyncError(null);
     };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === OFFLINE_SALES_KEY) handleQueueChanged();
+    };
     const initialRefresh = window.setTimeout(refresh, 0);
     const interval = window.setInterval(refresh, 30_000);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     window.addEventListener(OFFLINE_SALES_CHANGED, handleQueueChanged);
+    window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener(OFFLINE_SALES_CHANGED, handleQueueChanged);
+      window.removeEventListener('storage', handleStorage);
       clearTimeout(initialRefresh);
       clearInterval(interval);
     };

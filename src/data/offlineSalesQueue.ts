@@ -4,9 +4,13 @@ export interface OfflineSaleRecord {
   saleId: string;
   reqContext: RequestContext;
   saleData: ProcessSaleInput;
+  createdAt?: string;
+  attemptCount?: number;
+  lastAttemptAt?: string;
+  lastError?: string;
 }
 
-const OFFLINE_SALES_KEY = 'offline_sales';
+export const OFFLINE_SALES_KEY = 'offline_sales';
 export const OFFLINE_SALES_CHANGED = 'el-triunfo:offline-sales-updated';
 
 const PAYMENT_METHODS = new Set<PaymentMethod>(['CASH', 'CARD', 'TRANSFER', 'MIXED']);
@@ -61,6 +65,18 @@ function isOfflineSaleRecord(value: unknown): value is OfflineSaleRecord {
   );
 }
 
+function normalizeRecord(record: OfflineSaleRecord): OfflineSaleRecord {
+  return {
+    ...record,
+    createdAt: record.createdAt ?? new Date().toISOString(),
+    attemptCount: Number.isInteger(record.attemptCount) ? record.attemptCount : 0,
+    saleData: {
+      ...record.saleData,
+      items: record.saleData.items.map((item) => ({ ...item })),
+    },
+  };
+}
+
 function parseOfflineSales(raw: string | null): OfflineSaleRecord[] {
   if (!raw) return [];
   try {
@@ -70,7 +86,7 @@ function parseOfflineSales(raw: string | null): OfflineSaleRecord[] {
       : (parsed as Partial<OfflineSalesState>)?.version === 1
         ? (parsed as Partial<OfflineSalesState>).records
         : [];
-    return Array.isArray(records) ? records.filter(isOfflineSaleRecord) : [];
+    return Array.isArray(records) ? records.filter(isOfflineSaleRecord).map(normalizeRecord) : [];
   } catch {
     return [];
   }
@@ -100,8 +116,18 @@ export function readOfflineSales(): OfflineSaleRecord[] {
 export function enqueueOfflineSale(record: OfflineSaleRecord) {
   updateOfflineSales((records) => {
     if (records.some((existing) => existing.saleId === record.saleId)) return records;
-    return [...records, record];
+    return [...records, normalizeRecord(record)];
   });
+}
+
+export function markOfflineSaleSyncFailure(record: OfflineSaleRecord, error: unknown) {
+  const message = error instanceof Error ? error.message : 'Error desconocido';
+  return {
+    ...normalizeRecord(record),
+    attemptCount: (record.attemptCount ?? 0) + 1,
+    lastAttemptAt: new Date().toISOString(),
+    lastError: message,
+  };
 }
 
 export function reconcileOfflineSales(

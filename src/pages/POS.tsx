@@ -52,6 +52,18 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   MIXED: 'Mixto',
 };
 
+function shouldQueueOfflineSale(error: unknown) {
+  if (!navigator.onLine) return true;
+  if (error instanceof TypeError) return true;
+  const message = errorMessage(error, '').toLowerCase();
+  return (
+    message.includes('failed to fetch') ||
+    message.includes('networkerror') ||
+    message.includes('load failed') ||
+    /^error http 5\d\d/.test(message)
+  );
+}
+
 export function POSView() {
   const { reqContext, tenant } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -215,9 +227,8 @@ export function POSView() {
 
       let result: Sale;
       const soldItems = cart.map((item) => ({ id: item.id, quantity: item.quantity }));
-      if (isOnline) {
-        result = await BackendAPI.processSale(reqContext, saleData);
-      } else {
+
+      const queueOfflineSale = () => {
         if (!hasFeature(tenant, 'OFFLINE'))
           throw new Error('Modo offline no disponible en tu plan.');
         const offlineId = createOfflineId();
@@ -247,7 +258,20 @@ export function POSView() {
           })) as SaleItemWithName[],
         };
         enqueueOfflineSale({ saleId: offlineId, reqContext, saleData: offlineSaleData });
-        result = offlineSale;
+        setIsOnline(false);
+        return offlineSale;
+      };
+
+      if (isOnline) {
+        try {
+          result = await BackendAPI.processSale(reqContext, saleData);
+        } catch (error) {
+          if (!shouldQueueOfflineSale(error)) throw error;
+          result = queueOfflineSale();
+          showActionToast('Conexion inestable: venta guardada offline');
+        }
+      } else {
+        result = queueOfflineSale();
       }
 
       setCart([]);

@@ -64,6 +64,25 @@ async function ensureOpenShift(headers: { authorization: string }) {
   return opened.json();
 }
 
+async function createSaleProduct(headers: { authorization: string }) {
+  const response = await app.inject({
+    method: 'POST',
+    url: '/api/products',
+    headers,
+    payload: {
+      barcode: `SALE-${Date.now()}-${Math.random()}`,
+      name: 'Producto venta',
+      category: 'Pruebas',
+      cost: 10,
+      price: 20,
+      stock: 8,
+      minStock: 1,
+    },
+  });
+  assert.equal(response.statusCode, 201, response.body);
+  return response.json();
+}
+
 test('autentica, renueva la sesion y respeta permisos por rol', async () => {
   const admin = await login('admin', '1234');
   assert.equal(admin.body.user.role, 'ADMIN');
@@ -97,9 +116,7 @@ test('autentica, renueva la sesion y respeta permisos por rol', async () => {
 
 test('registra una venta atomica e idempotente y descuenta stock una sola vez', async () => {
   const headers = await authHeaders();
-  const productsResponse = await app.inject({ method: 'GET', url: '/api/products', headers });
-  assert.equal(productsResponse.statusCode, 200);
-  const product = productsResponse.json()[0];
+  const product = await createSaleProduct(headers);
 
   await ensureOpenShift(headers);
 
@@ -197,9 +214,7 @@ test('distribuye un pago mixto entre efectivo y pago electronico', async () => {
   const headers = await authHeaders();
   await ensureOpenShift(headers);
 
-  const productsResponse = await app.inject({ method: 'GET', url: '/api/products', headers });
-  assert.equal(productsResponse.statusCode, 200);
-  const product = productsResponse.json()[0];
+  const product = await createSaleProduct(headers);
   const shiftBefore = await app.inject({ method: 'GET', url: '/api/shifts/active', headers });
   const before = shiftBefore.json();
   const cashPart = Math.max(1, Math.min(product.price - 1, 5));

@@ -31,6 +31,18 @@ function cartLine(product: ProductView, quantity: number) {
   return { ...product, quantity, subtotal: product.price * quantity };
 }
 
+async function createSaleProduct(backend: ReturnType<typeof testBackend>) {
+  return backend.saveProduct(context, {
+    barcode: `SALE-${Date.now()}-${Math.random()}`,
+    name: 'Producto venta',
+    category: 'Pruebas',
+    cost: 10,
+    price: 20,
+    stock: 6,
+    minStock: 1,
+  });
+}
+
 test('persiste los cambios de inventario entre instancias', async () => {
   const storage = new MemoryStorage();
   const first = testBackend(storage);
@@ -51,7 +63,7 @@ test('persiste los cambios de inventario entre instancias', async () => {
 
 test('rechaza una venta sin stock sin modificar el inventario', async () => {
   const backend = testBackend();
-  const [product] = await backend.getStoreProducts(context);
+  const product = await createSaleProduct(backend);
 
   await assert.rejects(
     backend.processSale(context, {
@@ -62,14 +74,16 @@ test('rechaza una venta sin stock sin modificar el inventario', async () => {
     /Stock insuficiente/,
   );
 
-  const [unchanged] = await backend.getStoreProducts(context);
+  const products = await backend.getStoreProducts(context);
+  const unchanged = products.find((item) => item.id === product.id);
+  assert.ok(unchanged);
   assert.equal(unchanged.stock, product.stock);
   assert.equal((await backend.getSales(context)).length, 0);
 });
 
 test('una venta offline repetida se registra una sola vez', async () => {
   const backend = testBackend();
-  const [product] = await backend.getStoreProducts(context);
+  const product = await createSaleProduct(backend);
   const input = {
     items: [cartLine(product, 2)],
     paymentMethod: 'CASH' as const,
@@ -79,7 +93,9 @@ test('una venta offline repetida se registra una sola vez', async () => {
 
   const firstSale = await backend.processSale(context, input);
   const repeatedSale = await backend.processSale(context, input);
-  const [updated] = await backend.getStoreProducts(context);
+  const products = await backend.getStoreProducts(context);
+  const updated = products.find((item) => item.id === product.id);
+  assert.ok(updated);
 
   assert.equal(repeatedSale.id, firstSale.id);
   assert.equal((await backend.getSales(context)).length, 1);
@@ -88,7 +104,7 @@ test('una venta offline repetida se registra una sola vez', async () => {
 
 test('actualiza el efectivo esperado del turno al vender en efectivo', async () => {
   const backend = testBackend();
-  const [product] = await backend.getStoreProducts(context);
+  const product = await createSaleProduct(backend);
   await backend.openShift(context, 500);
   await backend.processSale(context, {
     items: [cartLine(product, 1)],
