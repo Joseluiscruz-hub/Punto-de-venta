@@ -44,12 +44,6 @@ import {
 import { optimizedCatalogImageSrc } from '../utils/images';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
-import cocaColaBottleImage from '../assets/optimized/coca-cola-600ml.webp';
-import cocaColaCanImage from '../assets/optimized/coca-cola-can.webp';
-import cocaColaLightCanImage from '../assets/optimized/coca-cola-light-can.webp';
-import cocaColaOriginalCanImage from '../assets/optimized/coca-cola-original-can.webp';
-import cocaColaOriginalBottleImage from '../assets/optimized/coca-cola-original-bottle.webp';
-import spriteBottleImage from '../assets/optimized/sprite-600ml.webp';
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Efectivo',
@@ -57,39 +51,6 @@ const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   TRANSFER: 'Transferencia',
   MIXED: 'Mixto',
 };
-
-const beverageImages = [
-  cocaColaBottleImage,
-  cocaColaCanImage,
-  cocaColaOriginalCanImage,
-  cocaColaOriginalBottleImage,
-  cocaColaLightCanImage,
-  spriteBottleImage,
-];
-
-const namedProductImages: Array<{ tokens: string[]; src: string }> = [
-  { tokens: ['coca-cola 600', 'coca cola 600', 'coca 600'], src: cocaColaBottleImage },
-  { tokens: ['coca-cola lata', 'coca cola lata', 'coca lata'], src: cocaColaCanImage },
-  { tokens: ['coca-cola light', 'coca cola light', 'light'], src: cocaColaLightCanImage },
-  { tokens: ['coca-cola original', 'coca cola original'], src: cocaColaOriginalBottleImage },
-  { tokens: ['sprite', 'limon', 'lima'], src: spriteBottleImage },
-];
-
-function pickImageByProduct(product: ProductView) {
-  const name = normalizeText(product.name);
-  const category = normalizeText(product.category);
-  const exact = namedProductImages.find((item) =>
-    item.tokens.some((token) => name.includes(normalizeText(token))),
-  );
-  if (exact) return exact.src;
-  if (!category.includes('bebida') && !name.includes('refresco') && !name.includes('soda')) {
-    return null;
-  }
-  const seed = `${product.barcode}${product.name}`.split('').reduce((sum, char) => {
-    return sum + char.charCodeAt(0);
-  }, 0);
-  return beverageImages[seed % beverageImages.length];
-}
 
 export function POSView() {
   const { reqContext, tenant } = useAuth();
@@ -732,7 +693,7 @@ function ProductCard({ product, onClick }: { product: ProductView; onClick: () =
 
 function ProductVisual({ product, compact = false }: { product: ProductView; compact?: boolean }) {
   const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
-  const rawProductImage = product.imageUrl?.trim() || pickImageByProduct(product);
+  const rawProductImage = product.imageUrl?.trim() || null;
   const imageFailed = rawProductImage ? failedImageSrc === rawProductImage : false;
   const productImage = rawProductImage ? optimizedCatalogImageSrc(rawProductImage) : null;
   if (productImage && !imageFailed) {
