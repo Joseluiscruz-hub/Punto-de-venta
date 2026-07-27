@@ -85,6 +85,14 @@ Para regenerar los derivados WebP despues de cambiar imagenes base:
 npm run assets:optimize
 ```
 
+El repositorio tambien incluye un catalogo inicial de 100 imagenes genericas sin marca en `public/productos/genericos`. La plantilla `public/productos/catalogo-generico.csv` ya trae nombre, categoria e imagen; puedes completar `codigo`, costos, precios e inventario y convertirla a `.xlsx` para importarla.
+
+Para regenerar ese set generico:
+
+```bash
+npm run assets:generate-products
+```
+
 ## Atajos de operacion
 
 | Atajo          | Accion                            |

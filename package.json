@@ -16,6 +16,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "assets:optimize": "node scripts/optimize-images.mjs",
+    "assets:generate-products": "node scripts/generate-product-placeholders.mjs",
     "db:migrate": "tsx server/src/migrate.ts",
     "db:seed": "tsx server/src/seed-cli.ts",
     "preview": "vite preview"
