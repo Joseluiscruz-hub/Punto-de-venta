@@ -51,6 +51,12 @@ const credentials: Record<string, string> = {
   caja1: '0000',
 };
 
+const genericSeedProductNames = new Map([
+  ['Leche Entera Alpura 1L', 'Leche entera 1L'],
+  ['Pan Bimbo Blanco', 'Pan blanco 680g'],
+  ['Coca-Cola 600ml', 'Refresco cola 600ml'],
+]);
+
 function seedDatabase(): DatabaseState {
   return {
     version: 1,
@@ -82,7 +88,7 @@ function seedDatabase(): DatabaseState {
         id: 'p1',
         tenantId: 't1',
         barcode: '75010001',
-        name: 'Leche Entera Alpura 1L',
+        name: 'Leche entera 1L',
         category: 'Lacteos',
         cost: 18.5,
         price: 25,
@@ -91,7 +97,7 @@ function seedDatabase(): DatabaseState {
         id: 'p2',
         tenantId: 't1',
         barcode: '75010002',
-        name: 'Pan Bimbo Blanco',
+        name: 'Pan blanco 680g',
         category: 'Panaderia',
         cost: 30,
         price: 42,
@@ -100,7 +106,7 @@ function seedDatabase(): DatabaseState {
         id: 'p3',
         tenantId: 't1',
         barcode: '75010003',
-        name: 'Coca-Cola 600ml',
+        name: 'Refresco cola 600ml',
         category: 'Bebidas',
         cost: 11,
         price: 18,
@@ -149,6 +155,18 @@ function isDatabaseState(value: unknown): value is DatabaseState {
     Array.isArray(candidate.shifts) &&
     Array.isArray(candidate.clients)
   );
+}
+
+function migrateLocalDatabase(database: DatabaseState) {
+  let changed = false;
+  for (const product of database.products) {
+    const genericName = genericSeedProductNames.get(product.name);
+    if (genericName) {
+      product.name = genericName;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 function defaultStorage(): StorageAdapter {
@@ -227,7 +245,12 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
 
     try {
       const parsed: unknown = JSON.parse(raw);
-      if (isDatabaseState(parsed)) return parsed;
+      if (isDatabaseState(parsed)) {
+        if (migrateLocalDatabase(parsed)) {
+          storage.setItem(DATABASE_KEY, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
     } catch {
       // A damaged local database is replaced with a known-good seed.
     }

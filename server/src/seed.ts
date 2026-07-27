@@ -56,9 +56,9 @@ export async function seedDatabase() {
     );
 
     const products = [
-      ['75010001', 'Leche Entera Alpura 1L', 'Lacteos', 18.5, 25, 45, 10],
-      ['75010002', 'Pan Bimbo Blanco', 'Panaderia', 30, 42, 12, 15],
-      ['75010003', 'Coca-Cola 600ml', 'Bebidas', 11, 18, 120, 24],
+      ['75010001', 'Leche entera 1L', 'Lacteos', 18.5, 25, 45, 10],
+      ['75010002', 'Pan blanco 680g', 'Panaderia', 30, 42, 12, 15],
+      ['75010003', 'Refresco cola 600ml', 'Bebidas', 11, 18, 120, 24],
     ] as const;
 
     for (const [barcode, name, category, cost, price, stock, minStock] of products) {

@@ -119,13 +119,22 @@ interface SaleItemRow {
 
 const money = (value: string | number | null) => (value === null ? undefined : Number(value));
 const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+const genericDemoProductNames = new Map([
+  ['Leche Entera Alpura 1L', 'Leche entera 1L'],
+  ['Pan Bimbo Blanco', 'Pan blanco 680g'],
+  ['Coca-Cola 600ml', 'Refresco cola 600ml'],
+]);
+
+function genericProductName(name: string) {
+  return genericDemoProductNames.get(name) ?? name;
+}
 
 function mapProduct(row: ProductRow) {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     barcode: row.barcode,
-    name: row.name,
+    name: genericProductName(row.name),
     category: row.category,
     imageUrl: row.image_url ?? undefined,
     cost: money(row.cost) ?? 0,

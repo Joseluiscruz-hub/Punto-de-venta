@@ -467,13 +467,13 @@ export function POSView() {
 
       {isCartOpen && (
         <div
-          className="fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-sm xl:hidden"
+          className="fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-sm 2xl:hidden"
           onClick={() => setIsCartOpen(false)}
         />
       )}
       <div
         className={`cart-drawer fixed inset-y-0 right-0 z-40 flex w-full flex-col transition-transform duration-200 sm:w-[390px] ${
-          isCartOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0 xl:static'
+          isCartOpen ? 'translate-x-0' : 'translate-x-full 2xl:translate-x-0 2xl:static'
         }`}
       >
         <div className="flex items-center justify-between border-b border-slate-200 p-4 dark:border-slate-800">
@@ -629,12 +629,12 @@ export function POSView() {
       </div>
 
       {actionToast && (
-        <div className="toast-floating fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 xl:bottom-6">
+        <div className="toast-floating fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 2xl:bottom-6">
           {actionToast}
         </div>
       )}
 
-      <button onClick={() => setIsCartOpen(true)} className="mobile-cart-bar xl:hidden">
+      <button onClick={() => setIsCartOpen(true)} className="mobile-cart-bar 2xl:hidden">
         <div className="flex items-center gap-2">
           <div className="relative">
             <ShoppingCart size={20} />

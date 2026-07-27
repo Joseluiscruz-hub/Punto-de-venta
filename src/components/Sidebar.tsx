@@ -29,7 +29,7 @@ export function Sidebar({ currentView, isOpen, onNavItemClick, onRequestClose }:
       className={`
         side-rail fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col transition-transform duration-200
         ${isOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'}
-        lg:static lg:w-64 lg:translate-x-0 lg:pointer-events-auto
+        2xl:static 2xl:w-64 2xl:translate-x-0 2xl:pointer-events-auto
       `}
     >
       <div className="flex h-20 items-center gap-3 border-b border-slate-200/80 px-5 dark:border-slate-800">

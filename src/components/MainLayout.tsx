@@ -51,7 +51,7 @@ export function MainLayout() {
     <div className="app-bg flex h-screen font-sans text-slate-900 dark:text-[#E2E8F0] overflow-hidden transition-colors relative">
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 dark:bg-[#000000]/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/50 dark:bg-[#000000]/80 backdrop-blur-sm z-40 2xl:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
