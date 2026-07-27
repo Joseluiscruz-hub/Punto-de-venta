@@ -77,7 +77,13 @@ El importador de inventario acepta archivos `.xlsx` con estas columnas:
 codigo, producto, categoria, imagen, Costo proveedor, Venta publico, Items, stock minimo
 ```
 
-La columna `imagen` es opcional y puede contener una URL `https://...` o una ruta local publicada por la app, por ejemplo `/productos/leche-1l.webp`.
+La columna `imagen` es opcional y puede contener una URL `https://...` o una ruta local publicada por la app, por ejemplo `/productos/leche-1l.webp`. Para catalogo local usa preferentemente `.webp`; las imagenes `public/AB-*.png` tienen derivados `public/AB-*.webp` optimizados para tablet y la app los usa automaticamente cuando la ruta guardada apunta al PNG equivalente.
+
+Para regenerar los derivados WebP despues de cambiar imagenes base:
+
+```bash
+npm run assets:optimize
+```
 
 ## Atajos de operacion
 

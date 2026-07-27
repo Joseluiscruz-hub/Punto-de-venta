@@ -7,7 +7,7 @@ export function LoginScreen() {
   const { login, isLoading, error } = useAuth();
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
-  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.png.png`;
+  const logoSrc = `${import.meta.env.BASE_URL}el-triunfo-logo.webp`;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -17,7 +17,12 @@ export function LoginScreen() {
   return (
     <main className="login-shell animate-fadeIn">
       <section className="login-brand" aria-label="El Triunfo Punto de Venta">
-        <img src={logoSrc} alt="El Triunfo Punto de Venta" className="login-brand-logo" />
+        <img
+          src={logoSrc}
+          alt="El Triunfo Punto de Venta"
+          className="login-brand-logo"
+          decoding="async"
+        />
         <div className="login-brand-footer">
           <span>Sistema operativo de tienda</span>
           <span>{new Date().getFullYear()}</span>
@@ -30,7 +35,7 @@ export function LoginScreen() {
         </div>
 
         <div className="login-form-shell">
-          <img src={logoSrc} alt="" className="login-mobile-logo lg:hidden" />
+          <img src={logoSrc} alt="" className="login-mobile-logo lg:hidden" decoding="async" />
           <p className="section-kicker">Acceso seguro</p>
           <h1 className="mt-2 text-3xl font-extrabold text-slate-950 dark:text-white">
             Iniciar sesión

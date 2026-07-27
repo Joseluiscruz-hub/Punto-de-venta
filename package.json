@@ -15,6 +15,7 @@
     "test": "tsx --test src/**/*.test.ts server/src/**/*.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "assets:optimize": "node scripts/optimize-images.mjs",
     "db:migrate": "tsx server/src/migrate.ts",
     "db:seed": "tsx server/src/seed-cli.ts",
     "preview": "vite preview"
@@ -52,6 +53,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.5.0",
     "prettier": "^3.9.4",
+    "sharp": "^0.35.3",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

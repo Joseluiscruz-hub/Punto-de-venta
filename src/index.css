@@ -563,6 +563,9 @@ kbd {
 .pos-product-card {
   position: relative;
   display: flex;
+  contain: layout paint style;
+  content-visibility: auto;
+  contain-intrinsic-size: 220px;
   min-width: 0;
   min-height: 220px;
   flex-direction: column;
@@ -585,6 +588,8 @@ kbd {
 
 .product-visual {
   position: relative;
+  contain: layout paint;
+  isolation: isolate;
   width: 100%;
   aspect-ratio: 4 / 3;
   overflow: hidden;
@@ -721,9 +726,23 @@ kbd {
 }
 
 .cart-line {
+  contain: layout paint style;
   border: 1px solid var(--ui-border);
   border-radius: 7px;
   background: var(--ui-surface);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .pos-product-card,
+  .product-packshot,
+  .product-add-button {
+    transition-duration: 0.01ms;
+  }
+
+  .pos-product-card:hover:not(:disabled),
+  .pos-product-card:hover:not(:disabled) .product-packshot {
+    transform: none;
+  }
 }
 
 .mobile-cart-bar {

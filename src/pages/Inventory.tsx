@@ -6,6 +6,7 @@ import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { normalizeText, errorMessage, formatCurrency } from '../utils/helpers';
+import { optimizedCatalogImageSrc } from '../utils/images';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
 
@@ -290,11 +291,23 @@ export function InventoryView() {
                     <div className="flex items-center gap-3">
                       {p.imageUrl && (
                         <img
-                          src={p.imageUrl}
+                          src={optimizedCatalogImageSrc(p.imageUrl)}
                           alt=""
                           className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-1 dark:border-slate-700 dark:bg-slate-950"
                           loading="lazy"
+                          decoding="async"
                           onError={(event) => {
+                            const fallbackSrc = p.imageUrl?.trim();
+                            if (
+                              fallbackSrc &&
+                              event.currentTarget.dataset.fallback !== 'true' &&
+                              event.currentTarget.getAttribute('src') !== fallbackSrc
+                            ) {
+                              event.currentTarget.dataset.fallback = 'true';
+                              event.currentTarget.src = fallbackSrc;
+                              return;
+                            }
+
                             event.currentTarget.style.display = 'none';
                           }}
                         />

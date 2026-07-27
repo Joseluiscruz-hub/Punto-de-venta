@@ -41,14 +41,15 @@ import {
   createOfflineId,
   hasFeature,
 } from '../utils/helpers';
+import { optimizedCatalogImageSrc } from '../utils/images';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
-import cocaColaBottleImage from '../assets/KOMX_MX_CCSO_600ML_EASYGRIP_PNR_SECO_FRONT_1024 (2).png';
-import cocaColaCanImage from '../assets/KOMX_MX_CCSO_355ML_SLEEKCAN_FRONT_0823 (1) (1).png';
-import cocaColaLightCanImage from '../assets/KOMX_MX_CCL_355ML_SLEEKCAN_FRONT_0823 (1).png';
-import cocaColaOriginalCanImage from '../assets/CCO_355ml_LATA_SELLOS.png';
-import cocaColaOriginalBottleImage from '../assets/CCO_355ml_CHUBBY_PET-NO-RETORNABLE_SELLOS.png';
-import spriteBottleImage from '../assets/CCL_600ml_PET-NO-RETORNABLE_SELLOS (2).png';
+import cocaColaBottleImage from '../assets/optimized/coca-cola-600ml.webp';
+import cocaColaCanImage from '../assets/optimized/coca-cola-can.webp';
+import cocaColaLightCanImage from '../assets/optimized/coca-cola-light-can.webp';
+import cocaColaOriginalCanImage from '../assets/optimized/coca-cola-original-can.webp';
+import cocaColaOriginalBottleImage from '../assets/optimized/coca-cola-original-bottle.webp';
+import spriteBottleImage from '../assets/optimized/sprite-600ml.webp';
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Efectivo',
@@ -730,16 +731,32 @@ function ProductCard({ product, onClick }: { product: ProductView; onClick: () =
 }
 
 function ProductVisual({ product, compact = false }: { product: ProductView; compact?: boolean }) {
-  const [imageFailed, setImageFailed] = useState(false);
-  const productImage = imageFailed ? null : product.imageUrl?.trim() || pickImageByProduct(product);
-  if (productImage) {
+  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
+  const rawProductImage = product.imageUrl?.trim() || pickImageByProduct(product);
+  const imageFailed = rawProductImage ? failedImageSrc === rawProductImage : false;
+  const productImage = rawProductImage ? optimizedCatalogImageSrc(rawProductImage) : null;
+  if (productImage && !imageFailed) {
     return (
       <img
+        key={productImage}
         src={productImage}
         alt=""
         className={`product-packshot h-full w-full object-contain ${compact ? 'p-1' : 'p-3'}`}
         loading="lazy"
-        onError={() => setImageFailed(true)}
+        decoding="async"
+        onError={(event) => {
+          if (
+            rawProductImage &&
+            rawProductImage !== productImage &&
+            event.currentTarget.dataset.fallback !== 'true'
+          ) {
+            event.currentTarget.dataset.fallback = 'true';
+            event.currentTarget.src = rawProductImage;
+            return;
+          }
+
+          setFailedImageSrc(rawProductImage);
+        }}
       />
     );
   }
