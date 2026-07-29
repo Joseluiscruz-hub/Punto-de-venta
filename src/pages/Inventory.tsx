@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { readSheet } from 'read-excel-file/browser';
-import { Plus, Search, Trash2, Edit, Upload } from 'lucide-react';
+import {
+  Boxes,
+  CircleDollarSign,
+  Edit,
+  PackageCheck,
+  Plus,
+  Search,
+  Trash2,
+  TriangleAlert,
+  Upload,
+} from 'lucide-react';
 import { ProductView, CreateProductInput, UpdateProductInput } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
@@ -184,18 +194,19 @@ export function InventoryView() {
 
       <header className="view-header">
         <div className="min-w-0">
-          <p className="section-kicker">Catálogo vivo</p>
+          <p className="section-kicker">Operación de inventario</p>
           <h1 className="view-title">Inventario</h1>
           <p className="view-description">
-            Controla precios, existencias, mínimos de reposición e importaciones de producto.
+            Administra el catálogo, controla existencias y detecta productos que requieren
+            reposición.
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2">
+        <div className="inventory-actions">
           <Button
             onClick={() => setShowBulkImport(true)}
             variant="secondary"
             icon={<Upload size={18} />}
-            className="flex-1 gap-2 px-4 py-3 text-xs md:flex-none"
+            className="gap-2 px-4"
           >
             Importar
           </Button>
@@ -203,153 +214,217 @@ export function InventoryView() {
             onClick={() => setIsEditing({ category: 'Abarrotes', stock: 0, minStock: 5 })}
             variant="primary"
             icon={<Plus size={18} />}
-            className="flex-1 gap-2 px-4 py-3 text-xs md:flex-none"
+            className="gap-2 px-4"
           >
-            Crear producto
+            Nuevo producto
           </Button>
         </div>
       </header>
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <div className="mini-metric">
-          <p>Valor inventario</p>
-          <strong>{formatCurrency(inventoryValue)}</strong>
+      <section className="summary-grid" aria-label="Resumen de inventario">
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-brand">
+            <CircleDollarSign size={19} />
+          </span>
+          <div>
+            <p>Valor potencial</p>
+            <strong>{formatCurrency(inventoryValue)}</strong>
+            <span>Existencia a precio de venta</span>
+          </div>
         </div>
-        <div className="mini-metric">
-          <p>Productos activos</p>
-          <strong>{products.length} SKUs</strong>
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-neutral">
+            <Boxes size={19} />
+          </span>
+          <div>
+            <p>Productos activos</p>
+            <strong>{products.length}</strong>
+            <span>SKUs en catálogo</span>
+          </div>
         </div>
-        <div className="mini-metric">
-          <p>Bajo stock</p>
-          <strong className={lowStockCount > 0 ? 'text-amber-500' : ''}>
-            {lowStockCount} items
-          </strong>
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-warning">
+            <TriangleAlert size={19} />
+          </span>
+          <div>
+            <p>Bajo stock</p>
+            <strong className={lowStockCount > 0 ? 'text-amber-600 dark:text-amber-400' : ''}>
+              {lowStockCount}
+            </strong>
+            <span>Productos por reponer</span>
+          </div>
         </div>
-        <div className="mini-metric">
-          <p>Agotados</p>
-          <strong className={outOfStockCount > 0 ? 'text-rose-500' : ''}>
-            {outOfStockCount} items
-          </strong>
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-danger">
+            <PackageCheck size={19} />
+          </span>
+          <div>
+            <p>Agotados</p>
+            <strong className={outOfStockCount > 0 ? 'text-rose-600 dark:text-rose-400' : ''}>
+              {outOfStockCount}
+            </strong>
+            <span>Sin unidades disponibles</span>
+          </div>
         </div>
       </section>
 
-      <Panel className="flex flex-1 flex-col min-h-0">
-        <div className="data-panel-header flex-col items-stretch md:flex-row md:items-center">
-          <div className="flex-1">
-            <TextInput
-              type="text"
-              placeholder="Buscar por código, nombre o categoría"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              leadingIcon={<Search size={18} />}
-              className="h-11 w-full pr-4 text-sm font-semibold"
+      <Panel className="flex min-h-[420px] flex-1 flex-col">
+        <div className="data-panel-header inventory-toolbar">
+          <div className="min-w-0">
+            <h2 className="data-panel-title">Catálogo de productos</h2>
+            <p className="data-panel-subtitle">
+              {filtered.length} de {products.length} productos visibles
+            </p>
+          </div>
+          <div className="inventory-toolbar-controls">
+            <div className="inventory-search">
+              <TextInput
+                type="text"
+                aria-label="Buscar productos"
+                placeholder="Buscar código, producto o categoría"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                leadingIcon={<Search size={18} />}
+                className="h-11 w-full pr-4 text-sm font-semibold"
+              />
+            </div>
+            <SegmentedControl
+              ariaLabel="Filtro de stock"
+              options={stockFilterOptions}
+              value={stockFilter}
+              onChange={setStockFilter}
+              className="inventory-stock-filters"
             />
           </div>
-          <SegmentedControl
-            ariaLabel="Filtro de stock"
-            options={stockFilterOptions}
-            value={stockFilter}
-            onChange={setStockFilter}
-            className="overflow-x-auto"
-          />
         </div>
 
-        <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left border-collapse text-[10px] sm:text-[11px]">
-            <thead className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
-              <tr className="border-b border-slate-100 dark:border-slate-800">
-                <th
-                  onClick={() => toggleInventorySort('name')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
-                >
+        <div className="inventory-card-list lg:hidden">
+          {filtered.map((product) => {
+            const stockTone =
+              product.stock <= 0
+                ? 'danger'
+                : product.stock <= product.minStock
+                  ? 'warning'
+                  : 'success';
+            const stockLabel =
+              product.stock <= 0
+                ? 'Agotado'
+                : product.stock <= product.minStock
+                  ? 'Por reponer'
+                  : 'Disponible';
+
+            return (
+              <article key={product.id} className="inventory-product-card">
+                <div className="inventory-product-card-header">
+                  <InventoryProductThumbnail product={product} />
+                  <div className="min-w-0 flex-1">
+                    <h3>{product.name}</h3>
+                    <p>{product.barcode}</p>
+                  </div>
+                  <StatusBadge tone={stockTone}>{stockLabel}</StatusBadge>
+                </div>
+
+                <dl className="inventory-product-details">
+                  <div>
+                    <dt>Categoría</dt>
+                    <dd>{product.category}</dd>
+                  </div>
+                  <div>
+                    <dt>Precio</dt>
+                    <dd>{formatCurrency(product.price)}</dd>
+                  </div>
+                  <div>
+                    <dt>Existencia</dt>
+                    <dd>
+                      {product.stock} <span>/ mín. {product.minStock}</span>
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="inventory-product-actions">
+                  <Button
+                    onClick={() => setIsEditing(product)}
+                    variant="secondary"
+                    icon={<Edit size={16} />}
+                    className="h-10 flex-1 gap-2"
+                  >
+                    Editar
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(product)}
+                    aria-label={`Eliminar ${product.name}`}
+                    className="inventory-delete-button"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+          {filtered.length === 0 && <InventoryEmptyState />}
+        </div>
+
+        <div className="hidden flex-1 overflow-auto custom-scrollbar lg:block">
+          <table className="enterprise-table">
+            <thead>
+              <tr>
+                <th onClick={() => toggleInventorySort('name')} className="cursor-pointer">
                   Producto{sortMarker('name')}
                 </th>
-                <th
-                  onClick={() => toggleInventorySort('category')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
-                >
+                <th onClick={() => toggleInventorySort('category')} className="cursor-pointer">
                   Categoría{sortMarker('category')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('price')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
+                  className="cursor-pointer text-right"
                 >
                   Precio{sortMarker('price')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('stock')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
+                  className="cursor-pointer text-right"
                 >
                   Existencia{sortMarker('stock')}
                 </th>
-                <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 text-right">
-                  Acciones
-                </th>
+                <th className="text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody>
               {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group"
-                >
-                  <td className="px-4 sm:px-6 py-4">
+                <tr key={p.id} className="group">
+                  <td>
                     <div className="flex items-center gap-3">
-                      {p.imageUrl && (
-                        <img
-                          src={optimizedCatalogImageSrc(p.imageUrl)}
-                          alt=""
-                          className="h-10 w-10 shrink-0 rounded-lg border border-slate-200 bg-white object-contain p-1 dark:border-slate-700 dark:bg-slate-950"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(event) => {
-                            const fallbackSrc = p.imageUrl?.trim();
-                            if (
-                              fallbackSrc &&
-                              event.currentTarget.dataset.fallback !== 'true' &&
-                              event.currentTarget.getAttribute('src') !== fallbackSrc
-                            ) {
-                              event.currentTarget.dataset.fallback = 'true';
-                              event.currentTarget.src = fallbackSrc;
-                              return;
-                            }
-
-                            event.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      )}
+                      <InventoryProductThumbnail product={p} />
                       <div className="min-w-0">
                         <p className="truncate font-bold text-slate-950 dark:text-white">
                           {p.name}
                         </p>
-                        <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                          {p.barcode}
-                        </p>
+                        <p className="mt-1 font-mono text-[0.68rem] text-slate-500">{p.barcode}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-4">
-                    <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase">
-                      {p.category}
-                    </span>
+                  <td>
+                    <span className="inventory-category-tag">{p.category}</span>
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-950 dark:text-white tabular-nums">
+                  <td className="text-right font-bold text-slate-950 dark:text-white tabular-nums">
                     {formatCurrency(p.price)}
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-right">
+                  <td className="text-right">
                     <StatusBadge
                       tone={p.stock <= 0 ? 'danger' : p.stock <= p.minStock ? 'warning' : 'success'}
+                      title={`Mínimo configurado: ${p.minStock}`}
                     >
-                      {p.stock}
+                      {p.stock} unidades
                     </StatusBadge>
                   </td>
-                  <td className="px-4 sm:px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+                  <td className="text-right">
+                    <div className="flex justify-end gap-1">
                       <button
                         type="button"
                         onClick={() => setIsEditing(p)}
                         aria-label={`Editar ${p.name}`}
-                        className="p-2 text-slate-400 hover:text-primary-light hover:bg-primary/10 rounded-lg transition-all"
+                        className="table-action-button"
                       >
                         <Edit size={16} />
                       </button>
@@ -357,7 +432,7 @@ export function InventoryView() {
                         type="button"
                         onClick={() => setConfirmDelete(p)}
                         aria-label={`Eliminar ${p.name}`}
-                        className="p-2 text-slate-400 hover:text-error hover:bg-error/10 rounded-lg transition-all"
+                        className="table-action-button table-action-button-danger"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -367,11 +442,8 @@ export function InventoryView() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="px-6 py-20 text-center text-slate-400 font-medium italic"
-                  >
-                    No se encontraron productos coincidentes
+                  <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-medium">
+                    No se encontraron productos con los filtros seleccionados.
                   </td>
                 </tr>
               )}
@@ -379,6 +451,53 @@ export function InventoryView() {
           </table>
         </div>
       </Panel>
+    </div>
+  );
+}
+
+function InventoryProductThumbnail({ product }: { product: ProductView }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const source = product.imageUrl?.trim();
+
+  if (source && !imageFailed) {
+    return (
+      <div className="inventory-product-thumbnail">
+        <img
+          src={optimizedCatalogImageSrc(source)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={(event) => {
+            if (
+              event.currentTarget.dataset.fallback !== 'true' &&
+              event.currentTarget.getAttribute('src') !== source
+            ) {
+              event.currentTarget.dataset.fallback = 'true';
+              event.currentTarget.src = source;
+              return;
+            }
+            setImageFailed(true);
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="inventory-product-thumbnail inventory-product-thumbnail-placeholder">
+      <Boxes size={20} />
+    </div>
+  );
+}
+
+function InventoryEmptyState() {
+  return (
+    <div className="inventory-empty-state">
+      <span>
+        <Search size={22} />
+      </span>
+      <strong>Sin coincidencias</strong>
+      <p>Prueba con otro código, nombre, categoría o filtro de existencia.</p>
     </div>
   );
 }
@@ -414,10 +533,10 @@ function ProductFormModal({
     }
   };
   return (
-    <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/55 p-4 backdrop-blur-md animate-fadeIn dark:bg-[#0F1115]/82 sm:items-center">
       <form
         onSubmit={submit}
-        className="modal-card w-full max-w-xl p-5 text-slate-900 transition-colors animate-slideInUp dark:text-[#E2E8F0] sm:p-6"
+        className="modal-card my-auto max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto p-5 text-slate-900 transition-colors animate-slideInUp dark:text-[#E2E8F0] sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-form-title"
@@ -432,6 +551,7 @@ function ProductFormModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <input
             required
+            aria-label="Código de producto"
             placeholder="Código (ej. 12345)"
             value={data.barcode || ''}
             onChange={(e) => setData({ ...data, barcode: e.target.value })}
@@ -439,6 +559,7 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Categoría"
             placeholder="Categoría (ej. General)"
             value={data.category || ''}
             onChange={(e) => setData({ ...data, category: e.target.value })}
@@ -446,12 +567,14 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Nombre del producto"
             placeholder="Nombre ('producto')"
             value={data.name || ''}
             onChange={(e) => setData({ ...data, name: e.target.value })}
             className="input-premium sm:col-span-2 p-3 text-slate-950 dark:text-white outline-none transition-colors"
           />
           <input
+            aria-label="Imagen del producto"
             placeholder="Imagen URL o ruta local (/productos/imagen.webp)"
             value={data.imageUrl || ''}
             onChange={(e) => setData({ ...data, imageUrl: e.target.value })}
@@ -459,7 +582,9 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Costo de proveedor"
             type="number"
+            min="0"
             step="0.01"
             placeholder="Costo proveedor"
             value={data.cost || ''}
@@ -468,7 +593,9 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Precio de venta"
             type="number"
+            min="0"
             step="0.01"
             placeholder="Venta público"
             value={data.price || ''}
@@ -477,7 +604,9 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Existencia"
             type="number"
+            min="0"
             placeholder="Existencia"
             value={data.stock || 0}
             onChange={(e) => setData({ ...data, stock: e.target.value })}
@@ -485,7 +614,9 @@ function ProductFormModal({
           />
           <input
             required
+            aria-label="Stock mínimo"
             type="number"
+            min="0"
             placeholder="Stock mínimo"
             value={data.minStock || 0}
             onChange={(e) => setData({ ...data, minStock: e.target.value })}
@@ -497,7 +628,7 @@ function ProductFormModal({
             Cancelar
           </button>
           <button type="submit" disabled={loading} className="btn-primary flex-1 py-3 text-xs">
-            Guardar
+            {loading ? 'Guardando…' : 'Guardar producto'}
           </button>
         </div>
       </form>
