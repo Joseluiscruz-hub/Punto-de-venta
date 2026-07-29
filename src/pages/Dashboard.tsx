@@ -26,6 +26,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAppTheme } from '../contexts/ThemeContext';
 import { formatCurrency, startOfPeriod, PERIOD_OPTIONS } from '../utils/helpers';
 import { StatCard } from '../components/StatCard';
+import { EmptyState, Panel, PanelHeader, SegmentedControl, StatusBadge } from '../components/ui';
 
 type SalesPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
 
@@ -158,22 +159,12 @@ export function DashboardView() {
           </p>
         </div>
 
-        <div className="segmented-control" role="tablist" aria-label="Periodo de ventas">
-          {PERIOD_OPTIONS.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              role="tab"
-              aria-selected={period === option.key}
-              onClick={() => setPeriod(option.key as SalesPeriod)}
-              className={`segmented-option ${
-                period === option.key ? 'segmented-option-active' : ''
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          ariaLabel="Periodo de ventas"
+          options={PERIOD_OPTIONS}
+          value={period}
+          onChange={setPeriod}
+        />
       </header>
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -222,17 +213,17 @@ export function DashboardView() {
       </section>
 
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        <div className="data-panel xl:col-span-2">
-          <div className="data-panel-header">
-            <div className="min-w-0">
-              <h2 className="data-panel-title flex items-center gap-2">
-                <BarChart3 size={19} className="text-primary" />
-                Ingresos por día
-              </h2>
-              <p className="data-panel-subtitle">Ventas acumuladas dentro del periodo elegido</p>
-            </div>
-            <span className="status-pill status-pill-success">Actualiza cada minuto</span>
-          </div>
+        <Panel
+          className="xl:col-span-2"
+          header={
+            <PanelHeader
+              title="Ingresos por día"
+              subtitle="Ventas acumuladas dentro del periodo elegido"
+              icon={<BarChart3 size={19} className="text-primary" />}
+              action={<StatusBadge tone="success">Actualiza cada minuto</StatusBadge>}
+            />
+          }
+        >
           <div className="h-72 p-4 sm:h-80">
             {isLoading ? (
               <div className="skeleton-card h-full min-h-0" />
@@ -274,18 +265,17 @@ export function DashboardView() {
               </ResponsiveContainer>
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div className="data-panel">
-          <div className="data-panel-header">
-            <div className="min-w-0">
-              <h2 className="data-panel-title flex items-center gap-2">
-                <PieIcon size={19} className="text-primary" />
-                Mix de inventario
-              </h2>
-              <p className="data-panel-subtitle">Valor de venta por categoría</p>
-            </div>
-          </div>
+        <Panel
+          header={
+            <PanelHeader
+              title="Mix de inventario"
+              subtitle="Valor de venta por categoría"
+              icon={<PieIcon size={19} className="text-primary" />}
+            />
+          }
+        >
           <div className="h-60 p-4">
             {categoryMix.length === 0 ? (
               <EmptyChart message="Sin inventario registrado." />
@@ -327,11 +317,11 @@ export function DashboardView() {
               </div>
             ))}
           </div>
-        </div>
+        </Panel>
       </section>
 
       {lowStockCount > 0 && (
-        <aside className="data-panel flex items-start gap-3 p-4">
+        <Panel className="flex items-start gap-3 p-4">
           <span className="icon-tile text-amber-700">
             <AlertTriangle size={20} />
           </span>
@@ -342,19 +332,12 @@ export function DashboardView() {
               del siguiente pico de venta.
             </p>
           </div>
-        </aside>
+        </Panel>
       )}
     </div>
   );
 }
 
 function EmptyChart({ message }: { message: string }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <span className="empty-icon">
-        <BarChart3 size={24} />
-      </span>
-      <p className="mt-3 text-sm font-bold text-slate-600 dark:text-slate-300">{message}</p>
-    </div>
-  );
+  return <EmptyState icon={<BarChart3 size={24} />} title={message} className="p-0" />;
 }

@@ -16,6 +16,10 @@ export function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
+export function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
 export function createOfflineId() {
   return `OFF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
