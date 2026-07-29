@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Role, View } from '../models/types';
+import { IconButton } from './ui';
 
 interface HeaderProps {
   currentView: View;
@@ -159,14 +160,14 @@ export function Header({ currentView, isSidebarOpen, onMenuClick, onNavigate }: 
     <>
       <header className="top-command-strip flex shrink-0 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <div className="flex min-w-0 items-center gap-3">
-          <button
+          <IconButton
             onClick={onMenuClick}
-            aria-label={isSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
+            label={isSidebarOpen ? 'Cerrar menú lateral' : 'Abrir menú lateral'}
             aria-expanded={isSidebarOpen}
-            className="top-icon-button header-menu-button"
+            className="header-menu-button"
           >
             {isSidebarOpen ? <X size={21} /> : <Menu size={21} />}
-          </button>
+          </IconButton>
           <div className="min-w-0">
             <h2 className="truncate text-base font-extrabold text-slate-950 dark:text-white sm:text-lg">
               {current.title}

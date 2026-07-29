@@ -9,6 +9,7 @@ import { normalizeText, errorMessage, formatCurrency } from '../utils/helpers';
 import { optimizedCatalogImageSrc } from '../utils/images';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
+import { Button, Panel, SegmentedControl, StatusBadge, TextInput } from '../components/ui';
 
 type StockFilter = 'ALL' | 'LOW' | 'OUT';
 type InventorySortKey = 'name' | 'category' | 'price' | 'stock';
@@ -190,20 +191,22 @@ export function InventoryView() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <button
-            type="button"
+          <Button
             onClick={() => setShowBulkImport(true)}
-            className="btn-secondary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"
+            variant="secondary"
+            icon={<Upload size={18} />}
+            className="flex-1 gap-2 px-4 py-3 text-xs md:flex-none"
           >
-            <Upload size={18} /> Importar
-          </button>
-          <button
-            type="button"
+            Importar
+          </Button>
+          <Button
             onClick={() => setIsEditing({ category: 'Abarrotes', stock: 0, minStock: 5 })}
-            className="btn-primary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"
+            variant="primary"
+            icon={<Plus size={18} />}
+            className="flex-1 gap-2 px-4 py-3 text-xs md:flex-none"
           >
-            <Plus size={18} /> Crear producto
-          </button>
+            Crear producto
+          </Button>
         </div>
       </header>
 
@@ -230,39 +233,25 @@ export function InventoryView() {
         </div>
       </section>
 
-      <section className="data-panel flex flex-1 flex-col min-h-0">
+      <Panel className="flex flex-1 flex-col min-h-0">
         <div className="data-panel-header flex-col items-stretch md:flex-row md:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
+          <div className="flex-1">
+            <TextInput
               type="text"
               placeholder="Buscar por código, nombre o categoría"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="input-premium h-11 w-full pl-10 pr-4 text-sm font-semibold"
+              leadingIcon={<Search size={18} />}
+              className="h-11 w-full pr-4 text-sm font-semibold"
             />
           </div>
-          <div
-            className="segmented-control overflow-x-auto"
-            role="tablist"
-            aria-label="Filtro de stock"
-          >
-            {stockFilterOptions.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                role="tab"
-                aria-selected={stockFilter === option.key}
-                onClick={() => setStockFilter(option.key)}
-                className={`segmented-option ${
-                  stockFilter === option.key ? 'segmented-option-active' : ''
-                }`}
-              >
-                {option.label}
-                <span className="text-[0.65rem] text-slate-400">{option.count}</span>
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            ariaLabel="Filtro de stock"
+            options={stockFilterOptions}
+            value={stockFilter}
+            onChange={setStockFilter}
+            className="overflow-x-auto"
+          />
         </div>
 
         <div className="flex-1 overflow-auto custom-scrollbar">
@@ -348,17 +337,11 @@ export function InventoryView() {
                     {formatCurrency(p.price)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right">
-                    <div
-                      className={`status-pill ${
-                        p.stock <= 0
-                          ? 'status-pill-danger'
-                          : p.stock <= p.minStock
-                            ? 'status-pill-warning'
-                            : 'status-pill-success'
-                      }`}
+                    <StatusBadge
+                      tone={p.stock <= 0 ? 'danger' : p.stock <= p.minStock ? 'warning' : 'success'}
                     >
                       {p.stock}
-                    </div>
+                    </StatusBadge>
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right">
                     <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
@@ -395,7 +378,7 @@ export function InventoryView() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Panel>
     </div>
   );
 }
