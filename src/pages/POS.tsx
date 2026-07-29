@@ -15,9 +15,6 @@ import {
   CreditCard,
   ArrowLeftRight,
   Eraser,
-  Milk,
-  Wheat,
-  Package,
   Wifi,
   WifiOff,
 } from 'lucide-react';
@@ -37,13 +34,13 @@ import {
   normalizeText,
   errorMessage,
   formatCurrency,
-  productInitials,
   createOfflineId,
   hasFeature,
 } from '../utils/helpers';
-import { optimizedCatalogImageSrc } from '../utils/images';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
+import { ProductCard, ProductVisual } from '../components/pos/ProductCard';
+import { Button, EmptyState, IconButton, SelectInput, TextInput } from '../components/ui';
 
 const PAYMENT_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Efectivo',
@@ -397,16 +394,13 @@ export function POSView() {
             </div>
 
             <div className="pos-search relative">
-              <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                size={18}
-              />
-              <input
+              <TextInput
                 ref={searchInputRef}
                 type="text"
                 placeholder="Escanea o busca productos"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
+                leadingIcon={<Search size={18} />}
                 onKeyDown={(event) => {
                   if (event.key !== 'Enter') return;
                   const exactBarcode = products.find(
@@ -419,7 +413,7 @@ export function POSView() {
                   addToCart(product);
                   setSearchQuery('');
                 }}
-                className="input-premium h-12 w-full pl-11 pr-20 text-sm font-semibold"
+                className="h-12 w-full pr-20 text-sm font-semibold"
               />
               <kbd className="search-shortcut absolute right-3 top-1/2 -translate-y-1/2">F1</kbd>
             </div>
@@ -456,24 +450,24 @@ export function POSView() {
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="empty-panel flex h-full min-h-72 flex-col items-center justify-center p-8 text-center">
-              <Barcode size={34} className="text-slate-300 dark:text-slate-600" />
-              <p className="mt-4 text-sm font-bold text-slate-700 dark:text-slate-300">
-                No encontramos productos
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Cambia la búsqueda o selecciona otra categoría.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('Todos');
-                }}
-                className="btn-secondary mt-5 px-4"
-              >
-                Limpiar filtros
-              </button>
+            <div className="empty-panel h-full min-h-72">
+              <EmptyState
+                icon={<Barcode size={30} />}
+                title="No encontramos productos"
+                description="Cambia la búsqueda o selecciona otra categoría."
+                action={
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedCategory('Todos');
+                    }}
+                    className="px-4"
+                  >
+                    Limpiar filtros
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
@@ -515,44 +509,42 @@ export function POSView() {
             </div>
           </div>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
+            <IconButton
               onClick={() => {
                 setCart([]);
                 showActionToast('Carrito vaciado');
               }}
               disabled={cart.length === 0}
-              className="top-icon-button text-slate-500 disabled:opacity-30"
-              aria-label="Vaciar carrito"
-              title="Vaciar carrito"
+              className="text-slate-500 disabled:opacity-30"
+              label="Vaciar carrito"
             >
               <Eraser size={18} />
-            </button>
-            <button
+            </IconButton>
+            <IconButton
               onClick={() => setIsCartOpen(false)}
-              className="top-icon-button cart-close-button"
-              aria-label="Cerrar carrito"
+              className="cart-close-button"
+              label="Cerrar carrito"
             >
               <X size={19} />
-            </button>
+            </IconButton>
           </div>
         </div>
 
         <div className="border-b border-slate-200 p-4 dark:border-slate-800">
           <label className="form-label mb-2 block">Cliente</label>
-          <div className="relative">
-            <Users className="absolute left-3 top-3.5 text-slate-400" size={16} />
-            <input
+          <div>
+            <TextInput
               type="text"
               placeholder="Filtrar clientes..."
               value={clientSearch}
               onChange={(event) => setClientSearch(event.target.value)}
-              className="input-premium mb-2 h-11 w-full pl-10 pr-4 text-xs font-semibold"
+              leadingIcon={<Users size={16} />}
+              className="mb-2 h-11 w-full pr-4 text-xs font-semibold"
             />
-            <select
+            <SelectInput
               value={selectedClientId || ''}
               onChange={(event) => setSelectedClientId(event.target.value || undefined)}
-              className="input-premium h-11 w-full px-3 text-xs font-semibold"
+              className="h-11 w-full px-3 text-xs font-semibold"
             >
               <option value="">Público General</option>
               {filteredClients.map((client) => (
@@ -560,7 +552,7 @@ export function POSView() {
                   {client.name}
                 </option>
               ))}
-            </select>
+            </SelectInput>
           </div>
         </div>
 
@@ -599,29 +591,23 @@ export function POSView() {
                       <Plus size={13} />
                     </button>
                   </div>
-                  <button
+                  <IconButton
                     onClick={() => updateQuantity(item.id, -item.quantity)}
-                    className="top-icon-button h-8 w-8 text-slate-400 hover:text-error"
-                    aria-label={`Eliminar ${item.name} del carrito`}
+                    className="h-8 w-8 text-slate-400 hover:text-error"
+                    label={`Eliminar ${item.name} del carrito`}
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             </div>
           ))}
           {cart.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-              <div className="flex h-14 w-14 items-center justify-center bg-slate-100 text-slate-300 dark:bg-slate-800 dark:text-slate-600">
-                <ShoppingCart size={27} />
-              </div>
-              <p className="mt-4 text-sm font-bold text-slate-600 dark:text-slate-300">
-                Aún no hay productos
-              </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
-                Selecciona un producto o escanea su código.
-              </p>
-            </div>
+            <EmptyState
+              icon={<ShoppingCart size={26} />}
+              title="Aún no hay productos"
+              description="Selecciona un producto o escanea su código."
+            />
           )}
         </div>
 
@@ -638,17 +624,18 @@ export function POSView() {
             </h2>
           </div>
 
-          <button
+          <Button
+            variant="primary"
             disabled={cart.length === 0 || isProcessing}
             onClick={() => setShowPaymentModal(true)}
-            className="btn-primary h-12 w-full gap-2"
+            icon={<Wallet size={18} />}
+            className="h-12 w-full gap-2"
           >
-            <Wallet size={18} />
             {isProcessing ? 'Procesando...' : 'Cobrar'}
             <kbd className="checkout-shortcut ml-auto border-white/25 bg-white/10 text-white">
               F10
             </kbd>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -672,109 +659,6 @@ export function POSView() {
         </div>
         <strong className="tabular-nums">{formatCurrency(cartTotal)}</strong>
       </button>
-    </div>
-  );
-}
-
-function ProductCard({ product, onClick }: { product: ProductView; onClick: () => void }) {
-  const isLowStock = product.stock > 0 && product.stock <= product.minStock;
-  const isOutOfStock = product.stock <= 0;
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={isOutOfStock}
-      className="pos-product-card group animate-fadeIn text-left disabled:cursor-not-allowed disabled:opacity-55"
-    >
-      <div className="product-visual">
-        <ProductVisual product={product} />
-        <span
-          className={`product-stock ${
-            isOutOfStock ? 'product-stock-out' : isLowStock ? 'product-stock-low' : ''
-          }`}
-        >
-          {isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
-        </span>
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col p-3">
-        <p className="truncate text-xs font-semibold text-primary">{product.category}</p>
-        <h4 className="mt-1 line-clamp-2 min-h-10 text-sm font-bold leading-5 text-slate-950 dark:text-white">
-          {product.name}
-        </h4>
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
-          <p className="text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
-            {formatCurrency(product.price)}
-          </p>
-          <span className="product-add-button" aria-hidden="true">
-            <Plus size={16} />
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function ProductVisual({ product, compact = false }: { product: ProductView; compact?: boolean }) {
-  const [failedImageSrc, setFailedImageSrc] = useState<string | null>(null);
-  const rawProductImage = product.imageUrl?.trim() || null;
-  const imageFailed = rawProductImage ? failedImageSrc === rawProductImage : false;
-  const productImage = rawProductImage ? optimizedCatalogImageSrc(rawProductImage) : null;
-  if (productImage && !imageFailed) {
-    return (
-      <img
-        key={productImage}
-        src={productImage}
-        alt=""
-        className={`product-packshot h-full w-full object-contain ${compact ? 'p-1' : 'p-3'}`}
-        loading="lazy"
-        decoding="async"
-        onError={(event) => {
-          if (
-            rawProductImage &&
-            rawProductImage !== productImage &&
-            event.currentTarget.dataset.fallback !== 'true'
-          ) {
-            event.currentTarget.dataset.fallback = 'true';
-            event.currentTarget.src = rawProductImage;
-            return;
-          }
-
-          setFailedImageSrc(rawProductImage);
-        }}
-      />
-    );
-  }
-
-  const category = normalizeText(product.category);
-  const icon = category.includes('lacteo') ? (
-    <Milk size={compact ? 21 : 30} />
-  ) : category.includes('pan') ? (
-    <Wheat size={compact ? 21 : 30} />
-  ) : (
-    <Package size={compact ? 21 : 30} />
-  );
-  const placeholderClass = category.includes('lacteo')
-    ? 'product-placeholder-lacteos'
-    : category.includes('pan')
-      ? 'product-placeholder-pan'
-      : 'product-placeholder-general';
-
-  return (
-    <div
-      className={`product-placeholder ${placeholderClass} relative flex h-full w-full items-center justify-center text-slate-500 dark:text-slate-300`}
-    >
-      <div
-        className={`product-placeholder-pack ${compact ? 'product-placeholder-pack-compact' : ''}`}
-      >
-        {icon}
-        {!compact && <span>{productInitials(product.name)}</span>}
-      </div>
-      {!compact && (
-        <span className="product-placeholder-label absolute bottom-2 left-2">
-          {product.category}
-        </span>
-      )}
     </div>
   );
 }
@@ -831,9 +715,9 @@ function PaymentModal({
               Finalizar venta
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="top-icon-button" aria-label="Cerrar">
+          <IconButton onClick={onClose} label="Cerrar">
             <X size={19} />
-          </button>
+          </IconButton>
         </div>
 
         <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -866,14 +750,14 @@ function PaymentModal({
                 <label htmlFor="payment-amount" className="form-label">
                   {method === 'MIXED' ? 'Efectivo Recibido' : 'Monto Recibido'}
                 </label>
-                <input
+                <TextInput
                   id="payment-amount"
                   type="number"
                   min="0"
                   step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  className="input-premium h-14 w-full px-4 text-2xl font-extrabold tabular-nums"
+                  className="h-14 w-full px-4 text-2xl font-extrabold tabular-nums"
                   autoFocus
                 />
                 {method === 'CASH' && (
@@ -937,12 +821,12 @@ function PaymentModal({
           )}
 
           <div className="flex flex-col gap-3 pt-1 sm:flex-row">
-            <button type="button" onClick={onClose} className="btn-secondary h-11 flex-1">
+            <Button variant="secondary" onClick={onClose} className="h-11 flex-1">
               Cancelar
-            </button>
-            <button type="submit" disabled={isInvalid} className="btn-primary h-11 flex-1">
+            </Button>
+            <Button type="submit" variant="primary" disabled={isInvalid} className="h-11 flex-1">
               Completar venta
-            </button>
+            </Button>
           </div>
         </div>
       </form>
@@ -979,9 +863,9 @@ function SaleSuccessDialog({ sale, onClose }: { sale: Sale; onClose: () => void 
           </div>
         </div>
 
-        <button onClick={onClose} className="btn-primary h-12 w-full">
+        <Button onClick={onClose} variant="primary" className="h-12 w-full">
           Continuar
-        </button>
+        </Button>
       </div>
     </div>
   );
