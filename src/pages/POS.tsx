@@ -124,8 +124,8 @@ export function POSView() {
       .catch((error) => {
         if (active)
           setAlertInfo({
-            title: 'Catalogo no disponible',
-            message: errorMessage(error, 'No se pudo cargar el catalogo.'),
+            title: 'Catálogo no disponible',
+            message: errorMessage(error, 'No se pudo cargar el catálogo.'),
           });
       })
       .finally(() => {
@@ -175,12 +175,12 @@ export function POSView() {
   const addToCart = useCallback(
     (product: ProductView) => {
       if (product.stock <= 0) {
-        showActionToast(`${product.name} esta agotado`);
+        showActionToast(`${product.name} está agotado`);
         return;
       }
       const currentQuantity = cart.find((item) => item.id === product.id)?.quantity ?? 0;
       if (currentQuantity >= product.stock) {
-        showActionToast(`Stock maximo: ${product.stock} unidades`);
+        showActionToast(`Stock máximo: ${product.stock} unidades`);
         return;
       }
       setCart((prev) => {
@@ -268,7 +268,7 @@ export function POSView() {
         } catch (error) {
           if (!shouldQueueOfflineSale(error)) throw error;
           result = queueOfflineSale();
-          showActionToast('Conexion inestable: venta guardada offline');
+          showActionToast('Conexión inestable: venta guardada offline');
         }
       } else {
         result = queueOfflineSale();
@@ -280,7 +280,7 @@ export function POSView() {
       setIsCartOpen(false);
       setConfirmSaleInfo(null);
       setAlertInfo({
-        title: 'Venta Exitosa',
+        title: 'Venta exitosa',
         message: `Ticket #${result.id.slice(-6).toUpperCase()} generado correctamente.`,
         saleData: result,
       });
@@ -290,7 +290,7 @@ export function POSView() {
           const updatedProducts = await BackendAPI.getStoreProducts(reqContext);
           setProducts(updatedProducts);
         } catch (refreshError) {
-          showActionToast(errorMessage(refreshError, 'Venta guardada; no se actualizo catalogo'));
+          showActionToast(errorMessage(refreshError, 'Venta guardada; no se actualizó catálogo'));
         }
       } else {
         setProducts((currentProducts) =>
@@ -304,7 +304,7 @@ export function POSView() {
       }
     } catch (error) {
       setAlertInfo({
-        title: 'Error en Transacción',
+        title: 'Error en transacción',
         message: errorMessage(error, 'No se pudo procesar la venta.'),
       });
     } finally {

@@ -90,7 +90,7 @@ export function InventoryView() {
   const handleBulkSuccess = () => {
     setShowBulkImport(false);
     setAlertInfo({
-      title: 'Inventario Importado',
+      title: 'Inventario importado',
       message: 'Los productos se importaron exitosamente.',
     });
     loadData();
@@ -154,11 +154,11 @@ export function InventoryView() {
   const outOfStockCount = products.filter((product) => product.stock <= 0).length;
 
   return (
-    <div className="view-shell p-4 lg:p-8 h-full flex flex-col relative text-slate-900 dark:text-[#E2E8F0] transition-colors animate-fadeIn">
+    <div className="view-shell view-page relative animate-fadeIn">
       {confirmDelete && (
         <ConfirmDialog
-          title="Eliminar Objeto Maestro"
-          message={`¿Confirmas la eliminación permanente del registro "${confirmDelete.name}"?`}
+          title="Eliminar producto"
+          message={`¿Confirmas la eliminación permanente de "${confirmDelete.name}"?`}
           onConfirm={executeDelete}
           onCancel={() => setConfirmDelete(null)}
         />
@@ -181,33 +181,40 @@ export function InventoryView() {
         <BulkImportModal onClose={() => setShowBulkImport(false)} onSuccess={handleBulkSuccess} />
       )}
 
-      <div className="flex flex-col md:flex-row md:justify-between tracking-tight gap-4 mb-6 lg:mb-8">
-        <div>
-          <p className="section-kicker">Catalogo vivo</p>
-          <h2 className="text-3xl font-black text-slate-950 dark:text-white tracking-[-0.06em]">
-            Maestro de Materiales ERP
-          </h2>
+      <header className="view-header">
+        <div className="min-w-0">
+          <p className="section-kicker">Catálogo vivo</p>
+          <h1 className="view-title">Inventario</h1>
+          <p className="view-description">
+            Controla precios, existencias, mínimos de reposición e importaciones de producto.
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <button
+            type="button"
             onClick={() => setShowBulkImport(true)}
             className="btn-secondary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"
           >
             <Upload size={18} /> Importar
           </button>
           <button
+            type="button"
             onClick={() => setIsEditing({ category: 'Abarrotes', stock: 0, minStock: 5 })}
             className="btn-primary flex-1 md:flex-none justify-center text-xs px-4 py-3 flex items-center gap-2"
           >
-            <Plus size={18} /> Crear Material
+            <Plus size={18} /> Crear producto
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3 mb-5">
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <div className="mini-metric">
           <p>Valor inventario</p>
           <strong>{formatCurrency(inventoryValue)}</strong>
+        </div>
+        <div className="mini-metric">
+          <p>Productos activos</p>
+          <strong>{products.length} SKUs</strong>
         </div>
         <div className="mini-metric">
           <p>Bajo stock</p>
@@ -221,28 +228,38 @@ export function InventoryView() {
             {outOfStockCount} items
           </strong>
         </div>
-      </div>
+      </section>
 
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm flex-1 flex flex-col min-h-0">
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row gap-4">
+      <section className="data-panel flex flex-1 flex-col min-h-0">
+        <div className="data-panel-header flex-col items-stretch md:flex-row md:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="Filtro maestro (Código, Nombre o Categoría)..."
+              placeholder="Buscar por código, nombre o categoría"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary-light transition-all outline-none"
+              className="input-premium h-11 w-full pl-10 pr-4 text-sm font-semibold"
             />
           </div>
-          <div className="flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800 p-1 rounded-2xl">
+          <div
+            className="segmented-control overflow-x-auto"
+            role="tablist"
+            aria-label="Filtro de stock"
+          >
             {stockFilterOptions.map((option) => (
               <button
                 key={option.key}
+                type="button"
+                role="tab"
+                aria-selected={stockFilter === option.key}
                 onClick={() => setStockFilter(option.key)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${stockFilter === option.key ? 'bg-white dark:bg-slate-700 text-primary-light shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white'}`}
+                className={`segmented-option ${
+                  stockFilter === option.key ? 'segmented-option-active' : ''
+                }`}
               >
                 {option.label}
+                <span className="text-[0.65rem] text-slate-400">{option.count}</span>
               </button>
             ))}
           </div>
@@ -250,33 +267,33 @@ export function InventoryView() {
 
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-left border-collapse text-[10px] sm:text-[11px]">
-            <thead className="sticky top-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md z-10">
+            <thead className="sticky top-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md z-10">
               <tr className="border-b border-slate-100 dark:border-slate-800">
                 <th
                   onClick={() => toggleInventorySort('name')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
                 >
                   Producto{sortMarker('name')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('category')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light"
                 >
                   Categoría{sortMarker('category')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('price')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
                 >
                   Precio{sortMarker('price')}
                 </th>
                 <th
                   onClick={() => toggleInventorySort('stock')}
-                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
+                  className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 cursor-pointer hover:text-primary-light text-right"
                 >
                   Existencia{sortMarker('stock')}
                 </th>
-                <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300 text-right">
+                <th className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 text-right">
                   Acciones
                 </th>
               </tr>
@@ -332,21 +349,31 @@ export function InventoryView() {
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right">
                     <div
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black ${p.stock <= 0 ? 'bg-rose-100 text-rose-600' : p.stock <= p.minStock ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}
+                      className={`status-pill ${
+                        p.stock <= 0
+                          ? 'status-pill-danger'
+                          : p.stock <= p.minStock
+                            ? 'status-pill-warning'
+                            : 'status-pill-success'
+                      }`}
                     >
                       {p.stock}
                     </div>
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                       <button
+                        type="button"
                         onClick={() => setIsEditing(p)}
+                        aria-label={`Editar ${p.name}`}
                         className="p-2 text-slate-400 hover:text-primary-light hover:bg-primary/10 rounded-lg transition-all"
                       >
                         <Edit size={16} />
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfirmDelete(p)}
+                        aria-label={`Eliminar ${p.name}`}
                         className="p-2 text-slate-400 hover:text-error hover:bg-error/10 rounded-lg transition-all"
                       >
                         <Trash2 size={16} />
@@ -368,7 +395,7 @@ export function InventoryView() {
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
@@ -407,17 +434,17 @@ function ProductFormModal({
     <div className="fixed inset-0 bg-slate-900/55 dark:bg-[#0F1115]/82 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
       <form
         onSubmit={submit}
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[24px] sm:rounded-[30px] w-full max-w-xl p-5 sm:p-6 text-slate-900 dark:text-[#E2E8F0] transition-colors animate-slideInUp"
+        className="modal-card w-full max-w-xl p-5 text-slate-900 transition-colors animate-slideInUp dark:text-[#E2E8F0] sm:p-6"
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-form-title"
       >
-        <p className="section-kicker mb-2">{product.id ? 'Edicion' : 'Alta'}</p>
+        <p className="section-kicker mb-2">{product.id ? 'Edición' : 'Alta'}</p>
         <h2
           id="product-form-title"
-          className="text-2xl font-black text-slate-950 dark:text-white tracking-[-0.04em] mb-4"
+          className="mb-4 text-2xl font-extrabold text-slate-950 dark:text-white"
         >
-          {product.id ? 'Editar' : 'Nuevo'} Producto
+          {product.id ? 'Editar' : 'Nuevo'} producto
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
           <input
@@ -460,7 +487,7 @@ function ProductFormModal({
             required
             type="number"
             step="0.01"
-            placeholder="Venta publico"
+            placeholder="Venta público"
             value={data.price || ''}
             onChange={(e) => setData({ ...data, price: e.target.value })}
             className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
@@ -468,7 +495,7 @@ function ProductFormModal({
           <input
             required
             type="number"
-            placeholder="Items (Stock)"
+            placeholder="Existencia"
             value={data.stock || 0}
             onChange={(e) => setData({ ...data, stock: e.target.value })}
             className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
@@ -476,7 +503,7 @@ function ProductFormModal({
           <input
             required
             type="number"
-            placeholder="Min Stock"
+            placeholder="Stock mínimo"
             value={data.minStock || 0}
             onChange={(e) => setData({ ...data, minStock: e.target.value })}
             className="input-premium p-3 text-slate-950 dark:text-white outline-none transition-colors"
@@ -511,7 +538,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
       const rows = (await readSheet(file)) as unknown[][];
       const [headerRow, ...dataRows] = rows;
       if (!headerRow || dataRows.length === 0)
-        throw new Error('El archivo esta vacio o no contiene productos.');
+        throw new Error('El archivo está vacío o no contiene productos.');
       const headers = (headerRow as unknown[]).map((value) => normalizeText(String(value ?? '')));
 
       const formattedProducts = dataRows.map(
@@ -525,7 +552,7 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
             const raw = keys.map((key) => rowObj[key]).find((value) => value != null) ?? fallback;
             const value = Number(String(raw).replace(/[$,]/g, ''));
             if (!Number.isFinite(value) || value < 0)
-              throw new Error(`Fila ${index + 2}: valor numerico invalido.`);
+              throw new Error(`Fila ${index + 2}: valor numérico inválido.`);
             return value;
           };
           const name = cellText(['producto', 'nombre', 'name']);
@@ -543,10 +570,10 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
           const price = cellNumber(['venta publico', 'precio', 'price'], 0);
           const stock = cellNumber(['items', 'stock', 'existencia'], 0);
           const minStock = cellNumber(['stock minimo', 'min stock', 'minstock'], 5);
-          if (!barcode) throw new Error(`Fila ${index + 2}: el codigo de barras es obligatorio.`);
+          if (!barcode) throw new Error(`Fila ${index + 2}: el código de barras es obligatorio.`);
           if (!name) throw new Error(`Fila ${index + 2}: El nombre del producto es obligatorio.`);
           if (!Number.isInteger(stock) || !Number.isInteger(minStock))
-            throw new Error(`Fila ${index + 2}: stock y minimo deben ser enteros.`);
+            throw new Error(`Fila ${index + 2}: stock y mínimo deben ser enteros.`);
 
           return {
             barcode,
@@ -583,8 +610,8 @@ function BulkImportModal({ onClose, onSuccess }: { onClose: () => void; onSucces
 
   return (
     <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[30px] w-full max-w-lg p-6 text-slate-900 dark:text-[#E2E8F0] animate-slideInUp">
-        <h2 className="text-2xl font-black mb-4 tracking-tighter">Importar desde Excel</h2>
+      <div className="modal-card w-full max-w-lg p-6 text-slate-900 animate-slideInUp dark:text-[#E2E8F0]">
+        <h2 className="mb-4 text-2xl font-extrabold">Importar desde Excel</h2>
 
         {!confirmData ? (
           <div className="space-y-6">
