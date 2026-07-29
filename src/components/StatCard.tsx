@@ -11,14 +11,15 @@ interface StatCardProps {
 
 export function StatCard({ icon, title, value, delta, suffix }: StatCardProps) {
   return (
-    <div className="metric-card animate-fadeIn p-5">
+    <section className="metric-card animate-fadeIn p-5" aria-label={title}>
       <div className="mb-5 flex items-center justify-between">
-        <div className="flex h-9 w-9 items-center justify-center bg-emerald-50 text-primary dark:bg-emerald-950/50 dark:text-emerald-300">
-          {icon}
-        </div>
+        <div className="icon-tile">{icon}</div>
         {delta !== undefined && delta !== null && (
           <div
-            className={`text-xs font-bold flex items-center gap-1 ${delta >= 0 ? 'text-success' : 'text-error'}`}
+            className={`status-pill ${
+              delta >= 0 ? 'status-pill-success' : 'status-pill-danger'
+            } flex items-center gap-1`}
+            title="Variación contra ayer"
           >
             <TrendingUp size={12} className={delta >= 0 ? '' : 'rotate-180'} />
             {delta >= 0 ? '+' : ''}
@@ -33,6 +34,6 @@ export function StatCard({ icon, title, value, delta, suffix }: StatCardProps) {
           {suffix && <span className="text-xs font-bold text-slate-400">{suffix}</span>}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

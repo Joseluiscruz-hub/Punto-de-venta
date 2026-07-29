@@ -131,8 +131,8 @@ export function Header({ currentView, isSidebarOpen, onMenuClick, onNavigate }: 
     const handleKeyboard = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        setIsCommandOpen(!isCommandOpen);
-        if (isCommandOpen) setQuery('');
+        setIsCommandOpen((open) => !open);
+        setQuery('');
       }
       if (event.key === 'Escape') {
         setIsCommandOpen(false);
@@ -142,7 +142,7 @@ export function Header({ currentView, isSidebarOpen, onMenuClick, onNavigate }: 
 
     window.addEventListener('keydown', handleKeyboard);
     return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [isCommandOpen]);
+  }, []);
 
   useEffect(() => {
     if (!isCommandOpen) return;
@@ -203,7 +203,7 @@ export function Header({ currentView, isSidebarOpen, onMenuClick, onNavigate }: 
             <p className="text-xs text-slate-500 dark:text-slate-400">{store?.name}</p>
           </div>
           <div
-            className="hidden h-9 w-9 items-center justify-center bg-slate-900 text-xs font-extrabold text-white dark:bg-white dark:text-slate-900 lg:flex"
+            className="user-avatar hidden h-9 w-9 items-center justify-center text-xs font-extrabold lg:flex"
             title={user?.name}
           >
             {user?.name?.[0]?.toUpperCase()}

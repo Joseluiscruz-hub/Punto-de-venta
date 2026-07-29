@@ -78,7 +78,7 @@ export const formatCurrency = (amount: number) =>
 
 export const PERIOD_OPTIONS: Array<{ key: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL'; label: string }> = [
   { key: 'TODAY', label: 'Hoy' },
-  { key: 'WEEK', label: '7 dias' },
-  { key: 'MONTH', label: '30 dias' },
+  { key: 'WEEK', label: '7 días' },
+  { key: 'MONTH', label: '30 días' },
   { key: 'ALL', label: 'Todo' },
 ];
