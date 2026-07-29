@@ -1,9 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Download, CalendarDays, Printer, X, QrCode } from 'lucide-react';
+import {
+  CircleDollarSign,
+  Download,
+  PackageCheck,
+  Printer,
+  QrCode,
+  ReceiptText,
+  Search,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import { Sale, PaymentMethod } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { Button, Panel, SegmentedControl, TextInput } from '../components/ui';
 import {
   normalizeText,
   startOfPeriod,
@@ -122,8 +133,11 @@ export function SalesView() {
     );
   };
 
+  const showEmptyState =
+    (isLoading && sales.length === 0) || Boolean(loadError) || filtered.length === 0;
+
   return (
-    <div className="view-shell p-4 lg:p-8 h-full flex flex-col text-slate-900 dark:text-[#E2E8F0] gap-6 transition-colors">
+    <div className="view-shell view-page relative animate-fadeIn">
       {selectedReceipt && (
         <ReceiptModal
           sale={selectedReceipt}
@@ -131,155 +145,262 @@ export function SalesView() {
           storeName={store?.name ?? 'Sucursal'}
         />
       )}
-      <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:justify-between md:items-center gap-4 p-5 rounded-2xl shadow-sm">
-        <div>
-          <p className="section-kicker">Libro fiscal</p>
-          <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white">
-            Historico de Transacciones
-          </h2>
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1">
-            Filtra, revisa e imprime ventas con resumen del periodo.
+
+      <header className="view-header">
+        <div className="min-w-0">
+          <p className="section-kicker">Control comercial</p>
+          <h1 className="view-title">Ventas registradas</h1>
+          <p className="view-description">
+            Consulta transacciones, valida importes y recupera comprobantes de cada venta.
           </p>
         </div>
-        <button
+        <Button
           onClick={exportCsv}
           disabled={!filtered.length}
-          className="btn-secondary flex items-center justify-center gap-2 px-4 py-3 text-xs"
+          variant="secondary"
+          icon={<Download size={17} />}
+          className="gap-2 px-4"
         >
-          <Download size={16} /> Exportar CSV
-        </button>
-      </div>
+          Exportar CSV
+        </Button>
+      </header>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-4 gap-3">
-        <div className="mini-metric">
-          <p>Transacciones</p>
-          <strong>{summary.count}</strong>
-        </div>
-        <div className="mini-metric">
-          <p>Ingreso del periodo</p>
-          <strong>{formatCurrency(summary.total)}</strong>
-        </div>
-        <div className="mini-metric">
-          <p>Ticket promedio</p>
-          <strong>{formatCurrency(summary.avg)}</strong>
-        </div>
-        <div className="mini-metric">
-          <p>Articulos vendidos</p>
-          <strong>{summary.items}</strong>
-        </div>
-      </div>
-
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex-1 overflow-hidden flex flex-col transition-colors shadow-sm min-h-0">
-        <div className="p-3 sm:p-4 lg:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20 space-y-3">
-          <div className="relative">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Buscar por ticket, metodo o producto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-900 border-none rounded-xl text-xs font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-primary-light transition-all shadow-sm"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[9px] uppercase tracking-[0.18em] font-black text-slate-400 inline-flex items-center gap-1">
-              <CalendarDays size={12} /> Periodo
-            </span>
-            {PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setPeriod(option.key as SalesPeriod)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${period === option.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-              >
-                {option.label}
-              </button>
-            ))}
-            <span className="mx-1 hidden sm:inline-block w-px h-4 bg-slate-300 dark:bg-slate-700" />
-            {methodOptions.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setMethodFilter(option.key)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${methodFilter === option.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-              >
-                {option.label}
-              </button>
-            ))}
+      <section className="summary-grid" aria-label="Resumen de ventas filtradas">
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-brand">
+            <ReceiptText size={19} />
+          </span>
+          <div>
+            <p>Transacciones</p>
+            <strong>{summary.count}</strong>
+            <span>Ventas en la selección</span>
           </div>
         </div>
-        <div className="flex-1 overflow-auto custom-scrollbar">
-          <table className="w-full text-left text-[10px] sm:text-[11px] whitespace-nowrap min-w-[600px]">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 uppercase font-black tracking-[0.1em] text-slate-500 sticky top-0 transition-colors z-10">
-              <tr>
-                <th className="px-4 sm:px-6 py-4">UUID TRANSACCIÓN</th>
-                <th className="px-4 sm:px-6 py-4">MARCA DE TIEMPO</th>
-                <th className="px-4 sm:px-6 py-4">MÉTODO PAGO</th>
-                <th className="px-4 sm:px-6 py-4 text-right">VALOR NETO</th>
-                <th className="px-4 sm:px-6 py-4 text-center">UM</th>
-                <th className="px-4 sm:px-6 py-4 text-center">ACCIONES</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 transition-colors">
-              {filtered.map((s) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-primary/5 transition-colors text-slate-700 dark:text-slate-300"
-                >
-                  <td className="px-4 sm:px-6 py-4 font-mono text-slate-500 text-[10px]">{s.id}</td>
-                  <td className="px-4 sm:px-6 py-4 font-semibold">
-                    {new Date(s.datetime).toLocaleString()}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 font-bold text-primary-light uppercase tracking-tighter">
-                    {PAYMENT_LABELS[s.paymentMethod] ?? s.paymentMethod}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
-                    {formatCurrency(s.total)}
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-center font-bold text-slate-500">
-                    {s.itemsCount} LIN
-                  </td>
-                  <td className="px-4 sm:px-6 py-4 text-center">
-                    <button
-                      onClick={() => setSelectedReceipt(s)}
-                      className="p-2 text-primary-light hover:bg-primary/10 rounded-full transition-colors"
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-success">
+            <CircleDollarSign size={19} />
+          </span>
+          <div>
+            <p>Ingreso del periodo</p>
+            <strong>{formatCurrency(summary.total)}</strong>
+            <span>Total cobrado</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-neutral">
+            <TrendingUp size={19} />
+          </span>
+          <div>
+            <p>Ticket promedio</p>
+            <strong>{formatCurrency(summary.avg)}</strong>
+            <span>Promedio por venta</span>
+          </div>
+        </div>
+        <div className="summary-card">
+          <span className="summary-card-icon summary-card-icon-warning">
+            <PackageCheck size={19} />
+          </span>
+          <div>
+            <p>Artículos vendidos</p>
+            <strong>{summary.items}</strong>
+            <span>Unidades registradas</span>
+          </div>
+        </div>
+      </section>
+
+      <Panel className="flex min-h-[420px] flex-1 flex-col">
+        <div className="data-panel-header sales-toolbar">
+          <div className="min-w-0">
+            <h2 className="data-panel-title">Historial de transacciones</h2>
+            <p className="data-panel-subtitle">
+              {filtered.length} de {sales.length} ventas visibles
+            </p>
+          </div>
+
+          <div className="sales-toolbar-controls">
+            <div className="sales-search">
+              <TextInput
+                type="text"
+                aria-label="Buscar ventas"
+                placeholder="Buscar ticket, método o producto"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                leadingIcon={<Search size={18} />}
+                className="h-11 w-full pr-4 text-sm font-semibold"
+              />
+            </div>
+            <div className="sales-filter-groups">
+              <div className="sales-filter-group">
+                <span>Periodo</span>
+                <SegmentedControl
+                  ariaLabel="Periodo de ventas"
+                  options={PERIOD_OPTIONS}
+                  value={period}
+                  onChange={setPeriod}
+                  className="sales-segmented-control"
+                />
+              </div>
+              <div className="sales-filter-group">
+                <span>Método de pago</span>
+                <SegmentedControl
+                  ariaLabel="Método de pago"
+                  options={methodOptions}
+                  value={methodFilter}
+                  onChange={setMethodFilter}
+                  className="sales-segmented-control"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showEmptyState ? (
+          <SalesEmptyState
+            isLoading={isLoading}
+            loadError={loadError}
+            hasSales={sales.length > 0}
+            onRetry={() => void loadSales()}
+          />
+        ) : (
+          <>
+            <div className="sales-card-list lg:hidden">
+              {filtered.map((sale) => (
+                <article key={sale.id} className="sale-record-card">
+                  <div className="sale-record-card-header">
+                    <div>
+                      <p>Ticket</p>
+                      <h3>#{shortTicketId(sale.id)}</h3>
+                    </div>
+                    <PaymentBadge method={sale.paymentMethod} />
+                  </div>
+
+                  <time dateTime={sale.datetime}>{formatSaleDate(sale.datetime)}</time>
+
+                  <div className="sale-record-amount">
+                    <span>Total cobrado</span>
+                    <strong>{formatCurrency(sale.total)}</strong>
+                  </div>
+
+                  <div className="sale-record-card-footer">
+                    <span>{sale.itemsCount} artículos</span>
+                    <Button
+                      variant="secondary"
+                      icon={<Printer size={16} />}
+                      onClick={() => setSelectedReceipt(sale)}
+                      className="h-10 gap-2 px-3"
                     >
-                      <Printer size={16} />
-                    </button>
-                  </td>
-                </tr>
+                      Comprobante
+                    </Button>
+                  </div>
+                </article>
               ))}
-              {((isLoading && sales.length === 0) || loadError || filtered.length === 0) && (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 sm:px-6 py-20 text-center text-slate-400 font-medium italic"
-                  >
-                    {isLoading ? (
-                      'Cargando ventas registradas...'
-                    ) : loadError ? (
-                      <span className="inline-flex flex-col items-center gap-3 not-italic">
-                        <span>{loadError}</span>
+            </div>
+
+            <div className="hidden flex-1 overflow-auto custom-scrollbar lg:block">
+              <table className="enterprise-table sales-table">
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Fecha y hora</th>
+                    <th>Método de pago</th>
+                    <th className="text-center">Artículos</th>
+                    <th className="text-right">Total</th>
+                    <th className="text-right">Comprobante</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((sale) => (
+                    <tr key={sale.id}>
+                      <td>
+                        <span className="sale-ticket">#{shortTicketId(sale.id)}</span>
+                      </td>
+                      <td className="font-semibold">{formatSaleDate(sale.datetime)}</td>
+                      <td>
+                        <PaymentBadge method={sale.paymentMethod} />
+                      </td>
+                      <td className="text-center font-bold text-slate-500">{sale.itemsCount}</td>
+                      <td className="text-right font-bold text-slate-950 dark:text-white tabular-nums">
+                        {formatCurrency(sale.total)}
+                      </td>
+                      <td className="text-right">
                         <button
                           type="button"
-                          onClick={() => void loadSales()}
-                          className="btn-secondary px-4 py-2 text-xs"
+                          onClick={() => setSelectedReceipt(sale)}
+                          className="table-action-button"
+                          aria-label={`Abrir comprobante ${shortTicketId(sale.id)}`}
                         >
-                          Reintentar
+                          <Printer size={16} />
                         </button>
-                      </span>
-                    ) : sales.length === 0 ? (
-                      'Aun no hay ventas registradas para esta sucursal.'
-                    ) : (
-                      'No se encontraron registros coincidentes'
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+function shortTicketId(id: string) {
+  return id.slice(-8).toUpperCase();
+}
+
+function formatSaleDate(value: string) {
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+function PaymentBadge({ method }: { method: PaymentMethod }) {
+  return (
+    <span className={`payment-badge payment-badge-${method.toLowerCase()}`}>
+      {PAYMENT_LABELS[method] ?? method}
+    </span>
+  );
+}
+
+function SalesEmptyState({
+  isLoading,
+  loadError,
+  hasSales,
+  onRetry,
+}: {
+  isLoading: boolean;
+  loadError: string | null;
+  hasSales: boolean;
+  onRetry: () => void;
+}) {
+  const title = isLoading
+    ? 'Cargando ventas'
+    : loadError
+      ? 'No fue posible cargar el historial'
+      : hasSales
+        ? 'Sin coincidencias'
+        : 'Aún no hay ventas registradas';
+  const description = isLoading
+    ? 'Estamos recuperando las transacciones de la sucursal.'
+    : loadError
+      ? loadError
+      : hasSales
+        ? 'Prueba con otro ticket, método, producto o periodo.'
+        : 'Las nuevas transacciones aparecerán aquí automáticamente.';
+
+  return (
+    <div className="sales-empty-state" role={isLoading ? 'status' : undefined}>
+      <span>
+        <ReceiptText size={24} />
+      </span>
+      <strong>{title}</strong>
+      <p>{description}</p>
+      {loadError && (
+        <Button variant="secondary" onClick={onRetry} className="mt-2 px-4">
+          Reintentar
+        </Button>
+      )}
     </div>
   );
 }
@@ -294,79 +415,98 @@ function ReceiptModal({
   storeName: string;
 }) {
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 p-8 rounded-[40px] w-full max-w-sm shadow-2xl border border-slate-200 dark:border-slate-800">
-        <div className="flex justify-between items-start mb-8">
-          <div className="w-12 h-12 bg-primary text-white rounded-2xl flex items-center justify-center shadow-lg">
-            <QrCode size={24} />
+    <div className="receipt-overlay fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm animate-fadeIn sm:p-6">
+      <section
+        className="modal-card receipt-dialog flex max-h-[calc(100vh-1.5rem)] w-full max-w-md flex-col overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="receipt-title"
+      >
+        <div className="receipt-print-sheet custom-scrollbar overflow-y-auto p-5 sm:p-7">
+          <div className="mb-7 flex items-start justify-between">
+            <div className="receipt-brand-mark">
+              <QrCode size={23} />
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="top-icon-button no-print"
+              aria-label="Cerrar comprobante"
+            >
+              <X size={19} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
 
-        <div className="text-center mb-8">
-          <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900 dark:text-white mb-1">
-            {storeName}
-          </h3>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            Comprobante Simplificado de Venta
-          </p>
-        </div>
+          <div className="mb-7 text-center">
+            <h2
+              id="receipt-title"
+              className="text-base font-extrabold text-slate-950 dark:text-white"
+            >
+              {storeName}
+            </h2>
+            <p className="mt-1 text-xs font-semibold text-slate-500">
+              Comprobante simplificado de venta
+            </p>
+          </div>
 
-        <div className="space-y-4 mb-8">
-          <div className="flex justify-between text-[10px] font-bold">
-            <span className="text-slate-400">FECHA</span>
-            <span className="text-slate-900 dark:text-white uppercase">
-              {new Date(sale.datetime).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between text-[10px] font-bold">
-            <span className="text-slate-400">ID TICKET</span>
-            <span className="text-slate-900 dark:text-white font-mono">
-              {sale.id.slice(0, 13).toUpperCase()}
-            </span>
-          </div>
-          <div className="border-t border-dashed border-slate-200 dark:border-slate-800 pt-4 mt-4">
+          <dl className="receipt-metadata">
+            <div>
+              <dt>Fecha</dt>
+              <dd>{formatSaleDate(sale.datetime)}</dd>
+            </div>
+            <div>
+              <dt>Ticket</dt>
+              <dd className="font-mono">#{shortTicketId(sale.id)}</dd>
+            </div>
+            <div>
+              <dt>Forma de pago</dt>
+              <dd>{PAYMENT_LABELS[sale.paymentMethod]}</dd>
+            </div>
+          </dl>
+
+          <div className="receipt-items">
+            <p className="receipt-items-title">Detalle de productos</p>
             {sale.items?.map((item) => (
-              <div key={item.id} className="flex justify-between mb-2">
-                <div className="flex-1 pr-4">
-                  <p className="text-[11px] font-bold text-slate-900 dark:text-white leading-tight">
-                    {item.name}
-                  </p>
-                  <p className="text-[9px] text-slate-400">
-                    {item.quantity} x {formatCurrency(item.price)}
-                  </p>
+              <div key={item.id} className="receipt-line-item">
+                <div className="min-w-0 flex-1 pr-4">
+                  <p>{item.name}</p>
+                  <span>
+                    {item.quantity} × {formatCurrency(item.price)}
+                  </span>
                 </div>
-                <span className="text-[11px] font-black text-slate-900 dark:text-white">
-                  {formatCurrency(item.subtotal)}
-                </span>
+                <strong>{formatCurrency(item.subtotal)}</strong>
               </div>
             ))}
+            {!sale.items?.length && (
+              <p className="py-3 text-center text-xs text-slate-500">
+                Sin detalle de productos disponible.
+              </p>
+            )}
+          </div>
+
+          <div className="receipt-total">
+            <div>
+              <p>Total pagado</p>
+              <span>{sale.itemsCount} artículos</span>
+            </div>
+            <strong>{formatCurrency(sale.total)}</strong>
           </div>
         </div>
 
-        <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[24px] border border-slate-100 dark:border-slate-700 mb-8">
-          <div className="flex justify-between items-end">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Total Pagado
-            </p>
-            <h2 className="text-3xl font-black text-primary-light tracking-tighter tabular-nums">
-              {formatCurrency(sale.total)}
-            </h2>
-          </div>
+        <div className="receipt-actions no-print">
+          <Button variant="secondary" onClick={onClose} className="flex-1">
+            Cerrar
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Printer size={17} />}
+            onClick={() => window.print()}
+            className="flex-1 gap-2"
+          >
+            Imprimir copia
+          </Button>
         </div>
-
-        <button
-          onClick={onClose}
-          className="btn-primary w-full py-4 text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20"
-        >
-          Imprimir Copia
-        </button>
-      </div>
+      </section>
     </div>
   );
 }
