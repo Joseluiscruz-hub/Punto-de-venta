@@ -1,32 +1,48 @@
 import { useState } from 'react';
 import { Milk, Package, Plus, Wheat } from 'lucide-react';
 import type { ProductView } from '../../models/types';
-import { formatCurrency, normalizeText, productInitials } from '../../utils/helpers';
+import { cx, formatCurrency, normalizeText, productInitials } from '../../utils/helpers';
 import { optimizedCatalogImageSrc } from '../../utils/images';
 
-export function ProductCard({ product, onClick }: { product: ProductView; onClick: () => void }) {
+interface ProductCardProps {
+  product: ProductView;
+  cartQuantity?: number;
+  onClick: () => void;
+}
+
+export function ProductCard({ product, cartQuantity = 0, onClick }: ProductCardProps) {
   const isLowStock = product.stock > 0 && product.stock <= product.minStock;
   const isOutOfStock = product.stock <= 0;
+  const remainingStock = Math.max(0, product.stock - cartQuantity);
 
   return (
     <button
       onClick={onClick}
       disabled={isOutOfStock}
+      aria-label={isOutOfStock ? `${product.name}, agotado` : `Agregar ${product.name} a la venta`}
       className="pos-product-card group animate-fadeIn text-left disabled:cursor-not-allowed disabled:opacity-55"
     >
       <div className="product-visual">
         <ProductVisual product={product} />
+        {cartQuantity > 0 && <span className="product-cart-badge">{cartQuantity} en venta</span>}
         <span
           className={`product-stock ${
             isOutOfStock ? 'product-stock-out' : isLowStock ? 'product-stock-low' : ''
           }`}
         >
-          {isOutOfStock ? 'Agotado' : `${product.stock} disp.`}
+          {isOutOfStock ? 'Agotado' : `${remainingStock} disp.`}
         </span>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col p-3">
-        <p className="truncate text-xs font-semibold text-primary">{product.category}</p>
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <p className="truncate text-xs font-semibold text-primary">{product.category}</p>
+          {cartQuantity > 0 && (
+            <span className="shrink-0 text-[0.65rem] font-extrabold text-slate-500 dark:text-slate-400">
+              x{cartQuantity}
+            </span>
+          )}
+        </div>
         <h4 className="mt-1 line-clamp-2 min-h-10 text-sm font-bold leading-5 text-slate-950 dark:text-white">
           {product.name}
         </h4>
@@ -34,7 +50,13 @@ export function ProductCard({ product, onClick }: { product: ProductView; onClic
           <p className="text-base font-extrabold text-slate-900 dark:text-white tabular-nums">
             {formatCurrency(product.price)}
           </p>
-          <span className="product-add-button" aria-hidden="true">
+          <span
+            className={cx(
+              'product-add-button',
+              cartQuantity > 0 && remainingStock === 0 && 'product-add-button-max',
+            )}
+            aria-hidden="true"
+          >
             <Plus size={16} />
           </span>
         </div>

@@ -54,6 +54,14 @@ export function PaymentModal({
   const isInvalid =
     (method === 'CASH' && amountNum < total) ||
     (method === 'MIXED' && (amountNum <= 0 || amountNum >= total));
+  const validationMessage =
+    method === 'CASH' && amountNum < total
+      ? `Faltan ${formatCurrency(total - amountNum)} para completar el cobro.`
+      : method === 'MIXED' && amountNum <= 0
+        ? 'Captura el monto que recibiste en efectivo.'
+        : method === 'MIXED' && amountNum >= total
+          ? 'Para pago mixto, el efectivo debe ser menor al total.'
+          : null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm animate-fadeIn">
@@ -109,13 +117,21 @@ export function PaymentModal({
                 <TextInput
                   id="payment-amount"
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   step="0.01"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
+                  aria-invalid={isInvalid}
+                  aria-describedby={validationMessage ? 'payment-validation' : undefined}
                   className="h-14 w-full px-4 text-2xl font-extrabold tabular-nums"
                   autoFocus
                 />
+                {validationMessage && (
+                  <p id="payment-validation" className="text-xs font-bold text-rose-600">
+                    {validationMessage}
+                  </p>
+                )}
                 {method === 'CASH' && (
                   <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-4">
                     {quickAmounts.map((value) => (
@@ -181,7 +197,7 @@ export function PaymentModal({
               Cancelar
             </Button>
             <Button type="submit" variant="primary" disabled={isInvalid} className="h-11 flex-1">
-              Completar venta
+              Cobrar {formatCurrency(total)}
             </Button>
           </div>
         </div>

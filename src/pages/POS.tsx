@@ -31,6 +31,7 @@ import {
   formatCurrency,
   createOfflineId,
   hasFeature,
+  cx,
 } from '../utils/helpers';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
@@ -155,8 +156,27 @@ export function POSView() {
     });
   }, [products, debouncedSearchQuery, selectedCategory]);
 
+  const cartQuantityByProductId = useMemo(
+    () =>
+      cart.reduce<Record<string, number>>((acc, item) => {
+        acc[item.id] = item.quantity;
+        return acc;
+      }, {}),
+    [cart],
+  );
+
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const hasActiveFilters = searchQuery.trim().length > 0 || selectedCategory !== 'Todos';
+  const resultSummary = isCatalogLoading
+    ? 'Cargando catálogo'
+    : `${filteredProducts.length} de ${products.length} productos`;
+
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setSelectedCategory('Todos');
+    searchInputRef.current?.focus();
+  }, []);
 
   const addToCart = useCallback(
     (product: ProductView) => {
@@ -326,6 +346,12 @@ export function POSView() {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [alertInfo, cart.length, confirmSaleInfo, isCartOpen, showPaymentModal]);
 
+  useEffect(() => {
+    if (window.matchMedia('(pointer: fine)').matches) {
+      searchInputRef.current?.focus();
+    }
+  }, []);
+
   return (
     <div className="flex h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950 animate-fadeIn">
       {confirmSaleInfo && (
@@ -402,31 +428,61 @@ export function POSView() {
                   addToCart(product);
                   setSearchQuery('');
                 }}
-                className="h-12 w-full pr-20 text-sm font-semibold"
+                className="h-12 w-full pr-14 text-sm font-semibold sm:pr-24"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="pos-search-clear"
+                  aria-label="Limpiar búsqueda"
+                  title="Limpiar búsqueda"
+                >
+                  <X size={15} />
+                </button>
+              )}
               <kbd className="search-shortcut absolute right-3 top-1/2 -translate-y-1/2">F1</kbd>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-              <button
-                onClick={() => setSelectedCategory('Todos')}
-                className={`category-filter ${
-                  selectedCategory === 'Todos' ? 'category-filter-active' : ''
-                }`}
-              >
-                Todos <span>{products.length}</span>
-              </button>
-              {categories.map((category) => (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 gap-2 overflow-x-auto pb-1 custom-scrollbar">
                 <button
-                  key={category.name}
-                  onClick={() => setSelectedCategory(category.name)}
+                  onClick={() => setSelectedCategory('Todos')}
                   className={`category-filter ${
-                    selectedCategory === category.name ? 'category-filter-active' : ''
+                    selectedCategory === 'Todos' ? 'category-filter-active' : ''
                   }`}
                 >
-                  {category.name} <span>{category.count}</span>
+                  Todos <span>{products.length}</span>
                 </button>
-              ))}
+                {categories.map((category) => (
+                  <button
+                    key={category.name}
+                    onClick={() => setSelectedCategory(category.name)}
+                    className={`category-filter ${
+                      selectedCategory === category.name ? 'category-filter-active' : ''
+                    }`}
+                  >
+                    {category.name} <span>{category.count}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="pos-results-summary">{resultSummary}</span>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="filter-clear-button"
+                    aria-label="Limpiar filtros"
+                    title="Limpiar filtros"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -464,6 +520,7 @@ export function POSView() {
                 <ProductCard
                   key={product.id}
                   product={product}
+                  cartQuantity={cartQuantityByProductId[product.id] ?? 0}
                   onClick={() => addToCart(product)}
                 />
               ))}
@@ -546,56 +603,87 @@ export function POSView() {
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto p-4 custom-scrollbar">
-          {cart.map((item) => (
-            <div key={item.id} className="cart-line flex gap-3 p-3">
-              <div className="h-12 w-12 shrink-0 overflow-hidden bg-slate-50 dark:bg-slate-800">
-                <ProductVisual product={item} compact />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="mb-1 flex items-start justify-between">
-                  <p className="truncate pr-2 text-xs font-bold text-slate-950 dark:text-white">
-                    {item.name}
-                  </p>
-                  <p className="text-xs font-extrabold text-slate-950 dark:text-white tabular-nums">
-                    {formatCurrency(item.subtotal)}
-                  </p>
+          {cart.map((item) => {
+            const isAtMaxStock = item.quantity >= item.stock;
+            const remainingStock = Math.max(0, item.stock - item.quantity);
+
+            return (
+              <div key={item.id} className="cart-line flex gap-3 p-3">
+                <div className="h-12 w-12 shrink-0 overflow-hidden bg-slate-50 dark:bg-slate-800">
+                  <ProductVisual product={item} compact />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-                    <button
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="flex h-7 w-7 items-center justify-center text-slate-500 hover:text-primary"
-                      aria-label={`Quitar una unidad de ${item.name}`}
-                    >
-                      <Minus size={13} />
-                    </button>
-                    <span className="w-8 text-center text-xs font-extrabold text-slate-950 dark:text-white">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="flex h-7 w-7 items-center justify-center text-slate-500 hover:text-primary"
-                      aria-label={`Agregar una unidad de ${item.name}`}
-                    >
-                      <Plus size={13} />
-                    </button>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-start justify-between">
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate text-xs font-bold text-slate-950 dark:text-white">
+                        {item.name}
+                      </p>
+                      <p
+                        className={cx(
+                          'mt-1 text-[0.68rem] font-semibold',
+                          isAtMaxStock
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-500 dark:text-slate-400',
+                        )}
+                      >
+                        {isAtMaxStock ? 'Stock máximo en venta' : `${remainingStock} restantes`}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-xs font-extrabold text-slate-950 dark:text-white tabular-nums">
+                      {formatCurrency(item.subtotal)}
+                    </p>
                   </div>
-                  <IconButton
-                    onClick={() => updateQuantity(item.id, -item.quantity)}
-                    className="h-8 w-8 text-slate-400 hover:text-error"
-                    label={`Eliminar ${item.name} del carrito`}
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
+                  <div className="flex items-center justify-between">
+                    <div className="cart-quantity-control">
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        aria-label={`Quitar una unidad de ${item.name}`}
+                      >
+                        <Minus size={13} />
+                      </button>
+                      <span>{item.quantity}</span>
+                      <button
+                        onClick={() => updateQuantity(item.id, 1)}
+                        disabled={isAtMaxStock}
+                        aria-label={
+                          isAtMaxStock
+                            ? `${item.name} ya está en el máximo disponible`
+                            : `Agregar una unidad de ${item.name}`
+                        }
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                    <IconButton
+                      onClick={() => updateQuantity(item.id, -item.quantity)}
+                      className="h-8 w-8 text-slate-400 hover:text-error"
+                      label={`Eliminar ${item.name} del carrito`}
+                    >
+                      <Trash2 size={14} />
+                    </IconButton>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {cart.length === 0 && (
             <EmptyState
               icon={<ShoppingCart size={26} />}
               title="Aún no hay productos"
               description="Selecciona un producto o escanea su código."
+              action={
+                <Button
+                  variant="secondary"
+                  icon={<Search size={16} />}
+                  onClick={() => {
+                    setIsCartOpen(false);
+                    window.setTimeout(() => searchInputRef.current?.focus(), 0);
+                  }}
+                  className="gap-2 px-4"
+                >
+                  Buscar producto
+                </Button>
+              }
             />
           )}
         </div>
@@ -634,20 +722,20 @@ export function POSView() {
         </div>
       )}
 
-      <button onClick={() => setIsCartOpen(true)} className="mobile-cart-bar 2xl:hidden">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <ShoppingCart size={20} />
-            {cartItemsCount > 0 && (
+      {cart.length > 0 && (
+        <button onClick={() => setIsCartOpen(true)} className="mobile-cart-bar 2xl:hidden">
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <ShoppingCart size={20} />
               <span className="absolute -right-2.5 -top-2.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-extrabold text-primary">
                 {cartItemsCount}
               </span>
-            )}
+            </div>
+            <span>Ver venta</span>
           </div>
-          <span>Ver venta</span>
-        </div>
-        <strong className="tabular-nums">{formatCurrency(cartTotal)}</strong>
-      </button>
+          <strong className="tabular-nums">{formatCurrency(cartTotal)}</strong>
+        </button>
+      )}
     </div>
   );
 }
