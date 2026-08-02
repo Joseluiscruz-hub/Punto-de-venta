@@ -2,8 +2,8 @@
 @import './styles/animations.css';
 
 @theme {
-  --color-primary: #0070b2;
-  --color-primary-light: #0b8bd6;
+  --color-primary: #2563eb;
+  --color-primary-light: #60a5fa;
   --color-accent: #2563eb;
   --color-alert: #d97706;
   --color-error: #dc2626;
@@ -19,22 +19,23 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  color: #17211f;
-  background: #f4f7f6;
+  color: #0f172a;
+  background: #f4f7fb;
   color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  --ui-bg: #f4f7f6;
+  --ui-bg: #f4f7fb;
   --ui-surface: #ffffff;
-  --ui-surface-muted: #f8faf9;
+  --ui-surface-muted: #f8fbff;
   --ui-surface-solid: #ffffff;
-  --ui-border: #dfe7e4;
-  --ui-border-strong: #cbd7d3;
-  --ui-text: #17211f;
-  --ui-muted: #66736f;
-  --ui-brand: #0070b2;
-  --ui-brand-soft: #e6f3fb;
+  --ui-border: #d8e0ef;
+  --ui-border-strong: #c3cfe4;
+  --ui-text: #0f172a;
+  --ui-muted: #5b6475;
+  --ui-brand: #2563eb;
+  --ui-brand-strong: #1d4ed8;
+  --ui-brand-soft: #eaf1ff;
   --ui-blue: #2563eb;
   --ui-gold: #c79a45;
   --ui-danger-soft: #fff1f2;
@@ -46,19 +47,20 @@
 
 .dark {
   color-scheme: dark;
-  --ui-bg: #0c1211;
-  --ui-surface: #121a18;
-  --ui-surface-muted: #17201e;
-  --ui-surface-solid: #121a18;
-  --ui-border: #26322f;
-  --ui-border-strong: #35433f;
-  --ui-text: #f3f6f5;
-  --ui-muted: #9aa8a3;
-  --ui-brand: #68c8ff;
-  --ui-brand-soft: rgba(0, 112, 178, 0.22);
-  --ui-danger-soft: rgba(127, 29, 29, 0.28);
-  --ui-warning-soft: rgba(120, 53, 15, 0.28);
-  --ui-success-soft: rgba(6, 78, 59, 0.28);
+  --ui-bg: #0b1220;
+  --ui-surface: #111a2b;
+  --ui-surface-muted: #162235;
+  --ui-surface-solid: #111a2b;
+  --ui-border: #273449;
+  --ui-border-strong: #364963;
+  --ui-text: #e6edf7;
+  --ui-muted: #9aa8c0;
+  --ui-brand: #7aa2ff;
+  --ui-brand-strong: #94b7ff;
+  --ui-brand-soft: rgba(59, 130, 246, 0.18);
+  --ui-danger-soft: rgba(190, 24, 93, 0.24);
+  --ui-warning-soft: rgba(180, 83, 9, 0.24);
+  --ui-success-soft: rgba(21, 128, 61, 0.24);
   --ui-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
   --ui-shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.18);
 }
@@ -98,7 +100,7 @@ button:disabled {
 }
 
 ::selection {
-  background: rgba(0, 112, 178, 0.2);
+  background: color-mix(in srgb, var(--ui-brand) 28%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -116,7 +118,7 @@ button:disabled {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 112, 178, 0.58);
+  background: color-mix(in srgb, var(--ui-brand) 58%, transparent);
 }
 
 .app-bg,
@@ -272,7 +274,7 @@ button:disabled {
   flex: 0 0 38px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 112, 178, 0.16);
+  border: 1px solid color-mix(in srgb, var(--ui-brand) 22%, transparent);
   border-radius: 7px;
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
@@ -285,28 +287,28 @@ button:disabled {
 }
 
 .brand-mark {
-  border: 1px solid rgba(199, 154, 69, 0.38);
+  border: 1px solid color-mix(in srgb, var(--ui-brand) 35%, transparent);
   border-radius: 7px;
-  background: #17211f;
-  color: #e8c879;
-  box-shadow: 0 6px 16px rgba(23, 33, 31, 0.16);
+  background: color-mix(in srgb, var(--ui-brand) 18%, var(--ui-surface));
+  color: var(--ui-brand);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
 }
 
 .dark .brand-mark {
-  border-color: rgba(232, 200, 121, 0.3);
-  background: #e8c879;
-  color: #17211f;
+  border-color: color-mix(in srgb, var(--ui-brand) 42%, transparent);
+  background: color-mix(in srgb, var(--ui-brand) 24%, var(--ui-surface));
+  color: var(--ui-brand-strong);
 }
 
 .user-avatar {
   border-radius: 7px;
-  background: #17211f;
-  color: white;
+  background: color-mix(in srgb, var(--ui-brand) 16%, var(--ui-surface));
+  color: var(--ui-brand-strong);
 }
 
 .dark .user-avatar {
-  background: #f3f6f5;
-  color: #17211f;
+  background: color-mix(in srgb, var(--ui-brand) 22%, var(--ui-surface));
+  color: var(--ui-brand-strong);
 }
 
 .nav-link {
@@ -319,7 +321,7 @@ button:disabled {
 }
 
 .nav-link-active {
-  border-color: rgba(0, 112, 178, 0.18);
+  border-color: color-mix(in srgb, var(--ui-brand) 20%, transparent);
   background: var(--ui-brand-soft);
 }
 
@@ -329,11 +331,11 @@ button:disabled {
   inset: 8px auto 8px 0;
   width: 3px;
   border-radius: 0 2px 2px 0;
-  background: #0070b2;
+  background: var(--ui-brand);
 }
 
 .dark .nav-link-active::before {
-  background: #68c8ff;
+  background: var(--ui-brand-strong);
 }
 
 .top-command-strip {
@@ -385,7 +387,7 @@ button:disabled {
 }
 
 .command-trigger:hover {
-  border-color: rgba(0, 112, 178, 0.38);
+  border-color: color-mix(in srgb, var(--ui-brand) 42%, transparent);
   background: var(--ui-surface);
   color: var(--ui-text);
 }
@@ -447,7 +449,7 @@ kbd {
 
 .command-item:hover,
 .command-item-active {
-  border-color: rgba(0, 112, 178, 0.14);
+  border-color: color-mix(in srgb, var(--ui-brand) 20%, transparent);
   background: var(--ui-brand-soft);
 }
 
@@ -477,7 +479,7 @@ kbd {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #101817;
+  background: color-mix(in srgb, var(--ui-surface) 72%, #020617);
   padding: 48px;
 }
 
@@ -609,13 +611,13 @@ kbd {
 }
 
 .input-premium:hover:not(:disabled) {
-  border-color: rgba(0, 112, 178, 0.42);
+  border-color: color-mix(in srgb, var(--ui-brand) 48%, transparent);
 }
 
 .input-premium:focus {
-  border-color: rgba(0, 112, 178, 0.72);
-  outline-color: rgba(0, 112, 178, 0.2);
-  box-shadow: 0 0 0 3px rgba(0, 112, 178, 0.1);
+  border-color: color-mix(in srgb, var(--ui-brand) 78%, transparent);
+  outline-color: color-mix(in srgb, var(--ui-brand) 26%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-brand) 16%, transparent);
 }
 
 .btn-primary,
@@ -639,16 +641,16 @@ kbd {
 }
 
 .btn-primary {
-  border: 1px solid #0070b2;
-  background: #0070b2;
+  border: 1px solid var(--ui-brand);
+  background: var(--ui-brand);
   color: white;
-  box-shadow: 0 8px 18px rgba(0, 112, 178, 0.2);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-brand) 36%, transparent);
 }
 
 .btn-primary:hover:not(:disabled) {
-  border-color: #005f97;
-  background: #005f97;
-  box-shadow: 0 10px 22px rgba(0, 112, 178, 0.26);
+  border-color: var(--ui-brand-strong);
+  background: var(--ui-brand-strong);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ui-brand) 42%, transparent);
 }
 
 .btn-secondary {
@@ -658,7 +660,7 @@ kbd {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: rgba(0, 112, 178, 0.42);
+  border-color: color-mix(in srgb, var(--ui-brand) 46%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -717,7 +719,7 @@ kbd {
 
 .category-filter:hover,
 .category-filter-active {
-  border-color: rgba(0, 112, 178, 0.34);
+  border-color: color-mix(in srgb, var(--ui-brand) 38%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -744,7 +746,7 @@ kbd {
 
 .pos-product-card:hover:not(:disabled) {
   transform: translateY(-2px);
-  border-color: rgba(0, 112, 178, 0.36);
+  border-color: color-mix(in srgb, var(--ui-brand) 42%, transparent);
   box-shadow: 0 12px 24px rgba(23, 33, 31, 0.11);
 }
 
@@ -785,7 +787,7 @@ kbd {
 }
 
 .product-placeholder-lacteos {
-  color: #0070b2;
+  color: var(--ui-brand);
 }
 
 .product-placeholder-pan {
@@ -869,15 +871,15 @@ kbd {
   flex: 0 0 30px;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 112, 178, 0.22);
+  border: 1px solid color-mix(in srgb, var(--ui-brand) 28%, transparent);
   border-radius: 6px;
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
 
 .pos-product-card:hover:not(:disabled) .product-add-button {
-  border-color: #0070b2;
-  background: #0070b2;
+  border-color: var(--ui-brand);
+  background: var(--ui-brand);
   color: white;
 }
 
@@ -917,9 +919,9 @@ kbd {
   min-height: 52px;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid #0070b2;
+  border: 1px solid var(--ui-brand);
   border-radius: 8px;
-  background: #0070b2;
+  background: var(--ui-brand);
   padding: 0 18px;
   color: white;
   box-shadow: 0 16px 34px rgba(15, 23, 42, 0.28);
@@ -974,7 +976,7 @@ kbd {
 
 .payment-option:hover,
 .payment-option-active {
-  border-color: rgba(0, 112, 178, 0.42);
+  border-color: color-mix(in srgb, var(--ui-brand) 48%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -991,14 +993,14 @@ kbd {
 
 .quick-cash:hover,
 .quick-cash-active {
-  border-color: rgba(0, 112, 178, 0.4);
+  border-color: color-mix(in srgb, var(--ui-brand) 46%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
 
 .status-chip,
 .payment-change {
-  border: 1px solid rgba(0, 112, 178, 0.2);
+  border: 1px solid color-mix(in srgb, var(--ui-brand) 26%, transparent);
   border-radius: 999px;
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
@@ -1089,7 +1091,7 @@ kbd {
 }
 
 .summary-card-icon-brand {
-  border-color: rgba(0, 112, 178, 0.18);
+  border-color: color-mix(in srgb, var(--ui-brand) 24%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -1403,7 +1405,7 @@ kbd {
 }
 
 .table-action-button:hover {
-  border-color: rgba(0, 112, 178, 0.2);
+  border-color: color-mix(in srgb, var(--ui-brand) 26%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -1495,7 +1497,7 @@ kbd {
 }
 
 .payment-badge-transfer {
-  border-color: rgba(0, 112, 178, 0.2);
+  border-color: color-mix(in srgb, var(--ui-brand) 26%, transparent);
   background: var(--ui-brand-soft);
   color: var(--ui-brand);
 }
@@ -1539,9 +1541,9 @@ kbd {
   align-items: center;
   justify-content: center;
   border-radius: 7px;
-  background: #0070b2;
+  background: var(--ui-brand);
   color: white;
-  box-shadow: 0 8px 18px rgba(0, 112, 178, 0.22);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-brand) 36%, transparent);
 }
 
 .receipt-metadata {
@@ -1649,7 +1651,7 @@ kbd {
 }
 
 .surface-hover:hover {
-  border-color: rgba(0, 112, 178, 0.3);
+  border-color: color-mix(in srgb, var(--ui-brand) 34%, transparent);
   background: var(--ui-brand-soft);
 }
 
