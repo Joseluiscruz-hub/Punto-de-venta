@@ -1,4 +1,5 @@
 import { database } from './database.js';
+import { config } from './config.js';
 import { hashPin } from './security.js';
 
 export const seedIds = {
@@ -15,7 +16,14 @@ export async function seedDatabase() {
   ]);
   if (existing.rowCount > 0) return;
 
-  const [adminHash, cashierHash] = await Promise.all([hashPin('1234'), hashPin('0000')]);
+  const adminPin = config.SEED_ADMIN_PIN ?? (config.isProduction ? undefined : '1234');
+  const cashierPin = config.SEED_CASHIER_PIN ?? (config.isProduction ? undefined : '0000');
+  if (!adminPin || !cashierPin) {
+    throw new Error(
+      'SEED_ADMIN_PIN and SEED_CASHIER_PIN are required to initialize an empty production database',
+    );
+  }
+  const [adminHash, cashierHash] = await Promise.all([hashPin(adminPin), hashPin(cashierPin)]);
   await database.transaction(async (client) => {
     await client.query('INSERT INTO tenants (id, code, name, plan) VALUES ($1, $2, $3, $4)', [
       seedIds.tenant,

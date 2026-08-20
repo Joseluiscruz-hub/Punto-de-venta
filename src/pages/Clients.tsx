@@ -110,6 +110,7 @@ export function ClientsView() {
                 <th className="px-4 sm:px-6 py-4">CONTACTO</th>
                 <th className="px-4 sm:px-6 py-4">RFC / TAX ID</th>
                 <th className="px-4 sm:px-6 py-4 text-center">PUNTOS</th>
+                <th className="px-4 sm:px-6 py-4 text-right">SALDO A FAVOR</th>
                 <th className="px-4 sm:px-6 py-4 text-right">TOTAL COMPRADO</th>
                 <th className="px-4 sm:px-6 py-4 text-center">ACCIONES</th>
               </tr>
@@ -155,6 +156,9 @@ export function ClientsView() {
                       {c.points} PTS
                     </span>
                   </td>
+                  <td className="px-4 sm:px-6 py-4 text-right font-black text-emerald-600 tabular-nums">
+                    {formatCurrency(c.storeCredit)}
+                  </td>
                   <td className="px-4 sm:px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
                     {formatCurrency(c.totalSpent)}
                   </td>
@@ -179,7 +183,7 @@ export function ClientsView() {
               {filtered.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="px-6 py-20 text-center text-slate-400 font-medium italic"
                   >
                     No se encontraron clientes registrados
@@ -209,9 +213,9 @@ function ClientModal({
 }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-        <form
+      <form
         onSubmit={onSave}
-          className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800"
+        className="bg-white dark:bg-slate-900 p-5 sm:p-8 rounded-[28px] sm:rounded-[40px] w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800"
       >
         <div className="flex justify-between items-center mb-6 sm:mb-8">
           <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter">

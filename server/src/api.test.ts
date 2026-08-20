@@ -238,3 +238,109 @@ test('distribuye un pago mixto entre efectivo y pago electronico', async () => {
   assert.equal(Number(after.salesCash), Number(before.salesCash) + cashPart);
   assert.equal(Number(after.salesCard), Number(before.salesCard) + product.price - cashPart);
 });
+
+test('registra devoluciones parciales sin permitir devolver mas de lo vendido', async () => {
+  const headers = await authHeaders();
+  await ensureOpenShift(headers);
+  const product = await createSaleProduct(headers);
+  const createdSale = await app.inject({
+    method: 'POST',
+    url: '/api/sales',
+    headers,
+    payload: {
+      externalId: `RETURN-${Date.now()}`,
+      items: [{ id: product.id, quantity: 3 }],
+      paymentMethod: 'CASH',
+      amountTendered: 1000,
+    },
+  });
+  assert.equal(createdSale.statusCode, 201, createdSale.body);
+  const sale = createdSale.json();
+  const shiftBefore = (
+    await app.inject({ method: 'GET', url: '/api/shifts/active', headers })
+  ).json();
+
+  const returned = await app.inject({
+    method: 'POST',
+    url: `/api/sales/${sale.id}/return`,
+    headers,
+    payload: {
+      items: [{ saleItemId: sale.items[0].id, quantity: 1 }],
+      refundMethod: 'CASH',
+      reason: 'Producto danado',
+    },
+  });
+  assert.equal(returned.statusCode, 201, returned.body);
+  assert.equal(returned.json().sale.returnStatus, 'PARTIAL');
+  assert.equal(returned.json().sale.returnedTotal, product.price);
+  assert.equal(returned.json().sale.items[0].returnedQuantity, 1);
+
+  const productsAfterReturn = await app.inject({ method: 'GET', url: '/api/products', headers });
+  const updated = productsAfterReturn.json().find((item: { id: string }) => item.id === product.id);
+  assert.equal(updated.stock, product.stock - 2);
+
+  const shiftAfter = (
+    await app.inject({ method: 'GET', url: '/api/shifts/active', headers })
+  ).json();
+  assert.equal(Number(shiftAfter.expectedCash), Number(shiftBefore.expectedCash) - product.price);
+  assert.equal(Number(shiftAfter.refundsCash), Number(shiftBefore.refundsCash) + product.price);
+
+  const excessive = await app.inject({
+    method: 'POST',
+    url: `/api/sales/${sale.id}/return`,
+    headers,
+    payload: {
+      items: [{ saleItemId: sale.items[0].id, quantity: 3 }],
+      refundMethod: 'CASH',
+      reason: 'Intento duplicado',
+    },
+  });
+  assert.equal(excessive.statusCode, 409);
+
+  const productsAfterRejected = await app.inject({ method: 'GET', url: '/api/products', headers });
+  const unchanged = productsAfterRejected
+    .json()
+    .find((item: { id: string }) => item.id === product.id);
+  assert.equal(unchanged.stock, product.stock - 2);
+});
+
+test('abona una devolucion al saldo a favor del cliente', async () => {
+  const headers = await authHeaders();
+  await ensureOpenShift(headers);
+  const product = await createSaleProduct(headers);
+  const clientsBefore = await app.inject({ method: 'GET', url: '/api/customers', headers });
+  const client = clientsBefore.json().find((item: { id: string }) => item.id);
+  assert.ok(client);
+
+  const createdSale = await app.inject({
+    method: 'POST',
+    url: '/api/sales',
+    headers,
+    payload: {
+      externalId: `CREDIT-RETURN-${Date.now()}`,
+      items: [{ id: product.id, quantity: 1 }],
+      paymentMethod: 'CARD',
+      amountTendered: product.price,
+      clientId: client.id,
+    },
+  });
+  assert.equal(createdSale.statusCode, 201, createdSale.body);
+  const sale = createdSale.json();
+
+  const returned = await app.inject({
+    method: 'POST',
+    url: `/api/sales/${sale.id}/return`,
+    headers,
+    payload: {
+      items: [{ saleItemId: sale.items[0].id, quantity: 1 }],
+      refundMethod: 'STORE_CREDIT',
+      reason: 'Cambio solicitado',
+    },
+  });
+  assert.equal(returned.statusCode, 201, returned.body);
+  assert.equal(returned.json().sale.returnStatus, 'FULL');
+
+  const clientsAfter = await app.inject({ method: 'GET', url: '/api/customers', headers });
+  const updatedClient = clientsAfter.json().find((item: { id: string }) => item.id === client.id);
+  assert.equal(Number(updatedClient.storeCredit), Number(client.storeCredit) + product.price);
+});

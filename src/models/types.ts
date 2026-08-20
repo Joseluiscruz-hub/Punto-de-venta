@@ -5,6 +5,8 @@ export type ISODateString = string;
 export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type Plan = 'BASIC' | 'PRO' | 'PREMIUM';
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
+export type RefundMethod = 'CASH' | 'STORE_CREDIT';
+export type ReturnStatus = 'NONE' | 'PARTIAL' | 'FULL';
 export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH_IN' | 'CASH_OUT';
 export type Feature =
   'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
@@ -26,6 +28,7 @@ export interface Shift {
   status: ShiftStatus;
   salesCash: Money;
   salesCard: Money;
+  refundsCash: Money;
   cashOut: Money; // Gastos o retiros durante el turno
 }
 
@@ -59,6 +62,7 @@ export interface Client {
   phone?: string;
   taxId?: string; // RFC o similar
   points: number;
+  storeCredit: Money;
   totalSpent: Money;
   lastVisit?: ISODateString;
 }
@@ -108,10 +112,38 @@ export interface Sale {
   changeAmount: Money;
   itemsCount: number;
   items?: SaleItemWithName[];
+  returnedTotal: Money;
+  returnStatus: ReturnStatus;
 }
 
 export interface SaleItemWithName extends SaleItem {
   name: string;
+  returnedQuantity: number;
+}
+
+export interface SaleReturnItem {
+  id: Id;
+  returnId: Id;
+  saleItemId: Id;
+  productId: Id;
+  name: string;
+  quantity: number;
+  price: Money;
+  subtotal: Money;
+}
+
+export interface SaleReturn {
+  id: Id;
+  tenantId: Id;
+  storeId: Id;
+  saleId: Id;
+  shiftId: Id;
+  userId: Id;
+  refundMethod: RefundMethod;
+  total: Money;
+  reason: string;
+  createdAt: ISODateString;
+  items: SaleReturnItem[];
 }
 
 export interface StockMovement {
@@ -178,6 +210,17 @@ export interface ProcessSaleInput {
   isOfflineSync?: boolean;
   offlineDate?: ISODateString;
   externalId?: Id;
+}
+
+export interface ReturnSaleInput {
+  items: Array<{ saleItemId: Id; quantity: number }>;
+  refundMethod: RefundMethod;
+  reason: string;
+}
+
+export interface ReturnSaleResult {
+  sale: Sale;
+  saleReturn: SaleReturn;
 }
 
 export interface CashRegister {

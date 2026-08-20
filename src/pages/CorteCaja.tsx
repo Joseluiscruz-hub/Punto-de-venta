@@ -61,7 +61,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
           </div>
 
           {activeShift ? (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Fondo Inicial</p>
                 <p className="text-2xl font-mono font-bold">
@@ -84,8 +84,16 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                   {formatCurrency(activeShift.salesCard)}
                 </p>
               </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">
+                  Reembolsos Efectivo (-)
+                </p>
+                <p className="text-2xl font-mono font-bold text-rose-600">
+                  -{formatCurrency(activeShift.refundsCash)}
+                </p>
+              </div>
 
-              <div className="md:col-span-3 pt-6 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="md:col-span-4 pt-6 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-center md:text-left">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Efectivo Esperado en Caja
@@ -150,6 +158,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
               <tr>
                 <th className="px-4 sm:px-6 py-4">FECHA CIERRE</th>
                 <th className="px-4 sm:px-6 py-4 text-right">ESPERADO</th>
+                <th className="px-4 sm:px-6 py-4 text-right">REEMBOLSOS</th>
                 <th className="px-4 sm:px-6 py-4 text-right">CONTADO</th>
                 <th className="px-4 sm:px-6 py-4 text-right">DIFERENCIA</th>
                 <th className="px-4 sm:px-6 py-4">STATUS</th>
@@ -166,6 +175,9 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right font-bold tabular-nums">
                     {formatCurrency(s.expectedCash)}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-rose-600 tabular-nums">
+                    {formatCurrency(s.refundsCash)}
                   </td>
                   <td className="px-4 sm:px-6 py-4 text-right font-bold tabular-nums">
                     {formatCurrency(s.actualCash || 0)}
@@ -186,7 +198,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
               ))}
               {shifts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">
                     No hay historial de turnos
                   </td>
                 </tr>

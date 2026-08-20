@@ -45,6 +45,19 @@ const saleSchema = z.object({
   clientId: uuid.optional(),
   offlineDate: z.string().datetime().optional(),
 });
+const returnSaleSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        saleItemId: uuid,
+        quantity: z.coerce.number().int().positive().max(99_999_999),
+      }),
+    )
+    .min(1)
+    .max(200),
+  refundMethod: z.enum(['CASH', 'STORE_CREDIT']),
+  reason: z.string().trim().min(3).max(500),
+});
 
 interface ProductRow {
   id: string;
@@ -67,6 +80,7 @@ interface CustomerRow {
   phone: string | null;
   tax_id: string | null;
   points: number;
+  store_credit: string | number;
   total_spent: string | number;
   last_visit: string | null;
 }
@@ -86,6 +100,7 @@ interface ShiftRow {
   status: 'OPEN' | 'CLOSED';
   sales_cash: string | number;
   sales_card: string | number;
+  refunds_cash: string | number;
   cash_out: string | number;
 }
 
@@ -114,6 +129,31 @@ interface SaleItemRow {
   quantity: number;
   price: string | number;
   cost: string | number;
+  subtotal: string | number;
+  returned_quantity?: number;
+}
+
+interface SaleReturnRow {
+  id: string;
+  tenant_id: string;
+  store_id: string;
+  sale_id: string;
+  shift_id: string;
+  user_id: string;
+  refund_method: 'CASH' | 'STORE_CREDIT';
+  total: string | number;
+  reason: string;
+  created_at: string;
+}
+
+interface SaleReturnItemRow {
+  id: string;
+  return_id: string;
+  sale_item_id: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  price: string | number;
   subtotal: string | number;
 }
 
@@ -153,6 +193,7 @@ function mapCustomer(row: CustomerRow) {
     phone: row.phone ?? undefined,
     taxId: row.tax_id ?? undefined,
     points: row.points,
+    storeCredit: money(row.store_credit) ?? 0,
     totalSpent: money(row.total_spent) ?? 0,
     lastVisit: row.last_visit ?? undefined,
   };
@@ -174,15 +215,27 @@ function mapShift(row: ShiftRow) {
     status: row.status,
     salesCash: money(row.sales_cash) ?? 0,
     salesCard: money(row.sales_card) ?? 0,
+    refundsCash: money(row.refunds_cash) ?? 0,
     cashOut: money(row.cash_out) ?? 0,
   };
 }
 
 async function saleDetails(client: QueryClient, sale: SaleRow) {
   const items = await client.query<SaleItemRow>(
-    'SELECT * FROM sale_items WHERE sale_id = $1 ORDER BY id',
+    `SELECT si.*,
+            COALESCE((SELECT SUM(sri.quantity) FROM sale_return_items sri
+                      WHERE sri.sale_item_id = si.id), 0)::integer AS returned_quantity
+     FROM sale_items si WHERE si.sale_id = $1 ORDER BY si.id`,
     [sale.id],
   );
+  const returnSummary = await client.query<{ returned_total: string | number }>(
+    'SELECT COALESCE(SUM(total), 0) AS returned_total FROM sale_returns WHERE sale_id = $1',
+    [sale.id],
+  );
+  const returnedTotal = money(returnSummary.rows[0]?.returned_total ?? 0) ?? 0;
+  const fullyReturned =
+    items.rows.length > 0 &&
+    items.rows.every((item) => (item.returned_quantity ?? 0) >= item.quantity);
   return {
     id: sale.id,
     externalId: sale.external_id ?? undefined,
@@ -207,7 +260,10 @@ async function saleDetails(client: QueryClient, sale: SaleRow) {
       price: money(item.price) ?? 0,
       cost: money(item.cost) ?? 0,
       subtotal: money(item.subtotal) ?? 0,
+      returnedQuantity: item.returned_quantity ?? 0,
     })),
+    returnedTotal,
+    returnStatus: returnedTotal === 0 ? 'NONE' : fullyReturned ? 'FULL' : 'PARTIAL',
   };
 }
 
@@ -798,6 +854,224 @@ export async function coreRoutes(app: FastifyInstance) {
       return saleDetails(client, inserted.rows[0]!);
     });
     return reply.status(201).send(sale);
+  });
+
+  app.post('/sales/:id/return', async (request, reply) => {
+    const { id: saleId } = parse(z.object({ id: uuid }), request.params);
+    const input = parse(returnSaleSchema, request.body);
+    const result = await database.transaction(async (client) => {
+      const context = await resolveStoreContext(request, client);
+      const saleResult = await client.query<SaleRow>(
+        `SELECT * FROM sales
+         WHERE id = $1 AND tenant_id = $2 AND store_id = $3
+         FOR UPDATE`,
+        [saleId, request.user.tenantId, context.storeId],
+      );
+      const sale = saleResult.rows[0];
+      if (!sale) throw new HttpError(404, 'Venta no encontrada', 'SALE_NOT_FOUND');
+
+      const shiftResult = await client.query<ShiftRow>(
+        `SELECT * FROM shifts
+         WHERE tenant_id = $1 AND register_id = $2 AND user_id = $3 AND status = 'OPEN'
+         FOR UPDATE`,
+        [request.user.tenantId, context.registerId, request.user.sub],
+      );
+      const shift = shiftResult.rows[0];
+      if (!shift) {
+        throw new HttpError(
+          409,
+          'Debes abrir un turno antes de registrar una devolucion',
+          'SHIFT_REQUIRED',
+        );
+      }
+      if (input.refundMethod === 'STORE_CREDIT' && !sale.customer_id) {
+        throw new HttpError(
+          409,
+          'La venta debe tener un cliente para generar saldo a favor',
+          'CUSTOMER_REQUIRED_FOR_CREDIT',
+        );
+      }
+
+      const seen = new Set<string>();
+      const lines: Array<{ item: SaleItemRow; quantity: number }> = [];
+      for (const requested of input.items) {
+        if (seen.has(requested.saleItemId)) {
+          throw new HttpError(
+            400,
+            'Hay articulos repetidos en la devolucion',
+            'DUPLICATE_RETURN_ITEM',
+          );
+        }
+        seen.add(requested.saleItemId);
+        const itemResult = await client.query<SaleItemRow>(
+          `SELECT si.*,
+                  COALESCE((SELECT SUM(sri.quantity) FROM sale_return_items sri
+                            WHERE sri.sale_item_id = si.id), 0)::integer AS returned_quantity
+           FROM sale_items si
+           WHERE si.id = $1 AND si.sale_id = $2`,
+          [requested.saleItemId, sale.id],
+        );
+        const item = itemResult.rows[0];
+        if (!item) {
+          throw new HttpError(
+            400,
+            'Uno de los articulos no pertenece a la venta',
+            'INVALID_RETURN_ITEM',
+          );
+        }
+        const availableQuantity = item.quantity - (item.returned_quantity ?? 0);
+        if (requested.quantity > availableQuantity) {
+          throw new HttpError(
+            409,
+            `Solo quedan ${availableQuantity} unidades disponibles para devolver de ${item.product_name}`,
+            'RETURN_QUANTITY_EXCEEDED',
+          );
+        }
+        lines.push({ item, quantity: requested.quantity });
+      }
+
+      const total = roundMoney(
+        lines.reduce((sum, line) => sum + Number(line.item.price) * line.quantity, 0),
+      );
+      const previousReturnSummary = await client.query<{ returned_total: string | number }>(
+        'SELECT COALESCE(SUM(total), 0) AS returned_total FROM sale_returns WHERE sale_id = $1',
+        [sale.id],
+      );
+      const previousReturnedTotal = money(previousReturnSummary.rows[0]?.returned_total ?? 0) ?? 0;
+      const pointsToReverse =
+        Math.floor((previousReturnedTotal + total) * 0.01) -
+        Math.floor(previousReturnedTotal * 0.01);
+      if (input.refundMethod === 'CASH' && (money(shift.expected_cash) ?? 0) < total) {
+        throw new HttpError(
+          409,
+          'El efectivo esperado del turno no cubre el reembolso',
+          'INSUFFICIENT_SHIFT_CASH',
+        );
+      }
+
+      const returnId = randomUUID();
+      const insertedReturn = await client.query<SaleReturnRow>(
+        `INSERT INTO sale_returns
+          (id, tenant_id, store_id, sale_id, shift_id, user_id, refund_method, total, reason)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         RETURNING *`,
+        [
+          returnId,
+          request.user.tenantId,
+          context.storeId,
+          sale.id,
+          shift.id,
+          request.user.sub,
+          input.refundMethod,
+          total,
+          input.reason,
+        ],
+      );
+
+      const returnedItems: SaleReturnItemRow[] = [];
+      for (const line of lines) {
+        const subtotal = roundMoney(Number(line.item.price) * line.quantity);
+        const returnItem = await client.query<SaleReturnItemRow>(
+          `INSERT INTO sale_return_items
+            (id, return_id, sale_item_id, product_id, quantity, price, subtotal)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING *, $8::text AS product_name`,
+          [
+            randomUUID(),
+            returnId,
+            line.item.id,
+            line.item.product_id,
+            line.quantity,
+            line.item.price,
+            subtotal,
+            line.item.product_name,
+          ],
+        );
+        returnedItems.push(returnItem.rows[0]!);
+        await client.query(
+          `UPDATE inventory SET stock = stock + $3, updated_at = now()
+           WHERE store_id = $1 AND product_id = $2`,
+          [context.storeId, line.item.product_id, line.quantity],
+        );
+        await client.query(
+          `INSERT INTO stock_movements
+            (id, tenant_id, store_id, product_id, user_id, sale_id, type, quantity, reason)
+           VALUES ($1, $2, $3, $4, $5, $6, 'RETURN', $7, $8)`,
+          [
+            randomUUID(),
+            request.user.tenantId,
+            context.storeId,
+            line.item.product_id,
+            request.user.sub,
+            sale.id,
+            line.quantity,
+            `Devolucion ${returnId}: ${input.reason}`,
+          ],
+        );
+      }
+
+      if (input.refundMethod === 'CASH') {
+        await client.query(
+          `UPDATE shifts
+           SET expected_cash = expected_cash - $2, refunds_cash = refunds_cash + $2
+           WHERE id = $1`,
+          [shift.id, total],
+        );
+      }
+
+      if (sale.customer_id) {
+        await client.query(
+          `UPDATE customers
+           SET total_spent = GREATEST(0, total_spent - $3),
+               points = GREATEST(0, points - $4),
+               store_credit = store_credit + $5,
+               updated_at = now()
+           WHERE id = $1 AND tenant_id = $2`,
+          [
+            sale.customer_id,
+            request.user.tenantId,
+            total,
+            pointsToReverse,
+            input.refundMethod === 'STORE_CREDIT' ? total : 0,
+          ],
+        );
+      }
+
+      await audit(client, request, 'SALE_RETURNED', 'sale_return', returnId, {
+        saleId: sale.id,
+        total,
+        refundMethod: input.refundMethod,
+        items: lines.length,
+      });
+
+      const row = insertedReturn.rows[0]!;
+      return {
+        sale: await saleDetails(client, sale),
+        saleReturn: {
+          id: row.id,
+          tenantId: row.tenant_id,
+          storeId: row.store_id,
+          saleId: row.sale_id,
+          shiftId: row.shift_id,
+          userId: row.user_id,
+          refundMethod: row.refund_method,
+          total: money(row.total) ?? 0,
+          reason: row.reason,
+          createdAt: row.created_at,
+          items: returnedItems.map((item) => ({
+            id: item.id,
+            returnId: item.return_id,
+            saleItemId: item.sale_item_id,
+            productId: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            price: money(item.price) ?? 0,
+            subtotal: money(item.subtotal) ?? 0,
+          })),
+        },
+      };
+    });
+    return reply.status(201).send(result);
   });
 
   app.get('/sales', async (request) => {

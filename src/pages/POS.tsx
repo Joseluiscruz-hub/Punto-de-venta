@@ -232,6 +232,8 @@ export function POSView() {
           amountTendered,
           changeAmount: paymentMethod === 'CASH' ? amountTendered - cartTotal : 0,
           itemsCount: cartItemsCount,
+          returnedTotal: 0,
+          returnStatus: 'NONE',
           items: cart.map((item) => ({
             id: createOfflineId(),
             productId: item.id,
@@ -241,6 +243,7 @@ export function POSView() {
             price: item.price,
             cost: item.cost,
             subtotal: item.subtotal,
+            returnedQuantity: 0,
           })) as SaleItemWithName[],
         };
         enqueueOfflineSale({ saleId: offlineId, reqContext, saleData: offlineSaleData });

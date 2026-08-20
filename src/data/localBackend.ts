@@ -6,8 +6,12 @@ import type {
   Product,
   ProductView,
   RequestContext,
+  ReturnSaleInput,
+  ReturnSaleResult,
   Sale,
   SaleItem,
+  SaleReturn,
+  SaleReturnItem,
   Shift,
   StockMovement,
   StockMovementView,
@@ -34,6 +38,8 @@ export interface DatabaseState {
   storeProducts: StoreProduct[];
   sales: Sale[];
   saleItems: SaleItem[];
+  returns: SaleReturn[];
+  returnItems: SaleReturnItem[];
   movements: StockMovement[];
   shifts: Shift[];
   clients: Client[];
@@ -88,16 +94,26 @@ function seedDatabase(): DatabaseState {
     storeProducts: [],
     sales: [],
     saleItems: [],
+    returns: [],
+    returnItems: [],
     movements: [],
     shifts: [],
     clients: [
-      { id: 'c1', tenantId: 't1', name: 'Publico General', points: 0, totalSpent: 0 },
+      {
+        id: 'c1',
+        tenantId: 't1',
+        name: 'Publico General',
+        points: 0,
+        storeCredit: 0,
+        totalSpent: 0,
+      },
       {
         id: 'c2',
         tenantId: 't1',
         name: 'Juan Cliente Especial',
         email: 'juan@mail.com',
         points: 150,
+        storeCredit: 0,
         totalSpent: 1250,
       },
     ],
@@ -128,6 +144,26 @@ function isDatabaseState(value: unknown): value is DatabaseState {
 
 function migrateLocalDatabase(database: DatabaseState) {
   let changed = false;
+  if (!Array.isArray(database.returns)) {
+    database.returns = [];
+    changed = true;
+  }
+  if (!Array.isArray(database.returnItems)) {
+    database.returnItems = [];
+    changed = true;
+  }
+  for (const client of database.clients) {
+    if (client.storeCredit === undefined) {
+      client.storeCredit = 0;
+      changed = true;
+    }
+  }
+  for (const shift of database.shifts) {
+    if (shift.refundsCash === undefined) {
+      shift.refundsCash = 0;
+      changed = true;
+    }
+  }
   for (const product of database.products) {
     const genericName = genericSeedProductNames.get(product.name);
     if (genericName) {
@@ -193,6 +229,8 @@ function normalizeProduct(
 
   return product;
 }
+
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 export function createLocalBackend(options: LocalBackendOptions = {}) {
   const storage = options.storage ?? defaultStorage();
@@ -261,15 +299,33 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
     );
     return { ...product, stock: inventory?.stock ?? 0, minStock: inventory?.minStock ?? 0 };
   };
-  const saleWithItems = (db: DatabaseState, sale: Sale): Sale => ({
-    ...sale,
-    items: db.saleItems
+  const saleWithItems = (db: DatabaseState, sale: Sale): Sale => {
+    const items = db.saleItems
       .filter((item) => item.saleId === sale.id)
       .map((item) => ({
         ...item,
         name: db.products.find((product) => product.id === item.productId)?.name ?? 'Desconocido',
-      })),
-  });
+        returnedQuantity: db.returnItems
+          .filter((returned) => returned.saleItemId === item.id)
+          .reduce((sum, returned) => sum + returned.quantity, 0),
+      }));
+    const returnedTotal = roundMoney(
+      db.returns
+        .filter((saleReturn) => saleReturn.saleId === sale.id)
+        .reduce((sum, saleReturn) => sum + saleReturn.total, 0),
+    );
+    return {
+      ...sale,
+      items,
+      returnedTotal,
+      returnStatus:
+        returnedTotal === 0
+          ? 'NONE'
+          : items.every((item) => item.returnedQuantity >= item.quantity)
+            ? 'FULL'
+            : 'PARTIAL',
+    };
+  };
 
   return {
     async login(username: string, pin: string): Promise<LoginResponse> {
@@ -540,6 +596,8 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           amountTendered: input.amountTendered,
           changeAmount: input.paymentMethod === 'CASH' ? input.amountTendered - total : 0,
           itemsCount: lines.reduce((sum, line) => sum + line.quantity, 0),
+          returnedTotal: 0,
+          returnStatus: 'NONE',
         };
         draft.sales.push(sale);
 
@@ -597,6 +655,145 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
       });
     },
 
+    async returnSale(
+      context: RequestContext,
+      saleId: string,
+      input: ReturnSaleInput,
+    ): Promise<ReturnSaleResult> {
+      await wait();
+      if (!input.reason.trim()) throw new Error('El motivo de la devolucion es obligatorio');
+      if (input.items.length === 0)
+        throw new Error('Selecciona al menos un articulo para devolver');
+
+      return transaction((draft) => {
+        const sale = draft.sales.find(
+          (item) =>
+            item.id === saleId &&
+            item.tenantId === context.tenantId &&
+            item.storeId === context.storeId,
+        );
+        if (!sale) throw new Error('Venta no encontrada');
+
+        const shift = draft.shifts.find(
+          (item) =>
+            item.status === 'OPEN' &&
+            item.userId === context.userId &&
+            item.storeId === context.storeId,
+        );
+        if (!shift) throw new Error('Debes abrir un turno antes de registrar una devolucion');
+        if (input.refundMethod === 'STORE_CREDIT' && !sale.clientId) {
+          throw new Error('La venta debe tener un cliente para generar saldo a favor');
+        }
+
+        const seen = new Set<string>();
+        const lines = input.items.map((requested) => {
+          if (seen.has(requested.saleItemId))
+            throw new Error('Hay articulos repetidos en la devolucion');
+          seen.add(requested.saleItemId);
+          if (!Number.isInteger(requested.quantity) || requested.quantity <= 0) {
+            throw new Error('Las cantidades a devolver deben ser enteros positivos');
+          }
+          const saleItem = draft.saleItems.find(
+            (item) => item.id === requested.saleItemId && item.saleId === sale.id,
+          );
+          if (!saleItem) throw new Error('Uno de los articulos no pertenece a la venta');
+          const returnedQuantity = draft.returnItems
+            .filter((item) => item.saleItemId === saleItem.id)
+            .reduce((sum, item) => sum + item.quantity, 0);
+          if (requested.quantity > saleItem.quantity - returnedQuantity) {
+            throw new Error('La cantidad excede las unidades disponibles para devolucion');
+          }
+          const inventory = draft.storeProducts.find(
+            (item) =>
+              item.productId === saleItem.productId &&
+              item.storeId === context.storeId &&
+              item.tenantId === context.tenantId,
+          );
+          if (!inventory) throw new Error('No se encontro el inventario del producto devuelto');
+          return { saleItem, inventory, quantity: requested.quantity };
+        });
+
+        const total = roundMoney(
+          lines.reduce((sum, line) => sum + line.saleItem.price * line.quantity, 0),
+        );
+        const previousReturnedTotal = roundMoney(
+          draft.returns
+            .filter((saleReturn) => saleReturn.saleId === sale.id)
+            .reduce((sum, saleReturn) => sum + saleReturn.total, 0),
+        );
+        const pointsToReverse =
+          Math.floor((previousReturnedTotal + total) * 0.01) -
+          Math.floor(previousReturnedTotal * 0.01);
+        if (input.refundMethod === 'CASH' && shift.expectedCash < total) {
+          throw new Error('El efectivo esperado del turno no cubre el reembolso');
+        }
+
+        const returnId = createId('return');
+        const createdAt = now().toISOString();
+        const saleReturn: SaleReturn = {
+          id: returnId,
+          tenantId: context.tenantId,
+          storeId: context.storeId,
+          saleId: sale.id,
+          shiftId: shift.id,
+          userId: context.userId,
+          refundMethod: input.refundMethod,
+          total,
+          reason: input.reason.trim(),
+          createdAt,
+          items: [],
+        };
+
+        for (const line of lines) {
+          const product = draft.products.find((item) => item.id === line.saleItem.productId);
+          const subtotal = roundMoney(line.saleItem.price * line.quantity);
+          const returnItem: SaleReturnItem = {
+            id: createId('return-item'),
+            returnId,
+            saleItemId: line.saleItem.id,
+            productId: line.saleItem.productId,
+            name: product?.name ?? 'Desconocido',
+            quantity: line.quantity,
+            price: line.saleItem.price,
+            subtotal,
+          };
+          saleReturn.items.push(returnItem);
+          draft.returnItems.push(returnItem);
+          line.inventory.stock += line.quantity;
+          draft.movements.push({
+            id: createId('movement'),
+            tenantId: context.tenantId,
+            storeId: context.storeId,
+            productId: line.saleItem.productId,
+            userId: context.userId,
+            type: 'RETURN',
+            quantity: line.quantity,
+            date: createdAt,
+            reason: `Devolucion ${returnId}: ${saleReturn.reason}`,
+          });
+        }
+        draft.returns.push(saleReturn);
+
+        if (input.refundMethod === 'CASH') {
+          shift.expectedCash = roundMoney(shift.expectedCash - total);
+          shift.refundsCash = roundMoney(shift.refundsCash + total);
+        }
+
+        if (sale.clientId) {
+          const client = draft.clients.find((item) => item.id === sale.clientId);
+          if (client) {
+            client.totalSpent = Math.max(0, roundMoney(client.totalSpent - total));
+            client.points = Math.max(0, client.points - pointsToReverse);
+            if (input.refundMethod === 'STORE_CREDIT') {
+              client.storeCredit = roundMoney(client.storeCredit + total);
+            }
+          }
+        }
+
+        return { sale: saleWithItems(draft, sale), saleReturn };
+      });
+    },
+
     async getActiveShift(context: RequestContext): Promise<Shift | null> {
       await wait();
       return clone(
@@ -632,6 +829,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           status: 'OPEN',
           salesCash: 0,
           salesCard: 0,
+          refundsCash: 0,
           cashOut: 0,
         };
         draft.shifts.push(shift);
@@ -704,6 +902,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           phone: input.phone?.trim() || undefined,
           taxId: input.taxId?.trim() || undefined,
           points: 0,
+          storeCredit: 0,
           totalSpent: 0,
         };
         draft.clients.push(client);

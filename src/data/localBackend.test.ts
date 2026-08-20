@@ -116,3 +116,39 @@ test('actualiza el efectivo esperado del turno al vender en efectivo', async () 
   assert.equal(shift?.salesCash, product.price);
   assert.equal(shift?.expectedCash, 500 + product.price);
 });
+
+test('revierte inventario y efectivo al devolver parcialmente una venta', async () => {
+  const backend = testBackend();
+  const product = await createSaleProduct(backend);
+  await backend.openShift(context, 500);
+  const sale = await backend.processSale(context, {
+    items: [cartLine(product, 3)],
+    paymentMethod: 'CASH',
+    amountTendered: 100,
+  });
+
+  const result = await backend.returnSale(context, sale.id, {
+    items: [{ saleItemId: sale.items![0].id, quantity: 1 }],
+    refundMethod: 'CASH',
+    reason: 'Producto danado',
+  });
+
+  assert.equal(result.sale.returnStatus, 'PARTIAL');
+  assert.equal(result.sale.returnedTotal, product.price);
+  assert.equal(result.sale.items?.[0].returnedQuantity, 1);
+  assert.equal(
+    (await backend.getStoreProducts(context)).find((item) => item.id === product.id)?.stock,
+    4,
+  );
+  assert.equal((await backend.getActiveShift(context))?.expectedCash, 500 + product.price * 2);
+  assert.equal((await backend.getActiveShift(context))?.refundsCash, product.price);
+
+  await assert.rejects(
+    backend.returnSale(context, sale.id, {
+      items: [{ saleItemId: sale.items![0].id, quantity: 3 }],
+      refundMethod: 'CASH',
+      reason: 'Cantidad incorrecta',
+    }),
+    /excede las unidades disponibles/,
+  );
+});

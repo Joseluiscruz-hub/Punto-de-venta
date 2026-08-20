@@ -5,6 +5,8 @@ import type {
   ProcessSaleInput,
   ProductView,
   RequestContext,
+  ReturnSaleInput,
+  ReturnSaleResult,
   Sale,
   Session,
   Shift,
@@ -143,6 +145,18 @@ export const remoteBackend = {
         clientId: sale.clientId,
         offlineDate: sale.offlineDate,
       }),
+    });
+  },
+
+  async returnSale(
+    context: RequestContext,
+    saleId: string,
+    input: ReturnSaleInput,
+  ): Promise<ReturnSaleResult> {
+    return request(`/sales/${saleId}/return`, {
+      method: 'POST',
+      headers: contextHeaders(context),
+      body: JSON.stringify(input),
     });
   },
 

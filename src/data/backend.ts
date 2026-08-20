@@ -5,6 +5,8 @@ import type {
   ProcessSaleInput,
   ProductView,
   RequestContext,
+  ReturnSaleInput,
+  ReturnSaleResult,
   Sale,
   Shift,
   StockMovementView,
@@ -24,6 +26,11 @@ export interface BackendContract {
   ): Promise<ProductView>;
   saveProductsBulk(context: RequestContext, products: CreateProductInput[]): Promise<void>;
   processSale(context: RequestContext, sale: ProcessSaleInput): Promise<Sale>;
+  returnSale(
+    context: RequestContext,
+    saleId: string,
+    input: ReturnSaleInput,
+  ): Promise<ReturnSaleResult>;
   getActiveShift(context: RequestContext): Promise<Shift | null>;
   openShift(context: RequestContext, initialCash: number): Promise<Shift>;
   closeShift(context: RequestContext, actualCash: number): Promise<Shift>;

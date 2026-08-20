@@ -10,6 +10,8 @@ Base empresarial para el punto de venta El Triunfo. El repositorio contiene una 
 - JWT de corta duracion y renovacion mediante cookie `HttpOnly` con rotacion.
 - Catalogo, inventario por sucursal, clientes, turnos, ventas y movimientos.
 - Ventas atomicas con bloqueo de existencias e idempotencia para sincronizacion offline.
+- Devoluciones parciales auditadas con reversion atomica de inventario, reembolso en efectivo o
+  saldo a favor y proteccion contra devoluciones duplicadas.
 - Auditoria de operaciones administrativas y financieras.
 - Migraciones SQL compatibles con PostgreSQL.
 - PGlite para ejecutar PostgreSQL localmente sin instalar servicios adicionales.
@@ -30,21 +32,25 @@ Este comando inicia:
 
 La API aplica migraciones y crea los datos provisionales durante el primer arranque.
 
-## Acceso provisional
+## Acceso local provisional
 
 | Organizacion | Usuario | PIN    | Rol           |
 | ------------ | ------- | ------ | ------------- |
 | `EL-TRIUNFO` | `admin` | `1234` | Administrador |
 | `EL-TRIUNFO` | `caja1` | `0000` | Cajero        |
 
-Estos PIN deben cambiarse antes de publicar el sistema.
+Estas credenciales solo se crean en desarrollo y pruebas. Una base de produccion vacia exige
+`SEED_ADMIN_PIN` y `SEED_CASHIER_PIN` de al menos 6 caracteres; deben ser valores unicos y retirarse
+del entorno despues de inicializar la base.
 
 ## PostgreSQL externo
 
 1. Crea una base vacia.
 2. Copia `.env.example` como `.env`.
 3. Define `DATABASE_URL` y un `JWT_SECRET` aleatorio de al menos 32 caracteres.
-4. Ejecuta:
+4. Configura `WEB_ORIGIN` con el dominio HTTPS real. El arranque de produccion rechaza PGlite,
+   origenes locales y el secreto JWT de desarrollo.
+5. Ejecuta:
 
 ```bash
 npm run db:migrate
@@ -68,6 +74,36 @@ npm run lint
 npm run build
 npm audit
 ```
+
+El workflow de GitHub Pages ejecuta instalacion reproducible, lint, pruebas y compilacion de la API
+antes de construir y desplegar la demo estatica.
+
+## Devoluciones y reembolsos
+
+Desde el historial de Ventas se puede registrar una devolucion parcial o total:
+
+1. Selecciona los articulos y cantidades recibidas.
+2. Elige reembolso en efectivo o saldo a favor. El saldo requiere una venta asociada a un cliente.
+3. Captura el motivo y confirma la operacion.
+
+La API bloquea la venta durante el proceso, evita devolver mas unidades de las vendidas, repone el
+inventario, registra movimientos `RETURN` y genera el evento de auditoria `SALE_RETURNED`. Los
+reembolsos en efectivo reducen el efectivo esperado y aparecen por separado en Corte de Caja.
+
+La migracion `002_sales_returns.sql` crea el historial normalizado de devoluciones y agrega
+`refunds_cash` a los turnos y `store_credit` a los clientes. Las migraciones se aplican
+automaticamente al iniciar la API o manualmente con `npm run db:migrate`.
+
+## Requisitos de produccion
+
+Cuando `NODE_ENV=production`, la API no inicia si falta alguno de estos controles:
+
+- `DATABASE_URL` hacia PostgreSQL externo.
+- `JWT_SECRET` aleatorio de al menos 32 caracteres.
+- `WEB_ORIGIN` con uno o mas origenes HTTPS reales.
+- `SEED_ADMIN_PIN` y `SEED_CASHIER_PIN` al inicializar una base vacia.
+
+Los PIN de inicializacion deben eliminarse del entorno despues de ejecutar el seed.
 
 ## Importacion de productos
 
@@ -107,6 +143,7 @@ npm run assets:generate-products
 - `src/`: PWA y adaptadores de datos.
 - `server/src/`: API, autenticacion, permisos y servicios.
 - `server/migrations/`: esquema versionado de PostgreSQL.
+- `docs/product-roadmap.md`: estado verificable y siguiente incremento del roadmap.
 - `docker-compose.yml`: PostgreSQL opcional para desarrollo.
 - `.env.example`: variables requeridas y valores de referencia.
 

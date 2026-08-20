@@ -6,15 +6,18 @@ import {
   Printer,
   QrCode,
   ReceiptText,
+  RotateCcw,
   Search,
   TrendingUp,
   X,
 } from 'lucide-react';
-import { Sale, PaymentMethod } from '../models/types';
+import { Sale, PaymentMethod, type ReturnSaleResult } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
-import { Button, Panel, SegmentedControl, TextInput } from '../components/ui';
+import { Button, Panel, SegmentedControl, StatusBadge, TextInput } from '../components/ui';
+import { ReturnSaleDialog } from '../components/sales/ReturnSaleDialog';
 import {
   normalizeText,
   startOfPeriod,
@@ -37,8 +40,10 @@ type SalesPeriod = 'TODAY' | 'WEEK' | 'MONTH' | 'ALL';
 
 export function SalesView() {
   const { reqContext, store } = useAuth();
+  const { addNotification } = useNotification();
   const [sales, setSales] = useState<Sale[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Sale | null>(null);
+  const [selectedReturn, setSelectedReturn] = useState<Sale | null>(null);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 140);
   const [period, setPeriod] = useState<SalesPeriod>('ALL');
@@ -96,8 +101,16 @@ export function SalesView() {
   }, [sales, debouncedSearch, period, methodFilter]);
 
   const summary = useMemo(() => {
-    const total = filtered.reduce((sum, sale) => sum + sale.total, 0);
-    const items = filtered.reduce((sum, sale) => sum + sale.itemsCount, 0);
+    const total = filtered.reduce((sum, sale) => sum + sale.total - sale.returnedTotal, 0);
+    const items = filtered.reduce(
+      (sum, sale) =>
+        sum +
+        (sale.items?.reduce(
+          (saleItems, item) => saleItems + item.quantity - item.returnedQuantity,
+          0,
+        ) ?? sale.itemsCount),
+      0,
+    );
     return {
       count: filtered.length,
       total,
@@ -105,6 +118,21 @@ export function SalesView() {
       avg: filtered.length ? total / filtered.length : 0,
     };
   }, [filtered]);
+
+  const handleReturnCompleted = useCallback(
+    (result: ReturnSaleResult) => {
+      setSales((current) =>
+        current.map((sale) => (sale.id === result.sale.id ? result.sale : sale)),
+      );
+      setSelectedReturn(null);
+      addNotification(
+        `Devolucion registrada por ${formatCurrency(result.saleReturn.total)}.`,
+        'success',
+      );
+      window.dispatchEvent(new Event(SALES_UPDATED_EVENT));
+    },
+    [addNotification],
+  );
 
   const methodOptions: Array<{ key: 'ALL' | PaymentMethod; label: string }> = [
     { key: 'ALL', label: 'Todos' },
@@ -115,13 +143,25 @@ export function SalesView() {
   ];
 
   const exportCsv = () => {
-    const header = ['ID', 'Fecha', 'Metodo', 'Articulos', 'Total', 'Recibido', 'Cambio'];
+    const header = [
+      'ID',
+      'Fecha',
+      'Metodo',
+      'Articulos',
+      'Total bruto',
+      'Devuelto',
+      'Total neto',
+      'Recibido',
+      'Cambio',
+    ];
     const lines = filtered.map((sale) => [
       sale.id,
       new Date(sale.datetime).toLocaleString(),
       PAYMENT_LABELS[sale.paymentMethod] ?? sale.paymentMethod,
       sale.itemsCount,
       sale.total,
+      sale.returnedTotal,
+      sale.total - sale.returnedTotal,
       sale.amountTendered,
       sale.changeAmount,
     ]);
@@ -143,6 +183,14 @@ export function SalesView() {
           sale={selectedReceipt}
           onClose={() => setSelectedReceipt(null)}
           storeName={store?.name ?? 'Sucursal'}
+        />
+      )}
+      {selectedReturn && (
+        <ReturnSaleDialog
+          sale={selectedReturn}
+          context={reqContext}
+          onClose={() => setSelectedReturn(null)}
+          onCompleted={handleReturnCompleted}
         />
       )}
 
@@ -181,9 +229,9 @@ export function SalesView() {
             <CircleDollarSign size={19} />
           </span>
           <div>
-            <p>Ingreso del periodo</p>
+            <p>Ingreso neto del periodo</p>
             <strong>{formatCurrency(summary.total)}</strong>
-            <span>Total cobrado</span>
+            <span>Ventas menos devoluciones</span>
           </div>
         </div>
         <div className="summary-card">
@@ -271,26 +319,45 @@ export function SalesView() {
                       <p>Ticket</p>
                       <h3>#{shortTicketId(sale.id)}</h3>
                     </div>
-                    <PaymentBadge method={sale.paymentMethod} />
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <PaymentBadge method={sale.paymentMethod} />
+                      <ReturnStatusBadge sale={sale} />
+                    </div>
                   </div>
 
                   <time dateTime={sale.datetime}>{formatSaleDate(sale.datetime)}</time>
 
                   <div className="sale-record-amount">
-                    <span>Total cobrado</span>
-                    <strong>{formatCurrency(sale.total)}</strong>
+                    <span>Total neto</span>
+                    <strong>{formatCurrency(sale.total - sale.returnedTotal)}</strong>
+                    {sale.returnedTotal > 0 && (
+                      <small className="text-xs font-bold text-rose-600">
+                        Devuelto: {formatCurrency(sale.returnedTotal)}
+                      </small>
+                    )}
                   </div>
 
                   <div className="sale-record-card-footer">
                     <span>{sale.itemsCount} artículos</span>
-                    <Button
-                      variant="secondary"
-                      icon={<Printer size={16} />}
-                      onClick={() => setSelectedReceipt(sale)}
-                      className="h-10 gap-2 px-3"
-                    >
-                      Comprobante
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="secondary"
+                        icon={<Printer size={16} />}
+                        onClick={() => setSelectedReceipt(sale)}
+                        className="h-10 gap-2 px-3"
+                      >
+                        Comprobante
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        icon={<RotateCcw size={16} />}
+                        onClick={() => setSelectedReturn(sale)}
+                        disabled={sale.returnStatus === 'FULL'}
+                        className="h-10 gap-2 px-3"
+                      >
+                        Devolver
+                      </Button>
+                    </div>
                   </div>
                 </article>
               ))}
@@ -303,9 +370,10 @@ export function SalesView() {
                     <th>Ticket</th>
                     <th>Fecha y hora</th>
                     <th>Método de pago</th>
+                    <th>Estado</th>
                     <th className="text-center">Artículos</th>
-                    <th className="text-right">Total</th>
-                    <th className="text-right">Comprobante</th>
+                    <th className="text-right">Total neto</th>
+                    <th className="text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -318,19 +386,44 @@ export function SalesView() {
                       <td>
                         <PaymentBadge method={sale.paymentMethod} />
                       </td>
+                      <td>
+                        <ReturnStatusBadge sale={sale} />
+                      </td>
                       <td className="text-center font-bold text-slate-500">{sale.itemsCount}</td>
                       <td className="text-right font-bold text-slate-950 dark:text-white tabular-nums">
-                        {formatCurrency(sale.total)}
+                        <span>{formatCurrency(sale.total - sale.returnedTotal)}</span>
+                        {sale.returnedTotal > 0 && (
+                          <small className="mt-1 block text-[0.65rem] font-bold text-rose-600">
+                            -{formatCurrency(sale.returnedTotal)} devuelto
+                          </small>
+                        )}
                       </td>
                       <td className="text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedReceipt(sale)}
-                          className="table-action-button"
-                          aria-label={`Abrir comprobante ${shortTicketId(sale.id)}`}
-                        >
-                          <Printer size={16} />
-                        </button>
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReceipt(sale)}
+                            className="table-action-button"
+                            aria-label={`Abrir comprobante ${shortTicketId(sale.id)}`}
+                            title="Abrir comprobante"
+                          >
+                            <Printer size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedReturn(sale)}
+                            className="table-action-button"
+                            aria-label={`Devolver articulos del ticket ${shortTicketId(sale.id)}`}
+                            title={
+                              sale.returnStatus === 'FULL'
+                                ? 'Venta devuelta por completo'
+                                : 'Registrar devolucion'
+                            }
+                            disabled={sale.returnStatus === 'FULL'}
+                          >
+                            <RotateCcw size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -361,6 +454,12 @@ function PaymentBadge({ method }: { method: PaymentMethod }) {
       {PAYMENT_LABELS[method] ?? method}
     </span>
   );
+}
+
+function ReturnStatusBadge({ sale }: { sale: Sale }) {
+  if (sale.returnStatus === 'FULL') return <StatusBadge tone="danger">Devuelta</StatusBadge>;
+  if (sale.returnStatus === 'PARTIAL') return <StatusBadge tone="warning">Parcial</StatusBadge>;
+  return <StatusBadge tone="success">Vigente</StatusBadge>;
 }
 
 function SalesEmptyState({
@@ -472,6 +571,7 @@ function ReceiptModal({
                   <p>{item.name}</p>
                   <span>
                     {item.quantity} × {formatCurrency(item.price)}
+                    {item.returnedQuantity > 0 ? ` · ${item.returnedQuantity} devueltas` : ''}
                   </span>
                 </div>
                 <strong>{formatCurrency(item.subtotal)}</strong>
@@ -486,10 +586,13 @@ function ReceiptModal({
 
           <div className="receipt-total">
             <div>
-              <p>Total pagado</p>
-              <span>{sale.itemsCount} artículos</span>
+              <p>{sale.returnedTotal > 0 ? 'Total neto' : 'Total pagado'}</p>
+              <span>
+                {sale.itemsCount} artículos
+                {sale.returnedTotal > 0 ? ` · ${formatCurrency(sale.returnedTotal)} devuelto` : ''}
+              </span>
             </div>
-            <strong>{formatCurrency(sale.total)}</strong>
+            <strong>{formatCurrency(sale.total - sale.returnedTotal)}</strong>
           </div>
         </div>
 
