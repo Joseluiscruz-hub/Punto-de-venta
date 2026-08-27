@@ -10,12 +10,15 @@ Base empresarial para el punto de venta El Triunfo. El repositorio contiene una 
 - JWT de corta duracion y renovacion mediante cookie `HttpOnly` con rotacion.
 - Catalogo, inventario por sucursal, clientes, turnos, ventas y movimientos.
 - Ventas atomicas con bloqueo de existencias e idempotencia para sincronizacion offline.
+- Entradas y retiros de efectivo por turno, idempotentes, con motivo y auditoria.
 - Devoluciones parciales auditadas con reversion atomica de inventario, reembolso en efectivo o
   saldo a favor y proteccion contra devoluciones duplicadas.
 - Auditoria de operaciones administrativas y financieras.
 - Migraciones SQL compatibles con PostgreSQL.
 - PGlite para ejecutar PostgreSQL localmente sin instalar servicios adicionales.
 - Docker Compose opcional para usar PostgreSQL convencional.
+
+Requiere Node.js 22.12 o posterior.
 
 ## Inicio local
 
@@ -31,6 +34,8 @@ Este comando inicia:
 - Base local persistente: `.data/postgres`
 
 La API aplica migraciones y crea los datos provisionales durante el primer arranque.
+El catalogo inicia vacio a proposito: entra como administrador y crea o importa los productos reales
+antes de habilitar la caja.
 
 ## Acceso local provisional
 
@@ -47,7 +52,8 @@ del entorno despues de inicializar la base.
 
 1. Crea una base vacia.
 2. Copia `.env.example` como `.env`.
-3. Define `DATABASE_URL` y un `JWT_SECRET` aleatorio de al menos 32 caracteres.
+3. Cambia `NODE_ENV` a `production` y define `DATABASE_URL` y un `JWT_SECRET` aleatorio de al
+   menos 32 caracteres.
 4. Configura `WEB_ORIGIN` con el dominio HTTPS real. El arranque de produccion rechaza PGlite,
    origenes locales y el secreto JWT de desarrollo.
 5. Ejecuta:
@@ -55,8 +61,15 @@ del entorno despues de inicializar la base.
 ```bash
 npm run db:migrate
 npm run db:seed
-npm run dev
+npm run build
+npm start
 ```
+
+`npm start` sirve la aplicacion y la API desde el mismo proceso en `API_PORT`. Coloca un proxy HTTPS
+delante del servicio y usa esa misma URL en `WEB_ORIGIN`. El frontend compilado usa la API por
+defecto; el backend local del navegador solo se activa con `VITE_BACKEND_MODE=local`. Conserva
+`server/migrations/` junto con la aplicacion desplegada porque el arranque verifica y aplica las
+migraciones pendientes.
 
 Con Docker disponible puede iniciarse la base incluida:
 
@@ -94,6 +107,15 @@ La migracion `002_sales_returns.sql` crea el historial normalizado de devolucion
 `refunds_cash` a los turnos y `store_credit` a los clientes. Las migraciones se aplican
 automaticamente al iniciar la API o manualmente con `npm run db:migrate`.
 
+## Operacion de caja
+
+En **Caja y turnos** se pueden registrar entradas y retiros con monto y motivo. Cada movimiento
+actualiza el efectivo esperado, queda ligado al turno y genera un evento de auditoria. El cierre
+solicita confirmacion cuando la diferencia supera `CASH_DIFFERENCE_THRESHOLD` (50 MXN por defecto).
+
+Si un cajero abandona una sesion con la caja abierta, un administrador o gerente asignado a la misma
+caja puede recuperar el turno y cerrarlo; no es necesario modificar la base de datos manualmente.
+
 ## Requisitos de produccion
 
 Cuando `NODE_ENV=production`, la API no inicia si falta alguno de estos controles:
@@ -102,6 +124,9 @@ Cuando `NODE_ENV=production`, la API no inicia si falta alguno de estos controle
 - `JWT_SECRET` aleatorio de al menos 32 caracteres.
 - `WEB_ORIGIN` con uno o mas origenes HTTPS reales.
 - `SEED_ADMIN_PIN` y `SEED_CASHIER_PIN` al inicializar una base vacia.
+
+`CASH_DIFFERENCE_THRESHOLD` es opcional y define el monto a partir del cual se exige confirmar una
+diferencia de caja; si no se configura, usa 50 MXN.
 
 Los PIN de inicializacion deben eliminarse del entorno despues de ejecutar el seed.
 

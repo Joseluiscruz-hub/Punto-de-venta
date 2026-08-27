@@ -1,5 +1,7 @@
 import type {
+  CashMovement,
   Client,
+  CreateCashMovementInput,
   CreateProductInput,
   LoginResponse,
   ProcessSaleInput,
@@ -179,6 +181,24 @@ export const remoteBackend = {
       method: 'POST',
       headers: contextHeaders(context),
       body: JSON.stringify({ actualCash }),
+    });
+  },
+
+  async addCashMovement(
+    context: RequestContext,
+    shiftId: string,
+    movement: CreateCashMovementInput,
+  ): Promise<CashMovement> {
+    return request(`/shifts/${shiftId}/cash-movements`, {
+      method: 'POST',
+      headers: contextHeaders(context),
+      body: JSON.stringify(movement),
+    });
+  },
+
+  async getCashMovements(context: RequestContext, shiftId: string): Promise<CashMovement[]> {
+    return request(`/shifts/${shiftId}/cash-movements`, {
+      headers: contextHeaders(context),
     });
   },
 

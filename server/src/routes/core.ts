@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
+import { config } from '../config.js';
 import { database, type QueryClient } from '../database.js';
 import { audit, authenticate, authorize, HttpError, parse, resolveStoreContext } from '../http.js';
 
@@ -24,6 +25,9 @@ const productSchema = z.object({
   price: z.coerce.number().min(0).max(99_999_999),
   stock: z.coerce.number().int().min(0).max(99_999_999),
   minStock: z.coerce.number().int().min(0).max(99_999_999),
+});
+const updateProductSchema = productSchema.extend({
+  expectedStock: z.coerce.number().int().min(0).max(99_999_999),
 });
 const productsBulkSchema = z.object({
   products: z.array(productSchema).min(1).max(1000),
@@ -57,6 +61,16 @@ const returnSaleSchema = z.object({
     .max(200),
   refundMethod: z.enum(['CASH', 'STORE_CREDIT']),
   reason: z.string().trim().min(3).max(500),
+});
+const cashMovementSchema = z.object({
+  externalId: z.string().trim().min(1).max(100),
+  type: z.enum(['CASH_IN', 'CASH_OUT']),
+  amount: z.coerce
+    .number()
+    .positive()
+    .max(99_999_999)
+    .refine((value) => roundMoney(value) === value, 'El monto admite como máximo dos decimales'),
+  reason: z.string().trim().min(3).max(300),
 });
 
 interface ProductRow {
@@ -101,7 +115,22 @@ interface ShiftRow {
   sales_cash: string | number;
   sales_card: string | number;
   refunds_cash: string | number;
+  cash_in: string | number;
   cash_out: string | number;
+}
+
+interface CashMovementRow {
+  id: string;
+  external_id: string;
+  tenant_id: string;
+  store_id: string;
+  register_id: string;
+  shift_id: string;
+  user_id: string;
+  type: 'CASH_IN' | 'CASH_OUT';
+  amount: string | number;
+  reason: string;
+  created_at: string;
 }
 
 interface SaleRow {
@@ -216,8 +245,86 @@ function mapShift(row: ShiftRow) {
     salesCash: money(row.sales_cash) ?? 0,
     salesCard: money(row.sales_card) ?? 0,
     refundsCash: money(row.refunds_cash) ?? 0,
+    cashIn: money(row.cash_in) ?? 0,
     cashOut: money(row.cash_out) ?? 0,
+    differenceThreshold: config.CASH_DIFFERENCE_THRESHOLD,
   };
+}
+
+function mapCashMovement(row: CashMovementRow) {
+  return {
+    id: row.id,
+    externalId: row.external_id,
+    tenantId: row.tenant_id,
+    storeId: row.store_id,
+    registerId: row.register_id,
+    shiftId: row.shift_id,
+    userId: row.user_id,
+    type: row.type,
+    amount: money(row.amount) ?? 0,
+    reason: row.reason,
+    createdAt: row.created_at,
+  };
+}
+
+function canOperateShift(request: FastifyRequest, shift: ShiftRow) {
+  return (
+    shift.user_id === request.user.sub ||
+    request.user.role === 'ADMIN' ||
+    request.user.role === 'MANAGER'
+  );
+}
+
+function assertCanOperateShift(request: FastifyRequest, shift: ShiftRow) {
+  if (!canOperateShift(request, shift)) {
+    throw new HttpError(
+      403,
+      'La caja está abierta por otro cajero. Solicita apoyo de un administrador o gerente.',
+      'SHIFT_ACCESS_DENIED',
+    );
+  }
+}
+
+function assertSaleReplayScope(
+  request: FastifyRequest,
+  context: { storeId: string; registerId: string },
+  sale: SaleRow,
+) {
+  if (
+    sale.store_id !== context.storeId ||
+    sale.register_id !== context.registerId ||
+    (sale.cashier_id !== request.user.sub &&
+      request.user.role !== 'ADMIN' &&
+      request.user.role !== 'MANAGER')
+  ) {
+    throw new HttpError(
+      409,
+      'El identificador de la venta ya fue utilizado en otra operación',
+      'IDEMPOTENCY_KEY_REUSED',
+    );
+  }
+}
+
+function assertCashMovementReplayScope(
+  request: FastifyRequest,
+  context: { storeId: string; registerId: string },
+  shiftId: string,
+  movement: CashMovementRow,
+) {
+  if (
+    movement.store_id !== context.storeId ||
+    movement.register_id !== context.registerId ||
+    movement.shift_id !== shiftId ||
+    (movement.user_id !== request.user.sub &&
+      request.user.role !== 'ADMIN' &&
+      request.user.role !== 'MANAGER')
+  ) {
+    throw new HttpError(
+      409,
+      'El identificador del movimiento ya fue utilizado en otra operación',
+      'IDEMPOTENCY_KEY_REUSED',
+    );
+  }
 }
 
 async function saleDetails(client: QueryClient, sale: SaleRow) {
@@ -481,7 +588,7 @@ export async function coreRoutes(app: FastifyInstance) {
 
   app.put('/products/:id', { preHandler: authorize('ADMIN', 'MANAGER') }, async (request) => {
     const { id } = parse(z.object({ id: uuid }), request.params);
-    const input = parse(productSchema, request.body);
+    const input = parse(updateProductSchema, request.body);
     return database.transaction(async (client) => {
       const context = await resolveStoreContext(request, client);
       const existing = await client.query<{ stock: number }>(
@@ -491,6 +598,13 @@ export async function coreRoutes(app: FastifyInstance) {
       );
       if (!existing.rows[0])
         throw new HttpError(404, 'Producto no encontrado', 'PRODUCT_NOT_FOUND');
+      if (existing.rows[0].stock !== input.expectedStock) {
+        throw new HttpError(
+          409,
+          'La existencia cambio mientras editabas. Recarga el producto antes de ajustar el stock.',
+          'INVENTORY_CHANGED',
+        );
+      }
       await client.query(
         `UPDATE products SET barcode = $3, name = $4, category = $5, image_url = $6, cost = $7, price = $8, updated_at = now()
          WHERE id = $1 AND tenant_id = $2`,
@@ -611,10 +725,13 @@ export async function coreRoutes(app: FastifyInstance) {
   app.get('/shifts/active', async (request) => {
     const context = await resolveStoreContext(request, database);
     const result = await database.query<ShiftRow>(
-      `SELECT * FROM shifts WHERE tenant_id = $1 AND register_id = $2 AND user_id = $3 AND status = 'OPEN' LIMIT 1`,
-      [request.user.tenantId, context.registerId, request.user.sub],
+      `SELECT * FROM shifts WHERE tenant_id = $1 AND register_id = $2 AND status = 'OPEN' LIMIT 1`,
+      [request.user.tenantId, context.registerId],
     );
-    return result.rows[0] ? mapShift(result.rows[0]) : null;
+    const shift = result.rows[0];
+    if (!shift) return null;
+    assertCanOperateShift(request, shift);
+    return mapShift(shift);
   });
 
   app.get('/shifts', async (request) => {
@@ -667,18 +784,134 @@ export async function coreRoutes(app: FastifyInstance) {
     );
     return database.transaction(async (client) => {
       const context = await resolveStoreContext(request, client);
+      const canCloseOtherShift = request.user.role === 'ADMIN' || request.user.role === 'MANAGER';
       const result = await client.query<ShiftRow>(
         `UPDATE shifts SET status = 'CLOSED', end_time = now(), actual_cash = $4,
            difference = $4 - expected_cash
-         WHERE id = $1 AND tenant_id = $2 AND register_id = $3 AND user_id = $5 AND status = 'OPEN'
+         WHERE id = $1 AND tenant_id = $2 AND register_id = $3
+           AND (user_id = $5 OR $6::boolean) AND status = 'OPEN'
          RETURNING *`,
-        [id, request.user.tenantId, context.registerId, input.actualCash, request.user.sub],
+        [
+          id,
+          request.user.tenantId,
+          context.registerId,
+          input.actualCash,
+          request.user.sub,
+          canCloseOtherShift,
+        ],
       );
       if (!result.rows[0])
         throw new HttpError(404, 'Turno activo no encontrado', 'SHIFT_NOT_FOUND');
-      await audit(client, request, 'SHIFT_CLOSED', 'shift', id, { actualCash: input.actualCash });
+      const difference = money(result.rows[0].difference) ?? 0;
+      await audit(client, request, 'SHIFT_CLOSED', 'shift', id, {
+        actualCash: input.actualCash,
+        difference,
+        exceedsThreshold: Math.abs(difference) > config.CASH_DIFFERENCE_THRESHOLD,
+        differenceThreshold: config.CASH_DIFFERENCE_THRESHOLD,
+        openedByUserId: result.rows[0].user_id,
+        closedByDifferentUser: result.rows[0].user_id !== request.user.sub,
+      });
       return mapShift(result.rows[0]);
     });
+  });
+
+  app.get('/shifts/:id/cash-movements', async (request) => {
+    const { id } = parse(z.object({ id: uuid }), request.params);
+    const context = await resolveStoreContext(request, database);
+    const shift = await database.query<{ id: string }>(
+      'SELECT id FROM shifts WHERE id = $1 AND tenant_id = $2 AND store_id = $3',
+      [id, request.user.tenantId, context.storeId],
+    );
+    if (shift.rowCount === 0) throw new HttpError(404, 'Turno no encontrado', 'SHIFT_NOT_FOUND');
+    const result = await database.query<CashMovementRow>(
+      'SELECT * FROM cash_movements WHERE shift_id = $1 ORDER BY created_at DESC, id DESC',
+      [id],
+    );
+    return result.rows.map(mapCashMovement);
+  });
+
+  app.post('/shifts/:id/cash-movements', async (request, reply) => {
+    const { id } = parse(z.object({ id: uuid }), request.params);
+    const input = parse(cashMovementSchema, request.body);
+    const result = await database.transaction(async (client) => {
+      const context = await resolveStoreContext(request, client);
+      const duplicate = await client.query<CashMovementRow>(
+        'SELECT * FROM cash_movements WHERE tenant_id = $1 AND external_id = $2',
+        [request.user.tenantId, input.externalId],
+      );
+      if (duplicate.rows[0]) {
+        assertCashMovementReplayScope(request, context, id, duplicate.rows[0]);
+        return mapCashMovement(duplicate.rows[0]);
+      }
+
+      const shiftResult = await client.query<ShiftRow>(
+        `SELECT * FROM shifts
+         WHERE id = $1 AND tenant_id = $2 AND store_id = $3 AND register_id = $4
+           AND status = 'OPEN'
+         FOR UPDATE`,
+        [id, request.user.tenantId, context.storeId, context.registerId],
+      );
+      const shift = shiftResult.rows[0];
+      if (!shift) throw new HttpError(404, 'Turno activo no encontrado', 'SHIFT_NOT_FOUND');
+      assertCanOperateShift(request, shift);
+      if (input.type === 'CASH_OUT' && input.amount > Number(shift.expected_cash)) {
+        throw new HttpError(
+          409,
+          'El retiro no puede ser mayor al efectivo esperado en caja',
+          'INSUFFICIENT_CASH',
+        );
+      }
+
+      const movementId = randomUUID();
+      const inserted = await client.query<CashMovementRow>(
+        `INSERT INTO cash_movements
+          (id, external_id, tenant_id, store_id, register_id, shift_id, user_id, type, amount, reason)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         ON CONFLICT (tenant_id, external_id) DO NOTHING
+         RETURNING *`,
+        [
+          movementId,
+          input.externalId,
+          request.user.tenantId,
+          context.storeId,
+          context.registerId,
+          id,
+          request.user.sub,
+          input.type,
+          input.amount,
+          input.reason,
+        ],
+      );
+      if (!inserted.rows[0]) {
+        const existing = await client.query<CashMovementRow>(
+          'SELECT * FROM cash_movements WHERE tenant_id = $1 AND external_id = $2',
+          [request.user.tenantId, input.externalId],
+        );
+        if (!existing.rows[0]) {
+          throw new HttpError(409, 'No se pudo confirmar el movimiento', 'IDEMPOTENCY_CONFLICT');
+        }
+        assertCashMovementReplayScope(request, context, id, existing.rows[0]);
+        return mapCashMovement(existing.rows[0]);
+      }
+      if (input.type === 'CASH_IN') {
+        await client.query(
+          'UPDATE shifts SET cash_in = cash_in + $2, expected_cash = expected_cash + $2 WHERE id = $1',
+          [id, input.amount],
+        );
+      } else {
+        await client.query(
+          'UPDATE shifts SET cash_out = cash_out + $2, expected_cash = expected_cash - $2 WHERE id = $1',
+          [id, input.amount],
+        );
+      }
+      await audit(client, request, input.type, 'cash_movement', movementId, {
+        shiftId: id,
+        amount: input.amount,
+        reason: input.reason,
+      });
+      return mapCashMovement(inserted.rows[0]!);
+    });
+    return reply.status(201).send(result);
   });
 
   app.post('/sales', async (request, reply) => {
@@ -690,19 +923,32 @@ export async function coreRoutes(app: FastifyInstance) {
           'SELECT * FROM sales WHERE tenant_id = $1 AND external_id = $2',
           [request.user.tenantId, input.externalId],
         );
-        if (duplicate.rows[0]) return saleDetails(client, duplicate.rows[0]);
+        if (duplicate.rows[0]) {
+          assertSaleReplayScope(request, context, duplicate.rows[0]);
+          return saleDetails(client, duplicate.rows[0]);
+        }
       }
 
       const shiftResult = await client.query<ShiftRow>(
-        `SELECT * FROM shifts WHERE tenant_id = $1 AND register_id = $2 AND user_id = $3 AND status = 'OPEN' FOR UPDATE`,
-        [request.user.tenantId, context.registerId, request.user.sub],
+        `SELECT * FROM shifts WHERE tenant_id = $1 AND register_id = $2 AND status = 'OPEN' FOR UPDATE`,
+        [request.user.tenantId, context.registerId],
       );
       const shift = shiftResult.rows[0];
       if (!shift)
         throw new HttpError(409, 'Debes abrir un turno antes de vender', 'SHIFT_REQUIRED');
+      assertCanOperateShift(request, shift);
 
+      const requestedItems = Array.from(
+        input.items
+          .reduce(
+            (items, item) => items.set(item.id, (items.get(item.id) ?? 0) + item.quantity),
+            new Map<string, number>(),
+          )
+          .entries(),
+        ([id, quantity]) => ({ id, quantity }),
+      );
       const lines: Array<{ product: ProductRow; quantity: number }> = [];
-      for (const requested of input.items) {
+      for (const requested of requestedItems) {
         const product = await client.query<ProductRow>(
           `SELECT p.id, p.tenant_id, p.barcode, p.name, p.category, p.image_url, p.cost, p.price,
                   i.stock::integer, i.min_stock::integer
@@ -761,6 +1007,7 @@ export async function coreRoutes(app: FastifyInstance) {
           (id, external_id, tenant_id, store_id, register_id, shift_id, cashier_id, customer_id,
            datetime, total, payment_method, amount_tendered, change_amount, items_count)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, COALESCE($9::timestamptz, now()), $10, $11, $12, $13, $14)
+         ON CONFLICT (tenant_id, external_id) WHERE external_id IS NOT NULL DO NOTHING
          RETURNING *`,
         [
           saleId,
@@ -779,6 +1026,17 @@ export async function coreRoutes(app: FastifyInstance) {
           lines.reduce((sum, line) => sum + line.quantity, 0),
         ],
       );
+      if (!inserted.rows[0]) {
+        const existing = await client.query<SaleRow>(
+          'SELECT * FROM sales WHERE tenant_id = $1 AND external_id = $2',
+          [request.user.tenantId, input.externalId],
+        );
+        if (!existing.rows[0]) {
+          throw new HttpError(409, 'No se pudo confirmar la venta', 'IDEMPOTENCY_CONFLICT');
+        }
+        assertSaleReplayScope(request, context, existing.rows[0]);
+        return saleDetails(client, existing.rows[0]);
+      }
 
       for (const line of lines) {
         const subtotal = roundMoney(Number(line.product.price) * line.quantity);
@@ -872,9 +1130,9 @@ export async function coreRoutes(app: FastifyInstance) {
 
       const shiftResult = await client.query<ShiftRow>(
         `SELECT * FROM shifts
-         WHERE tenant_id = $1 AND register_id = $2 AND user_id = $3 AND status = 'OPEN'
+         WHERE tenant_id = $1 AND register_id = $2 AND status = 'OPEN'
          FOR UPDATE`,
-        [request.user.tenantId, context.registerId, request.user.sub],
+        [request.user.tenantId, context.registerId],
       );
       const shift = shiftResult.rows[0];
       if (!shift) {
@@ -884,6 +1142,7 @@ export async function coreRoutes(app: FastifyInstance) {
           'SHIFT_REQUIRED',
         );
       }
+      assertCanOperateShift(request, shift);
       if (input.refundMethod === 'STORE_CREDIT' && !sale.customer_id) {
         throw new HttpError(
           409,

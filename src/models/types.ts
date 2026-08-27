@@ -6,6 +6,7 @@ export type Role = 'ADMIN' | 'MANAGER' | 'CASHIER';
 export type Plan = 'BASIC' | 'PRO' | 'PREMIUM';
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
 export type RefundMethod = 'CASH' | 'STORE_CREDIT';
+export type CashMovementType = 'CASH_IN' | 'CASH_OUT';
 export type ReturnStatus = 'NONE' | 'PARTIAL' | 'FULL';
 export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH_IN' | 'CASH_OUT';
 export type Feature =
@@ -29,7 +30,30 @@ export interface Shift {
   salesCash: Money;
   salesCard: Money;
   refundsCash: Money;
+  cashIn: Money;
   cashOut: Money; // Gastos o retiros durante el turno
+  differenceThreshold: Money;
+}
+
+export interface CashMovement {
+  id: Id;
+  externalId: Id;
+  tenantId: Id;
+  storeId: Id;
+  registerId?: Id;
+  shiftId: Id;
+  userId: Id;
+  type: CashMovementType;
+  amount: Money;
+  reason: string;
+  createdAt: ISODateString;
+}
+
+export interface CreateCashMovementInput {
+  externalId: Id;
+  type: CashMovementType;
+  amount: Money;
+  reason: string;
 }
 
 export interface Tenant {
@@ -195,6 +219,7 @@ export interface CreateProductInput {
 
 export interface UpdateProductInput extends CreateProductInput {
   id: Id;
+  expectedStock: number;
 }
 
 export interface CartItem extends ProductView {

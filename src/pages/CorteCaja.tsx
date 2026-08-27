@@ -1,32 +1,49 @@
-import { useState, useEffect } from 'react';
-import { Landmark } from 'lucide-react';
-import { Shift } from '../models/types';
+import { useCallback, useState, useEffect } from 'react';
+import { ArrowDownCircle, ArrowUpCircle, Landmark } from 'lucide-react';
+import type { CashMovement, CashMovementType, Shift } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
-import { errorMessage, formatCurrency } from '../utils/helpers';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { createOfflineId, errorMessage, formatCurrency } from '../utils/helpers';
 
 export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
   const { reqContext } = useAuth();
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
   const [countedCash, setCountedCash] = useState('');
   const [loading, setLoading] = useState(false);
+  const [movementType, setMovementType] = useState<CashMovementType>('CASH_OUT');
+  const [movementAmount, setMovementAmount] = useState('');
+  const [movementReason, setMovementReason] = useState('');
+  const [movementLoading, setMovementLoading] = useState(false);
+  const [confirmDifference, setConfirmDifference] = useState(false);
+
+  const loadCashData = useCallback(async () => {
+    const [current, history] = await Promise.all([
+      BackendAPI.getActiveShift(reqContext),
+      BackendAPI.getShifts(reqContext),
+    ]);
+    const movements = current ? await BackendAPI.getCashMovements(reqContext, current.id) : [];
+    setActiveShift(current);
+    setShifts(history);
+    setCashMovements(movements);
+  }, [reqContext]);
 
   useEffect(() => {
     let active = true;
-    Promise.all([BackendAPI.getActiveShift(reqContext), BackendAPI.getShifts(reqContext)]).then(
-      ([current, history]) => {
-        if (!active) return;
-        setActiveShift(current);
-        setShifts(history);
-      },
-    );
+    const initialLoad = window.setTimeout(() => {
+      void loadCashData().catch((error) => {
+        if (active) alert(errorMessage(error, 'No se pudo cargar la información de caja'));
+      });
+    }, 0);
     return () => {
       active = false;
+      window.clearTimeout(initialLoad);
     };
-  }, [reqContext]);
+  }, [loadCashData]);
 
-  const handleClose = async () => {
+  const closeShift = async () => {
     if (!activeShift) return;
     setLoading(true);
     try {
@@ -39,8 +56,66 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
     }
   };
 
+  const handleClose = () => {
+    if (!activeShift) return;
+    const counted = Number(countedCash);
+    if (!Number.isFinite(counted) || counted < 0) {
+      alert('Ingresa un efectivo contado válido');
+      return;
+    }
+    if (Math.abs(counted - activeShift.expectedCash) > activeShift.differenceThreshold) {
+      setConfirmDifference(true);
+      return;
+    }
+    void closeShift();
+  };
+
+  const handleCashMovement = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!activeShift) return;
+    const amount = Number(movementAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert('Ingresa un monto mayor a cero');
+      return;
+    }
+    if (movementReason.trim().length < 3) {
+      alert('Describe el motivo del movimiento');
+      return;
+    }
+    setMovementLoading(true);
+    try {
+      await BackendAPI.addCashMovement(reqContext, activeShift.id, {
+        externalId: createOfflineId(),
+        type: movementType,
+        amount,
+        reason: movementReason,
+      });
+      setMovementAmount('');
+      setMovementReason('');
+      await loadCashData();
+    } catch (error) {
+      alert(errorMessage(error, 'No se pudo registrar el movimiento de efectivo'));
+    } finally {
+      setMovementLoading(false);
+    }
+  };
+
   return (
     <div className="view-shell p-4 sm:p-6 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
+      {confirmDifference && activeShift && (
+        <ConfirmDialog
+          title="Diferencia de caja"
+          message={`La diferencia es de ${formatCurrency(
+            Number(countedCash) - activeShift.expectedCash,
+          )}, mayor al umbral de ${formatCurrency(activeShift.differenceThreshold)}. ¿Deseas cerrar y dejarla auditada?`}
+          onCancel={() => setConfirmDifference(false)}
+          onConfirm={() => {
+            setConfirmDifference(false);
+            void closeShift();
+          }}
+          isProcessing={loading}
+        />
+      )}
       <div>
         <p className="section-kicker">Caja segura</p>
         <h2 className="text-3xl font-black tracking-[-0.06em] text-slate-900 dark:text-white flex items-center gap-2">
@@ -61,7 +136,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
           </div>
 
           {activeShift ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-slate-400 uppercase">Fondo Inicial</p>
                 <p className="text-2xl font-mono font-bold">
@@ -93,7 +168,24 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                 </p>
               </div>
 
-              <div className="md:col-span-4 pt-6 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">
+                  Entradas de Caja (+)
+                </p>
+                <p className="text-2xl font-mono font-bold text-emerald-600">
+                  +{formatCurrency(activeShift.cashIn)}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">
+                  Retiros de Caja (-)
+                </p>
+                <p className="text-2xl font-mono font-bold text-amber-600">
+                  -{formatCurrency(activeShift.cashOut)}
+                </p>
+              </div>
+
+              <div className="md:col-span-3 pt-6 border-t border-dashed border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-center md:text-left">
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                     Efectivo Esperado en Caja
@@ -133,6 +225,89 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
 
         {/* Quick Info */}
         <div className="space-y-6">
+          <form
+            onSubmit={handleCashMovement}
+            className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm"
+          >
+            <h4 className="mb-4 text-xs font-bold uppercase">Movimiento de efectivo</h4>
+            <div className="mb-3 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMovementType('CASH_IN')}
+                className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
+                  movementType === 'CASH_IN'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40'
+                    : 'border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <ArrowDownCircle size={16} /> Entrada
+              </button>
+              <button
+                type="button"
+                onClick={() => setMovementType('CASH_OUT')}
+                className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
+                  movementType === 'CASH_OUT'
+                    ? 'border-amber-500 bg-amber-50 text-amber-700 dark:bg-amber-950/40'
+                    : 'border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                <ArrowUpCircle size={16} /> Retiro
+              </button>
+            </div>
+            <input
+              required
+              aria-label="Monto del movimiento"
+              type="number"
+              min="0.01"
+              step="0.01"
+              placeholder="Monto"
+              value={movementAmount}
+              onChange={(event) => setMovementAmount(event.target.value)}
+              className="input-premium mb-3 w-full p-3 text-sm font-bold"
+            />
+            <input
+              required
+              aria-label="Motivo del movimiento"
+              placeholder="Motivo: depósito, cambio, pago..."
+              value={movementReason}
+              onChange={(event) => setMovementReason(event.target.value)}
+              className="input-premium mb-3 w-full p-3 text-sm"
+            />
+            <button
+              type="submit"
+              disabled={movementLoading || !activeShift}
+              className="btn-primary w-full py-3 text-xs disabled:opacity-50"
+            >
+              {movementLoading ? 'Registrando...' : 'Registrar movimiento'}
+            </button>
+
+            {cashMovements.length > 0 && (
+              <div className="mt-4 space-y-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                {cashMovements.slice(0, 4).map((movement) => (
+                  <div key={movement.id} className="flex items-start justify-between gap-3 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{movement.reason}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {new Date(movement.createdAt).toLocaleTimeString('es-MX', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <strong
+                      className={
+                        movement.type === 'CASH_IN' ? 'text-emerald-600' : 'text-amber-600'
+                      }
+                    >
+                      {movement.type === 'CASH_IN' ? '+' : '-'}
+                      {formatCurrency(movement.amount)}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
+
           <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               <Landmark className="text-primary-light" />
@@ -140,8 +315,9 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
               El cierre de turno es una operación crítica. Asegúrate de contar todas las
-              denominaciones antes de ingresar el monto final. Las diferencias mayores a $50.00
-              dispararán una alerta administrativa.
+              denominaciones antes de ingresar el monto final. Las diferencias mayores a{' '}
+              {formatCurrency(activeShift?.differenceThreshold ?? 50)} quedarán confirmadas y
+              auditadas.
             </p>
           </div>
         </div>
@@ -159,6 +335,8 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                 <th className="px-4 sm:px-6 py-4">FECHA CIERRE</th>
                 <th className="px-4 sm:px-6 py-4 text-right">ESPERADO</th>
                 <th className="px-4 sm:px-6 py-4 text-right">REEMBOLSOS</th>
+                <th className="px-4 sm:px-6 py-4 text-right">ENTRADAS</th>
+                <th className="px-4 sm:px-6 py-4 text-right">RETIROS</th>
                 <th className="px-4 sm:px-6 py-4 text-right">CONTADO</th>
                 <th className="px-4 sm:px-6 py-4 text-right">DIFERENCIA</th>
                 <th className="px-4 sm:px-6 py-4">STATUS</th>
@@ -179,6 +357,12 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                   <td className="px-4 sm:px-6 py-4 text-right font-bold text-rose-600 tabular-nums">
                     {formatCurrency(s.refundsCash)}
                   </td>
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-emerald-600 tabular-nums">
+                    {formatCurrency(s.cashIn)}
+                  </td>
+                  <td className="px-4 sm:px-6 py-4 text-right font-bold text-amber-600 tabular-nums">
+                    {formatCurrency(s.cashOut)}
+                  </td>
                   <td className="px-4 sm:px-6 py-4 text-right font-bold tabular-nums">
                     {formatCurrency(s.actualCash || 0)}
                   </td>
@@ -198,7 +382,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
               ))}
               {shifts.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400 italic">
                     No hay historial de turnos
                   </td>
                 </tr>

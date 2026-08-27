@@ -1,5 +1,7 @@
 import type {
+  CashMovement,
   Client,
+  CreateCashMovementInput,
   CreateProductInput,
   LoginResponse,
   ProcessSaleInput,
@@ -34,6 +36,12 @@ export interface BackendContract {
   getActiveShift(context: RequestContext): Promise<Shift | null>;
   openShift(context: RequestContext, initialCash: number): Promise<Shift>;
   closeShift(context: RequestContext, actualCash: number): Promise<Shift>;
+  addCashMovement(
+    context: RequestContext,
+    shiftId: string,
+    movement: CreateCashMovementInput,
+  ): Promise<CashMovement>;
+  getCashMovements(context: RequestContext, shiftId: string): Promise<CashMovement[]>;
   getShifts(context: RequestContext): Promise<Shift[]>;
   getClients(context: Pick<RequestContext, 'tenantId' | 'storeId'>): Promise<Client[]>;
   saveClient(
@@ -57,8 +65,8 @@ const localContract: BackendContract = {
   logout: async () => undefined,
 };
 
-const useApi =
-  import.meta.env.VITE_BACKEND_MODE === 'api' ||
-  (import.meta.env.VITE_BACKEND_MODE !== 'local' && import.meta.env.DEV);
+// A production build must never fall back silently to browser-only demo data.
+// The local backend is opt-in and is used only by the GitHub Pages demo.
+const useApi = import.meta.env.VITE_BACKEND_MODE !== 'local';
 
 export const BackendAPI: BackendContract = useApi ? remoteBackend : localContract;

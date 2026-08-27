@@ -5,9 +5,16 @@ interface ConfirmDialogProps {
   message: string;
   onConfirm: () => void;
   onCancel: () => void;
+  isProcessing?: boolean;
 }
 
-export function ConfirmDialog({ title, message, onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  isProcessing = false,
+}: ConfirmDialogProps) {
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
@@ -29,14 +36,19 @@ export function ConfirmDialog({ title, message, onConfirm, onCancel }: ConfirmDi
           {message}
         </p>
         <div className="flex gap-3">
-          <button onClick={onCancel} className="btn-secondary flex-1 py-3 text-xs">
+          <button
+            onClick={onCancel}
+            disabled={isProcessing}
+            className="btn-secondary flex-1 py-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+          >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className="btn-primary flex-1 py-3 text-xs bg-error hover:bg-red-600 border-error"
+            disabled={isProcessing}
+            className="btn-primary flex-1 py-3 text-xs bg-error hover:bg-red-600 border-error disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Confirmar
+            {isProcessing ? 'Procesando...' : 'Confirmar'}
           </button>
         </div>
       </div>

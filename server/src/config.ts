@@ -17,6 +17,7 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32).default('local-development-secret-change-before-production'),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_DAYS: z.coerce.number().int().min(1).max(90).default(7),
+  CASH_DIFFERENCE_THRESHOLD: z.coerce.number().min(0).max(99_999_999).default(50),
   SEED_ADMIN_PIN: optionalSecret,
   SEED_CASHIER_PIN: optionalSecret,
 });

@@ -9,8 +9,9 @@ auditoria y pruebas automatizadas cuando corresponda.
 - [ ] Corte de caja (avance parcial):
   - [x] turno activo, efectivo esperado, arqueo, diferencia e historial;
   - [x] devoluciones en efectivo visibles y descontadas del esperado;
-  - [ ] retiros/entradas de efectivo con motivo y auditoria;
-  - [ ] reporte imprimible y umbral de diferencia configurable.
+  - [x] retiros/entradas de efectivo con motivo, idempotencia y auditoria;
+  - [x] umbral de diferencia configurable y confirmacion auditada;
+  - [ ] reporte imprimible del corte.
 - [x] Devoluciones parciales:
   - reversion atomica de inventario;
   - control de cantidades ya devueltas;
@@ -60,7 +61,7 @@ auditoria y pruebas automatizadas cuando corresponda.
 
 ## Criterio para el siguiente incremento
 
-El siguiente incremento del Sprint 1 es completar Corte de Caja con retiros/entradas auditados,
-reporte imprimible y umbral configurable. Antes de iniciar CFDI se deben proporcionar o elegir:
+El siguiente incremento del Sprint 1 es completar el reporte imprimible del corte. Antes de iniciar
+CFDI se deben proporcionar o elegir:
 PAC, ambiente sandbox, datos fiscales de prueba, politica de almacenamiento de XML/PDF y
 responsable del certificado.

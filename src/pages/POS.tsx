@@ -35,7 +35,8 @@ import {
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { AlertDialog } from '../components/AlertDialog';
 import { ProductCard, ProductVisual } from '../components/pos/ProductCard';
-import { PaymentModal, SaleSuccessDialog } from '../components/pos/SaleDialogs';
+import { PaymentModal } from '../components/pos/SaleDialogs';
+import { ReceiptModal } from '../components/sales/ReceiptModal';
 import { Button, EmptyState, IconButton, SelectInput, TextInput } from '../components/ui';
 
 function shouldQueueOfflineSale(error: unknown) {
@@ -51,7 +52,7 @@ function shouldQueueOfflineSale(error: unknown) {
 }
 
 export function POSView() {
-  const { reqContext, tenant } = useAuth();
+  const { reqContext, tenant, store } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export function POSView() {
   const [isCatalogLoading, setIsCatalogLoading] = useState(true);
   const [actionToast, setActionToast] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const processingSaleRef = useRef(false);
 
   // CRM State
   const [clients, setClients] = useState<Client[]>([]);
@@ -202,26 +204,44 @@ export function POSView() {
   };
 
   const handleProcessSale = async (paymentMethod: PaymentMethod, amountTendered: number) => {
+    if (processingSaleRef.current) return;
+    processingSaleRef.current = true;
     setIsProcessing(true);
     try {
+      // The same identifier is used for the first request and any offline retry. If the
+      // response is lost after the server commits, synchronisation returns the original sale.
+      const saleAttemptId = createOfflineId();
       const saleData: ProcessSaleInput = {
         items: cart,
         paymentMethod,
         amountTendered,
         clientId: selectedClientId,
+        externalId: saleAttemptId,
       };
 
       let result: Sale;
+      let queuedOffline = false;
       const soldItems = cart.map((item) => ({ id: item.id, quantity: item.quantity }));
+      const applySoldStockLocally = () => {
+        setProducts((currentProducts) =>
+          currentProducts.map((product) => {
+            const sold = soldItems.find((item) => item.id === product.id);
+            return sold
+              ? { ...product, stock: Math.max(0, product.stock - sold.quantity) }
+              : product;
+          }),
+        );
+      };
 
       const queueOfflineSale = () => {
         if (!hasFeature(tenant, 'OFFLINE'))
           throw new Error('Modo offline no disponible en tu plan.');
-        const offlineId = createOfflineId();
+        queuedOffline = true;
         const offlineDate = new Date().toISOString();
         const offlineSaleData = { ...saleData, offlineDate };
         const offlineSale: Sale = {
-          id: offlineId,
+          id: saleAttemptId,
+          externalId: saleAttemptId,
           tenantId: reqContext.tenantId,
           storeId: reqContext.storeId,
           cashierId: reqContext.userId,
@@ -237,7 +257,7 @@ export function POSView() {
           items: cart.map((item) => ({
             id: createOfflineId(),
             productId: item.id,
-            saleId: offlineId,
+            saleId: saleAttemptId,
             name: item.name,
             quantity: item.quantity,
             price: item.price,
@@ -246,7 +266,7 @@ export function POSView() {
             returnedQuantity: 0,
           })) as SaleItemWithName[],
         };
-        enqueueOfflineSale({ saleId: offlineId, reqContext, saleData: offlineSaleData });
+        enqueueOfflineSale({ saleId: saleAttemptId, reqContext, saleData: offlineSaleData });
         setIsOnline(false);
         return offlineSale;
       };
@@ -274,22 +294,16 @@ export function POSView() {
         saleData: result,
       });
 
-      if (isOnline) {
+      if (!queuedOffline) {
         try {
           const updatedProducts = await BackendAPI.getStoreProducts(reqContext);
           setProducts(updatedProducts);
         } catch (refreshError) {
+          applySoldStockLocally();
           showActionToast(errorMessage(refreshError, 'Venta guardada; no se actualizó catálogo'));
         }
       } else {
-        setProducts((currentProducts) =>
-          currentProducts.map((product) => {
-            const sold = soldItems.find((item) => item.id === product.id);
-            return sold
-              ? { ...product, stock: Math.max(0, product.stock - sold.quantity) }
-              : product;
-          }),
-        );
+        applySoldStockLocally();
       }
     } catch (error) {
       setAlertInfo({
@@ -297,6 +311,7 @@ export function POSView() {
         message: errorMessage(error, 'No se pudo procesar la venta.'),
       });
     } finally {
+      processingSaleRef.current = false;
       setIsProcessing(false);
     }
   };
@@ -339,11 +354,16 @@ export function POSView() {
             handleProcessSale(confirmSaleInfo.paymentMethod, confirmSaleInfo.amountTendered)
           }
           onCancel={() => setConfirmSaleInfo(null)}
+          isProcessing={isProcessing}
         />
       )}
       {alertInfo &&
         (alertInfo.saleData ? (
-          <SaleSuccessDialog sale={alertInfo.saleData} onClose={() => setAlertInfo(null)} />
+          <ReceiptModal
+            sale={alertInfo.saleData}
+            storeName={store?.name ?? 'Sucursal'}
+            onClose={() => setAlertInfo(null)}
+          />
         ) : (
           <AlertDialog
             title={alertInfo.title}

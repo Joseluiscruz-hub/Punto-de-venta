@@ -1,5 +1,7 @@
 import type {
+  CashMovement,
   Client,
+  CreateCashMovementInput,
   CreateProductInput,
   LoginResponse,
   ProcessSaleInput,
@@ -41,6 +43,7 @@ export interface DatabaseState {
   returns: SaleReturn[];
   returnItems: SaleReturnItem[];
   movements: StockMovement[];
+  cashMovements: CashMovement[];
   shifts: Shift[];
   clients: Client[];
 }
@@ -97,6 +100,7 @@ function seedDatabase(): DatabaseState {
     returns: [],
     returnItems: [],
     movements: [],
+    cashMovements: [],
     shifts: [],
     clients: [
       {
@@ -124,6 +128,24 @@ function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function canOperateShift(state: DatabaseState, context: RequestContext, shift: Shift) {
+  const user = state.users.find(
+    (candidate) =>
+      candidate.id === context.userId &&
+      candidate.tenantId === context.tenantId &&
+      candidate.storeId === context.storeId,
+  );
+  return shift.userId === context.userId || user?.role === 'ADMIN' || user?.role === 'MANAGER';
+}
+
+function assertCanOperateShift(state: DatabaseState, context: RequestContext, shift: Shift) {
+  if (!canOperateShift(state, context, shift)) {
+    throw new Error(
+      'La caja está abierta por otro cajero. Solicita apoyo de un administrador o gerente.',
+    );
+  }
+}
+
 function isDatabaseState(value: unknown): value is DatabaseState {
   if (!value || typeof value !== 'object') return false;
   const candidate = value as Partial<DatabaseState>;
@@ -144,6 +166,10 @@ function isDatabaseState(value: unknown): value is DatabaseState {
 
 function migrateLocalDatabase(database: DatabaseState) {
   let changed = false;
+  if (!Array.isArray(database.cashMovements)) {
+    database.cashMovements = [];
+    changed = true;
+  }
   if (!Array.isArray(database.returns)) {
     database.returns = [];
     changed = true;
@@ -161,6 +187,14 @@ function migrateLocalDatabase(database: DatabaseState) {
   for (const shift of database.shifts) {
     if (shift.refundsCash === undefined) {
       shift.refundsCash = 0;
+      changed = true;
+    }
+    if (shift.cashIn === undefined) {
+      shift.cashIn = 0;
+      changed = true;
+    }
+    if (shift.differenceThreshold === undefined) {
+      shift.differenceThreshold = 50;
       changed = true;
     }
   }
@@ -453,6 +487,12 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           draft.storeProducts.push(inventory);
         }
 
+        if (!('expectedStock' in productData) || inventory.stock !== productData.expectedStock) {
+          throw new Error(
+            'La existencia cambio mientras editabas. Recarga el producto antes de ajustar el stock.',
+          );
+        }
+
         const adjustment = productData.stock - inventory.stock;
         inventory.stock = productData.stock;
         inventory.minStock = productData.minStock;
@@ -541,10 +581,40 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             (sale) => sale.externalId === input.externalId && sale.tenantId === context.tenantId,
           )
         : undefined;
-      if (existing) return clone(saleWithItems(database, existing));
+      if (existing) {
+        const canReplay =
+          existing.storeId === context.storeId &&
+          (existing.cashierId === context.userId ||
+            database.users.find((user) => user.id === context.userId)?.role === 'ADMIN' ||
+            database.users.find((user) => user.id === context.userId)?.role === 'MANAGER');
+        if (!canReplay)
+          throw new Error('El identificador de la venta ya fue utilizado en otra operación');
+        return clone(saleWithItems(database, existing));
+      }
 
       return transaction((draft) => {
-        const lines = input.items.map((requested) => {
+        const shift = draft.shifts.find(
+          (item) =>
+            item.status === 'OPEN' &&
+            item.tenantId === context.tenantId &&
+            item.storeId === context.storeId,
+        );
+        if (!shift) throw new Error('Debes abrir un turno antes de vender');
+        assertCanOperateShift(draft, context, shift);
+
+        const requestedItems = Array.from(
+          input.items
+            .reduce((items, item) => {
+              const previous = items.get(item.id);
+              items.set(item.id, {
+                ...item,
+                quantity: (previous?.quantity ?? 0) + item.quantity,
+              });
+              return items;
+            }, new Map<string, ProcessSaleInput['items'][number]>())
+            .values(),
+        );
+        const lines = requestedItems.map((requested) => {
           if (!Number.isInteger(requested.quantity) || requested.quantity <= 0) {
             throw new Error(`La cantidad de ${requested.name} no es valida`);
           }
@@ -635,20 +705,12 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           client.lastVisit = sale.datetime;
         }
 
-        const shift = draft.shifts.find(
-          (item) =>
-            item.status === 'OPEN' &&
-            item.userId === context.userId &&
-            item.storeId === context.storeId,
-        );
-        if (shift) {
-          if (cashPortion > 0) {
-            shift.salesCash += cashPortion;
-            shift.expectedCash += cashPortion;
-          }
-          if (electronicPortion > 0) {
-            shift.salesCard += electronicPortion;
-          }
+        if (cashPortion > 0) {
+          shift.salesCash += cashPortion;
+          shift.expectedCash += cashPortion;
+        }
+        if (electronicPortion > 0) {
+          shift.salesCard += electronicPortion;
         }
 
         return saleWithItems(draft, sale);
@@ -677,10 +739,11 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
         const shift = draft.shifts.find(
           (item) =>
             item.status === 'OPEN' &&
-            item.userId === context.userId &&
+            item.tenantId === context.tenantId &&
             item.storeId === context.storeId,
         );
         if (!shift) throw new Error('Debes abrir un turno antes de registrar una devolucion');
+        assertCanOperateShift(draft, context, shift);
         if (input.refundMethod === 'STORE_CREDIT' && !sale.clientId) {
           throw new Error('La venta debe tener un cliente para generar saldo a favor');
         }
@@ -796,14 +859,15 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
 
     async getActiveShift(context: RequestContext): Promise<Shift | null> {
       await wait();
-      return clone(
-        database.shifts.find(
-          (shift) =>
-            shift.status === 'OPEN' &&
-            shift.userId === context.userId &&
-            shift.storeId === context.storeId,
-        ) ?? null,
+      const shift = database.shifts.find(
+        (candidate) =>
+          candidate.status === 'OPEN' &&
+          candidate.tenantId === context.tenantId &&
+          candidate.storeId === context.storeId,
       );
+      if (!shift) return null;
+      assertCanOperateShift(database, context, shift);
+      return clone(shift);
     },
 
     async openShift(context: RequestContext, initialCash: number): Promise<Shift> {
@@ -814,10 +878,10 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
         const existing = draft.shifts.find(
           (shift) =>
             shift.status === 'OPEN' &&
-            shift.userId === context.userId &&
+            shift.tenantId === context.tenantId &&
             shift.storeId === context.storeId,
         );
-        if (existing) throw new Error('Ya existe un turno abierto para este usuario');
+        if (existing) throw new Error('La caja ya tiene un turno abierto');
         const shift: Shift = {
           id: createId('shift'),
           tenantId: context.tenantId,
@@ -830,7 +894,9 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           salesCash: 0,
           salesCard: 0,
           refundsCash: 0,
+          cashIn: 0,
           cashOut: 0,
+          differenceThreshold: 50,
         };
         draft.shifts.push(shift);
         return shift;
@@ -845,16 +911,97 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
         const shift = draft.shifts.find(
           (item) =>
             item.status === 'OPEN' &&
-            item.userId === context.userId &&
+            item.tenantId === context.tenantId &&
             item.storeId === context.storeId,
         );
         if (!shift) throw new Error('No hay un turno activo para cerrar');
+        assertCanOperateShift(draft, context, shift);
         shift.status = 'CLOSED';
         shift.endTime = now().toISOString();
         shift.actualCash = actualCash;
         shift.difference = actualCash - shift.expectedCash;
         return shift;
       });
+    },
+
+    async addCashMovement(
+      context: RequestContext,
+      shiftId: string,
+      input: CreateCashMovementInput,
+    ): Promise<CashMovement> {
+      await wait();
+      const reason = input.reason.trim();
+      if (!input.externalId.trim())
+        throw new Error('El identificador del movimiento es obligatorio');
+      if (!Number.isFinite(input.amount) || input.amount <= 0)
+        throw new Error('El monto debe ser mayor a cero');
+      if (roundMoney(input.amount) !== input.amount)
+        throw new Error('El monto admite como máximo dos decimales');
+      if (reason.length < 3) throw new Error('Describe el motivo del movimiento');
+      return transaction((draft) => {
+        const duplicate = draft.cashMovements.find(
+          (movement) =>
+            movement.tenantId === context.tenantId && movement.externalId === input.externalId,
+        );
+        if (duplicate) {
+          const canReplay =
+            duplicate.storeId === context.storeId &&
+            duplicate.shiftId === shiftId &&
+            (duplicate.userId === context.userId ||
+              draft.users.find((user) => user.id === context.userId)?.role === 'ADMIN' ||
+              draft.users.find((user) => user.id === context.userId)?.role === 'MANAGER');
+          if (!canReplay)
+            throw new Error('El identificador del movimiento ya fue utilizado en otra operación');
+          return duplicate;
+        }
+        const shift = draft.shifts.find(
+          (item) =>
+            item.id === shiftId &&
+            item.status === 'OPEN' &&
+            item.tenantId === context.tenantId &&
+            item.storeId === context.storeId,
+        );
+        if (!shift) throw new Error('No hay un turno activo para registrar el movimiento');
+        assertCanOperateShift(draft, context, shift);
+        if (input.type === 'CASH_OUT' && input.amount > shift.expectedCash) {
+          throw new Error('El retiro no puede ser mayor al efectivo esperado en caja');
+        }
+        const movement: CashMovement = {
+          id: createId('cash-movement'),
+          externalId: input.externalId,
+          tenantId: context.tenantId,
+          storeId: context.storeId,
+          shiftId,
+          userId: context.userId,
+          type: input.type,
+          amount: roundMoney(input.amount),
+          reason,
+          createdAt: now().toISOString(),
+        };
+        draft.cashMovements.push(movement);
+        if (movement.type === 'CASH_IN') {
+          shift.cashIn = roundMoney(shift.cashIn + movement.amount);
+          shift.expectedCash = roundMoney(shift.expectedCash + movement.amount);
+        } else {
+          shift.cashOut = roundMoney(shift.cashOut + movement.amount);
+          shift.expectedCash = roundMoney(shift.expectedCash - movement.amount);
+        }
+        return movement;
+      });
+    },
+
+    async getCashMovements(context: RequestContext, shiftId: string): Promise<CashMovement[]> {
+      await wait();
+      return clone(
+        database.cashMovements
+          .filter(
+            (movement) =>
+              movement.tenantId === context.tenantId &&
+              movement.storeId === context.storeId &&
+              movement.shiftId === shiftId,
+          )
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      );
     },
 
     async getShifts(context: RequestContext): Promise<Shift[]> {

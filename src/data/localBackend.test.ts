@@ -16,6 +16,7 @@ class MemoryStorage {
 }
 
 const context: RequestContext = { tenantId: 't1', storeId: 's1', userId: 'u1' };
+const cashierContext: RequestContext = { tenantId: 't1', storeId: 's1', userId: 'u2' };
 
 function testBackend(storage = new MemoryStorage()) {
   let sequence = 0;
@@ -64,6 +65,7 @@ test('persiste los cambios de inventario entre instancias', async () => {
 test('rechaza una venta sin stock sin modificar el inventario', async () => {
   const backend = testBackend();
   const product = await createSaleProduct(backend);
+  await backend.openShift(context, 500);
 
   await assert.rejects(
     backend.processSale(context, {
@@ -84,6 +86,7 @@ test('rechaza una venta sin stock sin modificar el inventario', async () => {
 test('una venta offline repetida se registra una sola vez', async () => {
   const backend = testBackend();
   const product = await createSaleProduct(backend);
+  await backend.openShift(context, 500);
   const input = {
     items: [cartLine(product, 2)],
     paymentMethod: 'CASH' as const,
@@ -115,6 +118,84 @@ test('actualiza el efectivo esperado del turno al vender en efectivo', async () 
   const shift = await backend.getActiveShift(context);
   assert.equal(shift?.salesCash, product.price);
   assert.equal(shift?.expectedCash, 500 + product.price);
+});
+
+test('registra movimientos de efectivo locales sin duplicarlos', async () => {
+  const backend = testBackend();
+  const shift = await backend.openShift(context, 500);
+  const cashIn = {
+    externalId: 'LOCAL-CASH-IN-001',
+    type: 'CASH_IN' as const,
+    amount: 100,
+    reason: 'Cambio adicional',
+  };
+  const first = await backend.addCashMovement(context, shift.id, cashIn);
+  const repeated = await backend.addCashMovement(context, shift.id, cashIn);
+  assert.equal(repeated.id, first.id);
+
+  await backend.addCashMovement(context, shift.id, {
+    externalId: 'LOCAL-CASH-OUT-001',
+    type: 'CASH_OUT',
+    amount: 30,
+    reason: 'Pago de mensajería',
+  });
+
+  const active = await backend.getActiveShift(context);
+  assert.equal(active?.cashIn, 100);
+  assert.equal(active?.cashOut, 30);
+  assert.equal(active?.expectedCash, 570);
+  assert.equal((await backend.getCashMovements(context, shift.id)).length, 2);
+
+  await assert.rejects(
+    backend.addCashMovement(context, shift.id, {
+      externalId: 'LOCAL-CASH-FRACTION-001',
+      type: 'CASH_IN',
+      amount: 0.001,
+      reason: 'Fracción inválida',
+    }),
+    /máximo dos decimales/,
+  );
+});
+
+test('solo administración puede recuperar la caja de otro usuario', async () => {
+  const backend = testBackend();
+  const cashierShift = await backend.openShift(cashierContext, 300);
+  assert.equal((await backend.getActiveShift(context))?.id, cashierShift.id);
+  assert.equal((await backend.closeShift(context, 300)).status, 'CLOSED');
+
+  await backend.openShift(context, 200);
+  await assert.rejects(backend.getActiveShift(cashierContext), /otro cajero/);
+});
+
+test('rechaza una edición local con existencia obsoleta', async () => {
+  const backend = testBackend();
+  const product = await createSaleProduct(backend);
+  await backend.openShift(context, 500);
+  await backend.processSale(context, {
+    items: [cartLine(product, 1)],
+    paymentMethod: 'CASH',
+    amountTendered: product.price,
+  });
+
+  await assert.rejects(
+    backend.saveProduct(context, {
+      id: product.id,
+      barcode: product.barcode,
+      name: 'Nombre con inventario obsoleto',
+      category: product.category,
+      imageUrl: product.imageUrl,
+      cost: product.cost,
+      price: product.price,
+      stock: product.stock,
+      expectedStock: product.stock,
+      minStock: product.minStock,
+    }),
+    /La existencia cambio/,
+  );
+
+  const current = (await backend.getStoreProducts(context)).find((item) => item.id === product.id);
+  assert.equal(current?.stock, product.stock - 1);
+  assert.equal(current?.name, product.name);
 });
 
 test('revierte inventario y efectivo al devolver parcialmente una venta', async () => {

@@ -21,7 +21,7 @@ export function cx(...classes: Array<string | false | null | undefined>) {
 }
 
 export function createOfflineId() {
-  return `OFF-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+  return `OFF-${crypto.randomUUID().toUpperCase()}`;
 }
 
 export function normalizeText(value: string) {

@@ -527,7 +527,11 @@ function ProductFormModal({
       minStock: Number(data.minStock),
     };
     try {
-      await onSave(data.id ? { ...normalized, id: data.id } : (normalized as CreateProductInput));
+      await onSave(
+        data.id
+          ? { ...normalized, id: data.id, expectedStock: Number(product.stock) }
+          : (normalized as CreateProductInput),
+      );
     } finally {
       setLoading(false);
     }
