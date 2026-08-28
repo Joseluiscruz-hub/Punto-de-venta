@@ -18,7 +18,7 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === 'image',
             handler: 'CacheFirst',
             options: {
-              cacheName: 'product-images-v1',
+              cacheName: 'product-images-v2',
               expiration: {
                 maxEntries: 240,
                 maxAgeSeconds: 60 * 60 * 24 * 30,
