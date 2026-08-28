@@ -233,3 +233,115 @@ test('revierte inventario y efectivo al devolver parcialmente una venta', async 
     /excede las unidades disponibles/,
   );
 });
+
+test('siembra el catalogo de abarrotes con imagen en ambas sucursales', async () => {
+  const backend = testBackend();
+  const principal = await backend.getStoreProducts(context);
+  const norte = await backend.getStoreProducts({ ...context, storeId: 's2' });
+  assert.equal(principal.length, 100);
+  assert.equal(norte.length, 100);
+  assert.equal(principal[0].id, 'p-001');
+  assert.equal(principal[99].id, 'p-100');
+  assert.equal(principal[0].barcode, '7501111000001');
+  assert.ok(principal.every((product) => product.imageUrl?.startsWith('/productos/genericos/')));
+  const arroz = principal.find((product) => product.name === 'Arroz blanco 1kg');
+  assert.equal(arroz?.cost, 22);
+  assert.equal(arroz?.price, 32);
+  assert.equal(arroz?.stock, 24);
+  const aguacate = principal.find((product) => product.name === 'Aguacate 1kg');
+  assert.equal(aguacate?.stock, 12);
+  assert.equal(aguacate?.price, 78);
+  assert.equal(
+    principal.filter((product) => ['75010001', '75010002', '75010003'].includes(product.barcode))
+      .length,
+    0,
+  );
+});
+
+test('migra una base local vacia insertando el catalogo una sola vez', async () => {
+  const storage = new MemoryStorage();
+  storage.setItem(
+    'el-triunfo.database.v1',
+    JSON.stringify({
+      version: 1,
+      tenants: [{ id: 't1', name: 'El Triunfo', plan: 'PREMIUM' }],
+      stores: [
+        { id: 's1', tenantId: 't1', name: 'Sucursal Principal', address: 'Centro' },
+        { id: 's2', tenantId: 't1', name: 'Sucursal Norte', address: 'Norte' },
+      ],
+      users: [
+        {
+          id: 'u1',
+          tenantId: 't1',
+          storeId: 's1',
+          username: 'admin',
+          name: 'Administrador',
+          role: 'ADMIN',
+        },
+      ],
+      products: [],
+      storeProducts: [],
+      sales: [],
+      saleItems: [],
+      movements: [],
+      shifts: [],
+      clients: [],
+    }),
+  );
+  const first = testBackend(storage);
+  assert.equal((await first.getStoreProducts(context)).length, 100);
+  const second = testBackend(storage);
+  assert.equal((await second.getStoreProducts(context)).length, 100);
+  assert.equal((await second.getStoreProducts({ ...context, storeId: 's2' })).length, 100);
+});
+
+test('no reemplaza un catalogo local que ya tiene productos', async () => {
+  const storage = new MemoryStorage();
+  storage.setItem(
+    'el-triunfo.database.v1',
+    JSON.stringify({
+      version: 1,
+      tenants: [{ id: 't1', name: 'El Triunfo', plan: 'PREMIUM' }],
+      stores: [{ id: 's1', tenantId: 't1', name: 'Sucursal Principal', address: 'Centro' }],
+      users: [
+        {
+          id: 'u1',
+          tenantId: 't1',
+          storeId: 's1',
+          username: 'admin',
+          name: 'Administrador',
+          role: 'ADMIN',
+        },
+      ],
+      products: [
+        {
+          id: 'existing',
+          tenantId: 't1',
+          barcode: '99900001',
+          name: 'Producto propio',
+          category: 'Pruebas',
+          cost: 1,
+          price: 2,
+        },
+      ],
+      storeProducts: [
+        {
+          id: 'sp-existing',
+          tenantId: 't1',
+          storeId: 's1',
+          productId: 'existing',
+          stock: 3,
+          minStock: 1,
+        },
+      ],
+      sales: [],
+      saleItems: [],
+      movements: [],
+      shifts: [],
+      clients: [],
+    }),
+  );
+  const products = await testBackend(storage).getStoreProducts(context);
+  assert.equal(products.length, 1);
+  assert.equal(products[0].id, 'existing');
+});
