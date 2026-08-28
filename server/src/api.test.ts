@@ -579,3 +579,36 @@ test('un administrador puede recuperar y cerrar una caja abandonada por otro usu
   assert.equal(recovered.statusCode, 200, recovered.body);
   assert.equal(recovered.json().status, 'CLOSED');
 });
+
+test('siembra el catalogo de abarrotes con imagen cuando el tenant no tiene productos', async () => {
+  const headers = await authHeaders();
+  const response = await app.inject({ method: 'GET', url: '/api/products', headers });
+  assert.equal(response.statusCode, 200);
+  const products = response.json() as Array<{
+    barcode: string;
+    name: string;
+    imageUrl?: string;
+    price: number | string;
+  }>;
+  const catalog = products.filter((product) => product.barcode.startsWith('7501111'));
+  assert.equal(catalog.length, 100);
+  assert.ok(catalog.every((product) => product.imageUrl?.startsWith('/productos/genericos/')));
+  const arroz = catalog.find((product) => product.barcode === '7501111000001');
+  assert.equal(arroz?.name, 'Arroz blanco 1kg');
+  assert.equal(Number(arroz?.price), 32);
+  assert.equal(
+    catalog.filter((product) => ['75010001', '75010002', '75010003'].includes(product.barcode))
+      .length,
+    0,
+  );
+
+  const { seedDatabase } = await import('./seed.js');
+  await seedDatabase();
+  const again = await app.inject({ method: 'GET', url: '/api/products', headers });
+  assert.equal(
+    again
+      .json()
+      .filter((product: { barcode: string }) => product.barcode.startsWith('7501111')).length,
+    100,
+  );
+});

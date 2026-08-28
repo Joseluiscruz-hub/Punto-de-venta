@@ -23,6 +23,7 @@ import type {
   UpdateProductInput,
   User,
 } from '../models/types';
+import { buildAbarrotesSeed } from './abarrotesCatalog';
 
 const DATABASE_KEY = 'el-triunfo.database.v1';
 
@@ -68,13 +69,18 @@ const genericSeedProductNames = new Map([
 const demoProductBarcodes = new Set(['75010001', '75010002', '75010003']);
 
 function seedDatabase(): DatabaseState {
+  const stores = [
+    { id: 's1', tenantId: 't1', name: 'Sucursal Principal', address: 'Centro' },
+    { id: 's2', tenantId: 't1', name: 'Sucursal Norte', address: 'Norte' },
+  ];
+  const catalog = buildAbarrotesSeed(
+    't1',
+    stores.map((store) => store.id),
+  );
   return {
     version: 1,
     tenants: [{ id: 't1', name: 'El Triunfo', plan: 'PREMIUM' }],
-    stores: [
-      { id: 's1', tenantId: 't1', name: 'Sucursal Principal', address: 'Centro' },
-      { id: 's2', tenantId: 't1', name: 'Sucursal Norte', address: 'Norte' },
-    ],
+    stores,
     users: [
       {
         id: 'u1',
@@ -93,8 +99,8 @@ function seedDatabase(): DatabaseState {
         role: 'CASHIER',
       },
     ],
-    products: [],
-    storeProducts: [],
+    products: catalog.products,
+    storeProducts: catalog.storeProducts,
     sales: [],
     saleItems: [],
     returns: [],
@@ -208,6 +214,14 @@ function migrateLocalDatabase(database: DatabaseState) {
       product.active = false;
       changed = true;
     }
+  }
+  if (database.products.length === 0) {
+    const tenantId = database.tenants[0]?.id ?? 't1';
+    const storeIds = database.stores.map((store) => store.id);
+    const catalog = buildAbarrotesSeed(tenantId, storeIds);
+    database.products = catalog.products;
+    database.storeProducts = catalog.storeProducts;
+    changed = true;
   }
   return changed;
 }
