@@ -14,11 +14,12 @@ dist-ssr
 .env
 .data
 dist-server
+tmp-login.png
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
