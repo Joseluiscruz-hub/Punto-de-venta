@@ -64,17 +64,7 @@ export function ProductVisual({
         className={`product-packshot h-full w-full object-contain ${compact ? 'p-1' : 'p-3'}`}
         loading="lazy"
         decoding="async"
-        onError={(event) => {
-          if (
-            rawProductImage &&
-            rawProductImage !== productImage &&
-            event.currentTarget.dataset.fallback !== 'true'
-          ) {
-            event.currentTarget.dataset.fallback = 'true';
-            event.currentTarget.src = rawProductImage;
-            return;
-          }
-
+        onError={() => {
           setFailedImageSrc(rawProductImage);
         }}
       />
