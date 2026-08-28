@@ -467,17 +467,7 @@ function InventoryProductThumbnail({ product }: { product: ProductView }) {
           alt=""
           loading="lazy"
           decoding="async"
-          onError={(event) => {
-            if (
-              event.currentTarget.dataset.fallback !== 'true' &&
-              event.currentTarget.getAttribute('src') !== source
-            ) {
-              event.currentTarget.dataset.fallback = 'true';
-              event.currentTarget.src = source;
-              return;
-            }
-            setImageFailed(true);
-          }}
+          onError={() => setImageFailed(true)}
         />
       </div>
     );
