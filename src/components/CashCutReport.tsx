@@ -1,5 +1,6 @@
 import type { CashMovement, Shift } from '../models/types';
 import { formatCurrency } from '../utils/helpers';
+import '../styles/cash-cut-print.css';
 
 function formatDateTime(value?: string) {
   if (!value) return 'En curso';
