@@ -1,0 +1,148 @@
+.cash-cut-print-host {
+  display: none;
+}
+
+.cash-cut-print-sheet {
+  color: #0f172a;
+  background: white;
+}
+
+.cash-cut-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #0f172a;
+}
+
+.cash-cut-header h2 {
+  margin: 4px 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.cash-cut-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.cash-cut-meta {
+  font-size: 0.78rem;
+  line-height: 1.55;
+  text-align: right;
+}
+
+.cash-cut-grid,
+.cash-cut-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.cash-cut-grid div,
+.cash-cut-totals div {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.cash-cut-grid span,
+.cash-cut-totals span {
+  display: block;
+  margin-bottom: 4px;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.cash-cut-grid strong,
+.cash-cut-totals strong {
+  font-size: 0.95rem;
+  font-weight: 850;
+}
+
+.cash-cut-emphasis {
+  background: #f8fafc;
+}
+
+.cash-cut-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.cash-cut-table th,
+.cash-cut-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.cash-cut-table th {
+  color: #64748b;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+}
+
+.cash-cut-empty {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.cash-cut-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 36px;
+}
+
+.cash-cut-footer p {
+  margin-bottom: 28px;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.cash-cut-footer span {
+  display: block;
+  border-bottom: 1px solid #0f172a;
+  height: 1px;
+}
+
+/* Print: show corte de caja when body has printing-cash-cut (receipt rules stay in index.css) */
+@media print {
+  body.printing-cash-cut {
+    width: auto !important;
+  }
+
+  body.printing-cash-cut #root {
+    width: 100% !important;
+  }
+
+  body.printing-cash-cut #root * {
+    visibility: hidden !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-host,
+  body.printing-cash-cut .cash-cut-print-host * {
+    visibility: visible !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-host {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-sheet {
+    width: 100% !important;
+    color: black !important;
+  }
+}
