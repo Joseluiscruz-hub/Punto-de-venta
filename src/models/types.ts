@@ -12,7 +12,7 @@ export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH
 export type Feature =
   'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
-export type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients';
+export type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients' | 'audit';
 
 export interface Shift {
   id: Id;
@@ -266,4 +266,28 @@ export interface LoginResponse {
   store: Store;
   register?: CashRegister;
   token: string;
+}
+
+export interface AuditEvent {
+  id: Id;
+  tenantId: Id;
+  actorUserId?: Id;
+  actorName?: string;
+  storeId?: Id;
+  action: string;
+  entityType: string;
+  entityId?: string;
+  details: Record<string, unknown>;
+  ipAddress?: string;
+  createdAt: ISODateString;
+}
+
+export interface AuditEventQuery {
+  action?: string;
+  entityType?: string;
+  storeId?: Id;
+  from?: ISODateString;
+  to?: ISODateString;
+  q?: string;
+  limit?: number;
 }
