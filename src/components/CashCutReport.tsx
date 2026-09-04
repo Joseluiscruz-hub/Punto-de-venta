@@ -81,6 +81,10 @@ export function CashCutReport({
           <strong>{formatCurrency(shift.salesCard)}</strong>
         </div>
         <div>
+          <span>Cantidad de ventas</span>
+          <strong>{shift.salesCount ?? 0}</strong>
+        </div>
+        <div>
           <span>Reembolsos en efectivo</span>
           <strong>-{formatCurrency(shift.refundsCash)}</strong>
         </div>
