@@ -147,7 +147,16 @@ export function ReceiptModal({
           <Button
             variant="primary"
             icon={<Printer size={17} />}
-            onClick={() => window.print()}
+            onClick={() => {
+              const cleanup = () => {
+                document.body.classList.remove('printing-receipt');
+                window.removeEventListener('afterprint', cleanup);
+              };
+              document.body.classList.add('printing-receipt');
+              window.addEventListener('afterprint', cleanup);
+              window.print();
+              window.setTimeout(cleanup, 1000);
+            }}
             className="flex-1 gap-2"
           >
             Imprimir ticket
