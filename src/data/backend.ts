@@ -69,6 +69,7 @@ export interface BackendContract {
 const localContract: BackendContract = {
   ...localBackend,
   logout: async () => undefined,
+  getAuditEvents: async () => [],
 };
 
 // A production build must never fall back silently to browser-only demo data.
