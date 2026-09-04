@@ -1,1 +1,1 @@
-PLACEHOLDER
+@$file:/workspace/mcp_payloads/core_final.ts
