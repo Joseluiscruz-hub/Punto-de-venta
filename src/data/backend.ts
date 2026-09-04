@@ -71,8 +71,6 @@ const localContract: BackendContract = {
   logout: async () => undefined,
 };
 
-// A production build must never fall back silently to browser-only demo data.
-// The local backend is opt-in and is used only by the GitHub Pages demo.
 const useApi = import.meta.env.VITE_BACKEND_MODE !== 'local';
 
 export const BackendAPI: BackendContract = useApi ? remoteBackend : localContract;
