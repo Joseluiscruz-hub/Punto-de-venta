@@ -1,4 +1,6 @@
 import type {
+  AuditEvent,
+  AuditEventQuery,
   CashMovement,
   Client,
   CreateCashMovementInput,
@@ -242,6 +244,24 @@ export const remoteBackend = {
   ): Promise<StockMovementView[]> {
     return request('/stock-movements', {
       headers: context.storeId ? contextHeaders({ storeId: context.storeId }) : undefined,
+    });
+  },
+
+  async getAuditEvents(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    query: AuditEventQuery = {},
+  ): Promise<AuditEvent[]> {
+    const params = new URLSearchParams();
+    if (query.action) params.set('action', query.action);
+    if (query.entityType) params.set('entityType', query.entityType);
+    if (query.storeId) params.set('storeId', query.storeId);
+    if (query.from) params.set('from', query.from);
+    if (query.to) params.set('to', query.to);
+    if (query.q) params.set('q', query.q);
+    if (query.limit) params.set('limit', String(query.limit));
+    const suffix = params.toString() ? `?${params.toString()}` : '';
+    return request(`/audit-events${suffix}`, {
+      headers: contextHeaders({ storeId: context.storeId }),
     });
   },
 };

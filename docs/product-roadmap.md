@@ -11,7 +11,7 @@ auditoria y pruebas automatizadas cuando corresponda.
   - [x] devoluciones en efectivo visibles y descontadas del esperado;
   - [x] retiros/entradas de efectivo con motivo, idempotencia y auditoria;
   - [x] umbral de diferencia configurable y confirmacion auditada;
-  - [x] reporte imprimible del corte (turno activo e historial).
+  - [x] reporte imprimible del corte.
 - [x] Devoluciones parciales:
   - reversion atomica de inventario;
   - control de cantidades ya devueltas;
@@ -41,7 +41,7 @@ auditoria y pruebas automatizadas cuando corresponda.
 
 ## Sprint 4: supervision y recibos digitales
 
-- [ ] Vista de auditoria con filtros y exportacion.
+- [x] Vista de auditoria con filtros y exportacion.
 - [ ] Metricas por cajero y reglas de actividad sospechosa.
 - [ ] Envio idempotente de ticket por email o WhatsApp.
 
@@ -61,5 +61,8 @@ auditoria y pruebas automatizadas cuando corresponda.
 
 ## Criterio para el siguiente incremento
 
-Sprint 1 operativo queda cerrado salvo datos reales de tienda. Siguiente paso recomendado:
-vista de auditoria con filtros y exportacion (Sprint 4), o CFDI cuando haya PAC y certificados.
+El Sprint 1 operativo queda cubierto en codigo (incluido el reporte imprimible del corte). El
+siguiente incremento recomendado es preparar datos reales de sucursales/usuarios/hosting o, si ya
+existen, avanzar metricas por cajero. Antes de iniciar CFDI se deben proporcionar o elegir:
+PAC, ambiente sandbox, datos fiscales de prueba, politica de almacenamiento de XML/PDF y
+responsable del certificado.
