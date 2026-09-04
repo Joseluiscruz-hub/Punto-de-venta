@@ -8,6 +8,7 @@ import {
   History,
   Wallet,
   LogOut,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavItem } from './NavItem';
@@ -105,6 +106,15 @@ export function Sidebar({ currentView, isOpen, onNavItemClick, onRequestClose }:
               active={currentView === 'movements'}
               onClick={() => {
                 onNavItemClick('movements');
+                onRequestClose();
+              }}
+            />
+            <NavItem
+              icon={<ShieldCheck size={20} />}
+              label="Auditoría"
+              active={currentView === 'audit'}
+              onClick={() => {
+                onNavItemClick('audit');
                 onRequestClose();
               }}
             />
