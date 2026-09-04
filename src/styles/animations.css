@@ -1,3 +1,5 @@
+@import '../print-media.css';
+
 /* Reusable animation classes */
 @keyframes fadeIn {
   from {
