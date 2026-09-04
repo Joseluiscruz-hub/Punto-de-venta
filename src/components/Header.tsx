@@ -13,6 +13,7 @@ import {
   Wifi,
   WifiOff,
   X,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Role, View } from '../models/types';
@@ -41,6 +42,7 @@ const VIEW_TITLES: Record<View, { title: string; subtitle: string }> = {
   sales: { title: 'Ventas registradas', subtitle: 'Tickets y reportes' },
   movements: { title: 'Movimientos', subtitle: 'Auditoría de inventario' },
   corte: { title: 'Caja y turnos', subtitle: 'Control de efectivo' },
+  audit: { title: 'Auditoría', subtitle: 'Eventos y exportación' },
 };
 
 const COMMANDS: NavigationCommand[] = [
@@ -87,6 +89,13 @@ const COMMANDS: NavigationCommand[] = [
     label: 'Caja y turnos',
     description: 'Abrir, revisar o cerrar el turno',
     icon: <Wallet size={18} />,
+  },
+  {
+    view: 'audit',
+    label: 'Auditoría',
+    description: 'Consultar eventos y exportar CSV',
+    icon: <ShieldCheck size={18} />,
+    roles: ['ADMIN', 'MANAGER'],
   },
 ];
 
