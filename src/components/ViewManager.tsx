@@ -20,6 +20,9 @@ const CorteCajaView = lazy(() =>
 const ClientsView = lazy(() =>
   import('../pages/Clients').then((module) => ({ default: module.ClientsView })),
 );
+const AuditView = lazy(() =>
+  import('../pages/Audit').then((module) => ({ default: module.AuditView })),
+);
 
 interface ViewManagerProps {
   currentView: View;
@@ -53,6 +56,7 @@ export function ViewManager({ currentView, onShiftClosed }: ViewManagerProps) {
         {currentView === 'movements' && <MovementsView />}
         {currentView === 'corte' && <CorteCajaView onShiftClosed={onShiftClosed} />}
         {currentView === 'clients' && <ClientsView />}
+        {currentView === 'audit' && <AuditView />}
       </Suspense>
     </div>
   );
