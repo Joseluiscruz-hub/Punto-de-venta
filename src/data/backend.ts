@@ -1,4 +1,6 @@
 import type {
+  AuditEvent,
+  AuditEventQuery,
   CashMovement,
   Client,
   CreateCashMovementInput,
@@ -58,6 +60,10 @@ export interface BackendContract {
   getStockMovements(
     context: Pick<RequestContext, 'tenantId'> & Partial<Pick<RequestContext, 'storeId'>>,
   ): Promise<StockMovementView[]>;
+  getAuditEvents(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+    query?: AuditEventQuery,
+  ): Promise<AuditEvent[]>;
 }
 
 const localContract: BackendContract = {
