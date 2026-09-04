@@ -1,4 +1,6 @@
 import type {
+  AuditEvent,
+  AuditEventQuery,
   CashMovement,
   Client,
   CreateCashMovementInput,
@@ -45,6 +47,7 @@ export interface DatabaseState {
   returnItems: SaleReturnItem[];
   movements: StockMovement[];
   cashMovements: CashMovement[];
+  auditEvents: AuditEvent[];
   shifts: Shift[];
   clients: Client[];
 }
@@ -107,6 +110,7 @@ function seedDatabase(): DatabaseState {
     returnItems: [],
     movements: [],
     cashMovements: [],
+    auditEvents: [],
     shifts: [],
     clients: [
       {
@@ -182,6 +186,10 @@ function migrateLocalDatabase(database: DatabaseState) {
   }
   if (!Array.isArray(database.returnItems)) {
     database.returnItems = [];
+    changed = true;
+  }
+  if (!Array.isArray(database.auditEvents)) {
+    database.auditEvents = [];
     changed = true;
   }
   for (const client of database.clients) {
@@ -373,6 +381,31 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             ? 'FULL'
             : 'PARTIAL',
     };
+  };
+  const recordAudit = (
+    draft: DatabaseState,
+    context: RequestContext,
+    action: string,
+    entityType: string,
+    entityId: string | undefined,
+    details: Record<string, unknown> = {},
+  ) => {
+    const actor = draft.users.find(
+      (user) => user.id === context.userId && user.tenantId === context.tenantId,
+    );
+    draft.auditEvents.push({
+      id: createId('audit'),
+      tenantId: context.tenantId,
+      actorUserId: context.userId,
+      actorName: actor?.name,
+      storeId: context.storeId,
+      action,
+      entityType,
+      entityId,
+      details,
+      ipAddress: 'local',
+      createdAt: now().toISOString(),
+    });
   };
 
   return {
@@ -933,7 +966,12 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
         shift.status = 'CLOSED';
         shift.endTime = now().toISOString();
         shift.actualCash = actualCash;
-        shift.difference = actualCash - shift.expectedCash;
+        shift.difference = roundMoney(actualCash - shift.expectedCash);
+        recordAudit(draft, context, 'SHIFT_CLOSED', 'shift', shift.id, {
+          actualCash,
+          expectedCash: shift.expectedCash,
+          difference: shift.difference,
+        });
         return shift;
       });
     },
@@ -1000,6 +1038,11 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           shift.cashOut = roundMoney(shift.cashOut + movement.amount);
           shift.expectedCash = roundMoney(shift.expectedCash - movement.amount);
         }
+        recordAudit(draft, context, movement.type, 'cash_movement', movement.id, {
+          shiftId,
+          amount: movement.amount,
+          reason: movement.reason,
+        });
         return movement;
       });
     },
@@ -1119,6 +1162,61 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
               database.products.find((product) => product.id === movement.productId)?.name ?? 'N/A',
             userName: database.users.find((user) => user.id === movement.userId)?.name ?? 'N/A',
           })),
+      );
+    },
+
+    async getAuditEvents(
+      context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+      query: AuditEventQuery = {},
+    ): Promise<AuditEvent[]> {
+      await wait();
+      const userId = (context as RequestContext).userId;
+      const actor = database.users.find(
+        (user) => user.id === userId && user.tenantId === context.tenantId,
+      );
+      if (!actor || (actor.role !== 'ADMIN' && actor.role !== 'MANAGER')) {
+        throw new Error('No tienes permiso para consultar la auditoría');
+      }
+      const action = query.action?.trim() || undefined;
+      const entityType = query.entityType?.trim() || undefined;
+      const storeId = query.storeId?.trim() || undefined;
+      const fromValue = query.from?.trim() || undefined;
+      const toValue = query.to?.trim() || undefined;
+      const fromTime = fromValue ? Date.parse(fromValue) : undefined;
+      const toTime = toValue ? Date.parse(toValue) : undefined;
+      const safeFromTime = Number.isNaN(fromTime) ? undefined : fromTime;
+      const safeToTime = Number.isNaN(toTime) ? undefined : toTime;
+      const normalizedQ = query.q?.trim().toLowerCase();
+      const limit = Math.min(1000, Math.max(1, query.limit ?? 200));
+      return clone(
+        database.auditEvents
+          .filter((event) => event.tenantId === context.tenantId)
+          .filter((event) => !action || event.action === action)
+          .filter((event) => !entityType || event.entityType === entityType)
+          .filter((event) => !storeId || event.storeId === storeId)
+          .filter((event) =>
+            safeFromTime === undefined ? true : Date.parse(event.createdAt) >= safeFromTime,
+          )
+          .filter((event) =>
+            safeToTime === undefined ? true : Date.parse(event.createdAt) <= safeToTime,
+          )
+          .filter((event) => {
+            if (!normalizedQ) return true;
+            const details = JSON.stringify(event.details ?? {}).toLowerCase();
+            return [
+              event.actorName,
+              event.actorUserId,
+              event.action,
+              event.entityType,
+              event.entityId,
+              details,
+            ]
+              .join(' ')
+              .toLowerCase()
+              .includes(normalizedQ);
+          })
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+          .slice(0, limit),
       );
     },
   };

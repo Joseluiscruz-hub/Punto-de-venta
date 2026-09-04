@@ -1651,6 +1651,150 @@ kbd {
   padding: 14px;
 }
 
+.cash-cut-print-host {
+  display: none;
+}
+
+.cash-cut-print-sheet {
+  margin: 0 auto;
+  width: min(210mm, 100%);
+  background: white;
+  color: #0f172a;
+  padding: 16mm 14mm;
+  font-family:
+    Manrope,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+.cash-cut-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #cbd5e1;
+  padding-bottom: 10px;
+}
+
+.cash-cut-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.cash-cut-kicker {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cash-cut-header p {
+  margin: 2px 0;
+  font-size: 0.78rem;
+}
+
+.cash-cut-meta {
+  min-width: 220px;
+  text-align: right;
+}
+
+.cash-cut-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cash-cut-grid div,
+.cash-cut-totals div {
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.cash-cut-grid span,
+.cash-cut-totals span {
+  display: block;
+  font-size: 0.7rem;
+  color: #475569;
+}
+
+.cash-cut-grid strong,
+.cash-cut-totals strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.9rem;
+}
+
+.cash-cut-totals {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.cash-cut-emphasis {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+}
+
+.cash-cut-print-sheet h3 {
+  margin: 14px 0 8px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+.cash-cut-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #475569;
+}
+
+.cash-cut-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.cash-cut-table th,
+.cash-cut-table td {
+  border: 1px solid #dbe3ef;
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.cash-cut-table th {
+  background: #f1f5f9;
+  font-size: 0.68rem;
+}
+
+.cash-cut-table td:last-child,
+.cash-cut-table th:last-child {
+  text-align: right;
+}
+
+.cash-cut-footer {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.cash-cut-footer p {
+  margin: 0 0 20px;
+  font-size: 0.74rem;
+  color: #334155;
+}
+
+.cash-cut-footer span {
+  display: block;
+  border-bottom: 1px solid #0f172a;
+}
+
 .transition-enterprise {
   transition: all 160ms ease;
 }
@@ -1925,11 +2069,6 @@ kbd {
   }
 }
 
-@page {
-  size: 80mm;
-  margin: 4mm;
-}
-
 @media print {
   .no-print {
     display: none !important;
@@ -1943,22 +2082,22 @@ kbd {
     color: black !important;
   }
 
-  #root {
+  body.printing-receipt #root {
     width: 80mm !important;
   }
 
-  #root * {
+  body.printing-receipt #root * {
     visibility: hidden !important;
   }
 
-  .receipt-overlay,
-  .receipt-dialog,
-  .receipt-print-sheet,
-  .receipt-print-sheet * {
+  body.printing-receipt .receipt-overlay,
+  body.printing-receipt .receipt-dialog,
+  body.printing-receipt .receipt-print-sheet,
+  body.printing-receipt .receipt-print-sheet * {
     visibility: visible !important;
   }
 
-  .receipt-overlay {
+  body.printing-receipt .receipt-overlay {
     position: static !important;
     display: block !important;
     width: 80mm !important;
@@ -1967,7 +2106,7 @@ kbd {
     padding: 0 !important;
   }
 
-  .receipt-dialog {
+  body.printing-receipt .receipt-dialog {
     display: block !important;
     width: 80mm !important;
     max-width: none !important;
@@ -1977,7 +2116,7 @@ kbd {
     box-shadow: none !important;
   }
 
-  .receipt-print-sheet {
+  body.printing-receipt .receipt-print-sheet {
     width: 72mm !important;
     height: auto !important;
     overflow: visible !important;
@@ -1985,10 +2124,34 @@ kbd {
     color: black !important;
   }
 
-  .receipt-paper {
+  body.printing-receipt .receipt-paper {
     width: 72mm !important;
     max-width: 72mm !important;
     box-shadow: none !important;
     filter: none !important;
+  }
+
+  body.printing-cash-cut #root * {
+    visibility: hidden !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-host,
+  body.printing-cash-cut .cash-cut-print-host * {
+    visibility: visible !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-host {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  body.printing-cash-cut .cash-cut-print-sheet {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 6mm 4mm !important;
+    box-shadow: none !important;
   }
 }

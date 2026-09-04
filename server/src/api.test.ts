@@ -612,3 +612,59 @@ test('siembra el catalogo de abarrotes con imagen cuando el tenant no tiene prod
     100,
   );
 });
+
+test('filtra eventos de auditoria y responde en camelCase', async () => {
+  const headers = await authHeaders();
+  const shift = await ensureOpenShift(headers);
+  const movement = await app.inject({
+    method: 'POST',
+    url: `/api/shifts/${shift.id}/cash-movements`,
+    headers,
+    payload: {
+      externalId: `AUDIT-CASH-IN-${Date.now()}`,
+      type: 'CASH_IN',
+      amount: 45,
+      reason: 'Fondo extra para auditoría',
+    },
+  });
+  assert.equal(movement.statusCode, 201, movement.body);
+  const created = movement.json();
+  const from = new Date(Date.now() - 60_000).toISOString();
+  const to = new Date(Date.now() + 60_000).toISOString();
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/audit-events?action=CASH_IN&entityType=cash_movement&storeId=${shift.storeId}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&q=${encodeURIComponent('extra para auditoría')}&limit=5`,
+    headers,
+  });
+  assert.equal(response.statusCode, 200, response.body);
+  const events = response.json() as Array<Record<string, unknown>>;
+  const event = events.find((row) => row.entityId === created.id);
+  assert.ok(event, response.body);
+  assert.equal(event.action, 'CASH_IN');
+  assert.equal(event.entityType, 'cash_movement');
+  assert.equal(event.storeId, shift.storeId);
+  assert.equal(typeof event.createdAt, 'string');
+  assert.equal(typeof event.actorName, 'string');
+  assert.equal('tenant_id' in event, false);
+  assert.equal('entity_type' in event, false);
+  assert.equal('created_at' in event, false);
+
+  const emptyFilters = await app.inject({
+    method: 'GET',
+    url: '/api/audit-events?action=&entityType=&storeId=&from=&to=&q=&limit=',
+    headers,
+  });
+  assert.equal(emptyFilters.statusCode, 200, emptyFilters.body);
+});
+
+test('bloquea auditoria para rol cajero', async () => {
+  const { body: cashierSession } = await login('caja1', '0000');
+  const cashierHeaders = { authorization: 'Bearer ' + cashierSession.token };
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/audit-events',
+    headers: cashierHeaders,
+  });
+  assert.equal(response.statusCode, 403, response.body);
+  assert.equal(response.json().error.code, 'FORBIDDEN');
+});
