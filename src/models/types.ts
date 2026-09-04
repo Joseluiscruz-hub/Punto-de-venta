@@ -33,6 +33,8 @@ export interface Shift {
   cashIn: Money;
   cashOut: Money;
   differenceThreshold: Money;
+  /** Cantidad de ventas del turno */
+  salesCount: number;
 }
 
 export interface CashMovement {
