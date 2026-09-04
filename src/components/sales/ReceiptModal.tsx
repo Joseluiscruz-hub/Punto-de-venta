@@ -32,6 +32,14 @@ export function ReceiptModal({
 }) {
   const electronicAmount =
     sale.paymentMethod === 'MIXED' ? Math.max(0, sale.total - sale.amountTendered) : 0;
+  const handlePrint = () => {
+    document.body.classList.add('printing-receipt');
+    try {
+      window.print();
+    } finally {
+      document.body.classList.remove('printing-receipt');
+    }
+  };
 
   return (
     <div className="receipt-overlay fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-sm animate-fadeIn sm:p-6">
@@ -147,7 +155,7 @@ export function ReceiptModal({
           <Button
             variant="primary"
             icon={<Printer size={17} />}
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="flex-1 gap-2"
           >
             Imprimir ticket

@@ -72,6 +72,31 @@ const cashMovementSchema = z.object({
     .refine((value) => roundMoney(value) === value, 'El monto admite como máximo dos decimales'),
   reason: z.string().trim().min(3).max(300),
 });
+const optionalQueryString = () =>
+  z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().trim().optional(),
+  );
+const optionalIsoDatetime = () =>
+  optionalQueryString().refine(
+    (value) => value === undefined || !Number.isNaN(Date.parse(value)),
+    'Fecha inválida',
+  );
+const auditEventsQuerySchema = z.object({
+  action: optionalQueryString(),
+  entityType: optionalQueryString(),
+  storeId: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    uuid.optional(),
+  ),
+  from: optionalIsoDatetime(),
+  to: optionalIsoDatetime(),
+  q: optionalQueryString(),
+  limit: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.coerce.number().int().min(1).max(1000).optional(),
+  ),
+});
 
 interface ProductRow {
   id: string;
@@ -131,6 +156,32 @@ interface CashMovementRow {
   amount: string | number;
   reason: string;
   created_at: string;
+}
+
+interface AuditEventRow {
+  id: string;
+  tenant_id: string;
+  actor_user_id: string | null;
+  actor_name: string | null;
+  store_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Record<string, unknown> | string | null;
+  ip_address: string | null;
+  created_at: string;
+}
+
+function parseAuditDetails(value: AuditEventRow['details']) {
+  if (!value) return {};
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return value;
 }
 
 interface SaleRow {
@@ -1380,11 +1431,74 @@ export async function coreRoutes(app: FastifyInstance) {
     }));
   });
 
-  app.get('/audit-events', { preHandler: authorize('ADMIN') }, async (request: FastifyRequest) => {
-    const result = await database.query(
-      'SELECT * FROM audit_events WHERE tenant_id = $1 ORDER BY created_at DESC LIMIT 500',
-      [request.user.tenantId],
-    );
-    return result.rows;
-  });
+  app.get(
+    '/audit-events',
+    { preHandler: authorize('ADMIN', 'MANAGER') },
+    async (request: FastifyRequest) => {
+      const query = parse(auditEventsQuerySchema, request.query);
+      if (query.storeId) {
+        const storeAccess = await database.query<{ store_id: string }>(
+          'SELECT store_id FROM user_store_access WHERE user_id = $1::uuid AND store_id = $2::uuid LIMIT 1',
+          [request.user.sub, query.storeId],
+        );
+        if (storeAccess.rowCount === 0)
+          throw new HttpError(403, 'No tienes acceso a esta sucursal', 'STORE_ACCESS_DENIED');
+      }
+      const whereParts = ['ae.tenant_id = $1'];
+      const params: unknown[] = [request.user.tenantId];
+      if (query.action) {
+        whereParts.push(`ae.action = $${params.length + 1}`);
+        params.push(query.action);
+      }
+      if (query.entityType) {
+        whereParts.push(`ae.entity_type = $${params.length + 1}`);
+        params.push(query.entityType);
+      }
+      if (query.storeId) {
+        whereParts.push(`ae.store_id = $${params.length + 1}`);
+        params.push(query.storeId);
+      }
+      if (query.from) {
+        whereParts.push(`ae.created_at >= $${params.length + 1}::timestamptz`);
+        params.push(query.from);
+      }
+      if (query.to) {
+        whereParts.push(`ae.created_at <= $${params.length + 1}::timestamptz`);
+        params.push(query.to);
+      }
+      if (query.q) {
+        whereParts.push(
+          `(ae.action ILIKE $${params.length + 1} OR ae.entity_type ILIKE $${params.length + 1} OR
+            COALESCE(ae.entity_id, '') ILIKE $${params.length + 1} OR
+            COALESCE(u.display_name, '') ILIKE $${params.length + 1} OR
+            ae.details::text ILIKE $${params.length + 1})`,
+        );
+        params.push(`%${query.q}%`);
+      }
+      params.push(query.limit ?? 200);
+      const result = await database.query<AuditEventRow>(
+        `SELECT ae.id, ae.tenant_id, ae.actor_user_id, u.display_name AS actor_name, ae.store_id,
+                ae.action, ae.entity_type, ae.entity_id, ae.details, ae.ip_address, ae.created_at
+         FROM audit_events ae
+         LEFT JOIN users u ON u.id = ae.actor_user_id
+         WHERE ${whereParts.join(' AND ')}
+         ORDER BY ae.created_at DESC
+         LIMIT $${params.length}`,
+        params,
+      );
+      return result.rows.map((row) => ({
+        id: row.id,
+        tenantId: row.tenant_id,
+        actorUserId: row.actor_user_id ?? undefined,
+        actorName: row.actor_name ?? undefined,
+        storeId: row.store_id ?? undefined,
+        action: row.action,
+        entityType: row.entity_type,
+        entityId: row.entity_id ?? undefined,
+        details: parseAuditDetails(row.details),
+        ipAddress: row.ip_address ?? undefined,
+        createdAt: row.created_at,
+      }));
+    },
+  );
 }

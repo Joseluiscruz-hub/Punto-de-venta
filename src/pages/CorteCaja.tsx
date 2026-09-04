@@ -1,13 +1,14 @@
 import { useCallback, useState, useEffect } from 'react';
-import { ArrowDownCircle, ArrowUpCircle, Landmark } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Landmark, Printer } from 'lucide-react';
 import type { CashMovement, CashMovementType, Shift } from '../models/types';
 import { BackendAPI } from '../data/backend';
 import { useAuth } from '../contexts/AuthContext';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { CashCutReport } from '../components/CashCutReport';
 import { createOfflineId, errorMessage, formatCurrency } from '../utils/helpers';
 
 export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) {
-  const { reqContext } = useAuth();
+  const { reqContext, store, user } = useAuth();
   const [activeShift, setActiveShift] = useState<Shift | null>(null);
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [cashMovements, setCashMovements] = useState<CashMovement[]>([]);
@@ -18,6 +19,9 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
   const [movementReason, setMovementReason] = useState('');
   const [movementLoading, setMovementLoading] = useState(false);
   const [confirmDifference, setConfirmDifference] = useState(false);
+  const [printShift, setPrintShift] = useState<Shift | null>(null);
+  const [printMovements, setPrintMovements] = useState<CashMovement[]>([]);
+  const [printLoading, setPrintLoading] = useState(false);
 
   const loadCashData = useCallback(async () => {
     const [current, history] = await Promise.all([
@@ -99,6 +103,32 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
       setMovementLoading(false);
     }
   };
+
+  const openPrintReport = useCallback(
+    async (shift: Shift) => {
+      setPrintLoading(true);
+      try {
+        const movements = await BackendAPI.getCashMovements(reqContext, shift.id);
+        setPrintShift(shift);
+        setPrintMovements(movements);
+        window.setTimeout(() => {
+          document.body.classList.add('printing-cash-cut');
+          try {
+            window.print();
+          } finally {
+            document.body.classList.remove('printing-cash-cut');
+            setPrintShift(null);
+            setPrintMovements([]);
+          }
+        }, 0);
+      } catch (error) {
+        alert(errorMessage(error, 'No se pudo preparar el reporte de corte de caja'));
+      } finally {
+        setPrintLoading(false);
+      }
+    },
+    [reqContext],
+  );
 
   return (
     <div className="view-shell p-4 sm:p-6 lg:p-8 h-full overflow-y-auto text-slate-900 dark:text-[#E2E8F0] flex flex-col gap-6 transition-colors">
@@ -208,6 +238,15 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                       onChange={(e) => setCountedCash(e.target.value)}
                     />
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => void openPrintReport(activeShift)}
+                    disabled={loading || printLoading}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 flex items-center justify-center gap-2"
+                  >
+                    <Printer size={15} />
+                    Imprimir corte preliminar
+                  </button>
                   <button
                     onClick={handleClose}
                     disabled={loading || !countedCash}
@@ -340,6 +379,7 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                 <th className="px-4 sm:px-6 py-4 text-right">CONTADO</th>
                 <th className="px-4 sm:px-6 py-4 text-right">DIFERENCIA</th>
                 <th className="px-4 sm:px-6 py-4">STATUS</th>
+                <th className="px-4 sm:px-6 py-4 text-right">ACCIONES</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -378,11 +418,23 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
                       {s.status === 'CLOSED' ? 'Cerrado' : 'Abierto'}
                     </span>
                   </td>
+                  <td className="px-4 sm:px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => void openPrintReport(s)}
+                      className="table-action-button"
+                      aria-label={`Imprimir corte ${s.id.slice(-8).toUpperCase()}`}
+                      title="Imprimir corte"
+                      disabled={printLoading}
+                    >
+                      <Printer size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {shifts.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400 italic">
+                  <td colSpan={9} className="px-6 py-10 text-center text-slate-400 italic">
                     No hay historial de turnos
                   </td>
                 </tr>
@@ -391,6 +443,17 @@ export function CorteCajaView({ onShiftClosed }: { onShiftClosed: () => void }) 
           </table>
         </div>
       </div>
+
+      {printShift && (
+        <div className="cash-cut-print-host" aria-hidden="true">
+          <CashCutReport
+            shift={printShift}
+            movements={printMovements}
+            storeName={store?.name ?? 'Sucursal'}
+            cashierName={user?.name}
+          />
+        </div>
+      )}
     </div>
   );
 }
