@@ -26,3 +26,5 @@
 .animate-slideInUp {
   animation: slideInUp 0.5s ease-in-out;
 }
+
+@import '../print-media.css';
