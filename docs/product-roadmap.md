@@ -6,12 +6,12 @@ auditoria y pruebas automatizadas cuando corresponda.
 
 ## Sprint 1: operacion segura
 
-- [ ] Corte de caja (avance parcial):
+- [x] Corte de caja:
   - [x] turno activo, efectivo esperado, arqueo, diferencia e historial;
   - [x] devoluciones en efectivo visibles y descontadas del esperado;
   - [x] retiros/entradas de efectivo con motivo, idempotencia y auditoria;
   - [x] umbral de diferencia configurable y confirmacion auditada;
-  - [ ] reporte imprimible del corte.
+  - [x] reporte imprimible del corte (turno activo e historial).
 - [x] Devoluciones parciales:
   - reversion atomica de inventario;
   - control de cantidades ya devueltas;
@@ -61,7 +61,5 @@ auditoria y pruebas automatizadas cuando corresponda.
 
 ## Criterio para el siguiente incremento
 
-El siguiente incremento del Sprint 1 es completar el reporte imprimible del corte. Antes de iniciar
-CFDI se deben proporcionar o elegir:
-PAC, ambiente sandbox, datos fiscales de prueba, politica de almacenamiento de XML/PDF y
-responsable del certificado.
+Sprint 1 operativo queda cerrado salvo datos reales de tienda. Siguiente paso recomendado:
+vista de auditoria con filtros y exportacion (Sprint 4), o CFDI cuando haya PAC y certificados.
