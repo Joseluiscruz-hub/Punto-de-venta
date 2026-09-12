@@ -43,6 +43,7 @@ jobs:
         env:
           VITE_BACKEND_MODE: local
           VITE_BASE_PATH: /Punto-de-venta/
+          VITE_DEMO_ACCESS_CODE: ET-9f4K2m
         run: npm run build:web
 
       - name: Configure Pages

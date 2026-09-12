@@ -1,6 +1,7 @@
 import { useAuth, AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { AccessGate } from './components/AccessGate';
 import { LoginScreen } from './pages/Login';
 import { MainLayout } from './components/MainLayout';
 
@@ -18,9 +19,11 @@ export default function App() {
   return (
     <ThemeProvider>
       <NotificationProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <AccessGate>
+          <AuthProvider>
+            <AppContent />
+          </AuthProvider>
+        </AccessGate>
       </NotificationProvider>
     </ThemeProvider>
   );
