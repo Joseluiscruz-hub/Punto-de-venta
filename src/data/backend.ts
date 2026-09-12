@@ -79,9 +79,33 @@ export interface BackendContract {
   stampCreditNote(context: RequestContext, invoiceId: string): Promise<InvoiceRecord>;
 }
 
+const demoInvoiceError = 'Demo local: sin timbrado Facturapi';
+
 const localContract: BackendContract = {
   ...localBackend,
   logout: async () => undefined,
+  listInvoices: async () => [],
+  stampSaleInvoice: async () => {
+    throw new Error(demoInvoiceError);
+  },
+  stampGlobalInvoice: async (context, period) => ({
+    invoice: {
+      id: 'demo-global',
+      tenantId: context.tenantId,
+      storeId: context.storeId,
+      kind: 'GLOBAL' as const,
+      status: 'ERROR' as const,
+      error: demoInvoiceError,
+      globalPeriod: period,
+      total: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    salesCount: 0,
+  }),
+  stampCreditNote: async () => {
+    throw new Error(demoInvoiceError);
+  },
 };
 
 // A production build must never fall back silently to browser-only demo data.
