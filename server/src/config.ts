@@ -20,6 +20,20 @@ const schema = z.object({
   CASH_DIFFERENCE_THRESHOLD: z.coerce.number().min(0).max(99_999_999).default(50),
   SEED_ADMIN_PIN: optionalSecret,
   SEED_CASHIER_PIN: optionalSecret,
+  FACTURAPI_SECRET_KEY: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().min(10).max(200).optional(),
+  ),
+  FACTURAPI_TEST: z
+    .preprocess((value) => {
+      if (typeof value !== 'string') return false;
+      return ['1', 'true', 'yes', 'on'].includes(value.trim().toLowerCase());
+    }, z.boolean())
+    .default(false),
+  FACTURAPI_DEFAULT_ZIP: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+    z.string().regex(/^\d{5}$/).optional(),
+  ),
 });
 
 const parsed = schema.parse(process.env);
