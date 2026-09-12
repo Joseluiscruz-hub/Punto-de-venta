@@ -9,6 +9,7 @@ import {
   Wallet,
   LogOut,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { NavItem } from './NavItem';
@@ -115,6 +116,15 @@ export function Sidebar({ currentView, isOpen, onNavItemClick, onRequestClose }:
               active={currentView === 'audit'}
               onClick={() => {
                 onNavItemClick('audit');
+                onRequestClose();
+              }}
+            />
+            <NavItem
+              icon={<FileText size={20} />}
+              label="Facturación"
+              active={currentView === 'invoicing'}
+              onClick={() => {
+                onNavItemClick('invoicing');
                 onRequestClose();
               }}
             />
