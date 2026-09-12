@@ -1,6 +1,7 @@
 import type { InvoiceStatus, Sale } from '../models/types';
 import { StatusBadge } from './ui';
 
+/** Badge de estado CFDI reutilizado en Ventas y Facturación. */
 export function InvoiceStatusBadge({ sale }: { sale: Sale }) {
   const status: InvoiceStatus = sale.invoiceStatus ?? 'NONE';
   const labels: Record<InvoiceStatus, string> = {
