@@ -2,6 +2,7 @@ import type {
   AuditEvent,
   AuditEventQuery,
   CashMovement,
+  InvoiceRecord,
   Client,
   CreateCashMovementInput,
   CreateProductInput,
@@ -64,6 +65,18 @@ export interface BackendContract {
     context: Pick<RequestContext, 'tenantId' | 'storeId'>,
     query?: AuditEventQuery,
   ): Promise<AuditEvent[]>;
+  listInvoices(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+  ): Promise<InvoiceRecord[]>;
+  stampSaleInvoice(
+    context: RequestContext,
+    saleId: string,
+  ): Promise<{ invoice: InvoiceRecord; sale: Sale }>;
+  stampGlobalInvoice(
+    context: RequestContext,
+    period?: string,
+  ): Promise<{ invoice: InvoiceRecord; salesCount: number }>;
+  stampCreditNote(context: RequestContext, invoiceId: string): Promise<InvoiceRecord>;
 }
 
 const localContract: BackendContract = {
