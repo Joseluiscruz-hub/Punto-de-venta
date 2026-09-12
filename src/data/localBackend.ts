@@ -1,4 +1,6 @@
 import type {
+  AuditEvent,
+  AuditEventQuery,
   CashMovement,
   Client,
   CreateCashMovementInput,
@@ -201,6 +203,10 @@ function migrateLocalDatabase(database: DatabaseState) {
     }
     if (shift.differenceThreshold === undefined) {
       shift.differenceThreshold = 50;
+      changed = true;
+    }
+    if (shift.salesCount === undefined) {
+      shift.salesCount = 0;
       changed = true;
     }
   }
@@ -726,6 +732,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
         if (electronicPortion > 0) {
           shift.salesCard += electronicPortion;
         }
+        shift.salesCount = (shift.salesCount ?? 0) + 1;
 
         return saleWithItems(draft, sale);
       });
@@ -911,6 +918,7 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
           cashIn: 0,
           cashOut: 0,
           differenceThreshold: 50,
+          salesCount: 0,
         };
         draft.shifts.push(shift);
         return shift;
@@ -1120,6 +1128,140 @@ export function createLocalBackend(options: LocalBackendOptions = {}) {
             userName: database.users.find((user) => user.id === movement.userId)?.name ?? 'N/A',
           })),
       );
+    },
+
+    async getAuditEvents(
+      context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+      query: AuditEventQuery = {},
+    ): Promise<AuditEvent[]> {
+      await wait();
+      const actorName = (userId?: string) =>
+        database.users.find((user) => user.id === userId)?.name;
+      const events: AuditEvent[] = [];
+
+      for (const shift of database.shifts) {
+        if (shift.tenantId !== context.tenantId || shift.storeId !== context.storeId) continue;
+        events.push({
+          id: `audit-shift-open-${shift.id}`,
+          tenantId: shift.tenantId,
+          actorUserId: shift.userId,
+          actorName: actorName(shift.userId),
+          storeId: shift.storeId,
+          action: 'SHIFT_OPENED',
+          entityType: 'SHIFT',
+          entityId: shift.id,
+          details: { initialCash: shift.initialCash },
+          createdAt: shift.startTime,
+        });
+        if (shift.status === 'CLOSED' && shift.endTime) {
+          events.push({
+            id: `audit-shift-close-${shift.id}`,
+            tenantId: shift.tenantId,
+            actorUserId: shift.userId,
+            actorName: actorName(shift.userId),
+            storeId: shift.storeId,
+            action: 'SHIFT_CLOSED',
+            entityType: 'SHIFT',
+            entityId: shift.id,
+            details: {
+              expectedCash: shift.expectedCash,
+              actualCash: shift.actualCash,
+              difference: shift.difference,
+              salesCount: shift.salesCount ?? 0,
+            },
+            createdAt: shift.endTime,
+          });
+        }
+      }
+
+      for (const movement of database.cashMovements ?? []) {
+        if (movement.tenantId !== context.tenantId || movement.storeId !== context.storeId) continue;
+        events.push({
+          id: `audit-cash-${movement.id}`,
+          tenantId: movement.tenantId,
+          actorUserId: movement.userId,
+          actorName: actorName(movement.userId),
+          storeId: movement.storeId,
+          action: movement.type,
+          entityType: 'CASH_MOVEMENT',
+          entityId: movement.id,
+          details: { amount: movement.amount, reason: movement.reason, type: movement.type },
+          createdAt: movement.createdAt,
+        });
+      }
+
+      for (const saleReturn of database.returns ?? []) {
+        if (saleReturn.tenantId !== context.tenantId || saleReturn.storeId !== context.storeId) {
+          continue;
+        }
+        events.push({
+          id: `audit-return-${saleReturn.id}`,
+          tenantId: saleReturn.tenantId,
+          actorUserId: saleReturn.userId,
+          actorName: actorName(saleReturn.userId),
+          storeId: saleReturn.storeId,
+          action: 'SALE_RETURNED',
+          entityType: 'SALE',
+          entityId: saleReturn.saleId,
+          details: {
+            total: saleReturn.total,
+            reason: saleReturn.reason,
+            refundMethod: saleReturn.refundMethod,
+          },
+          createdAt: saleReturn.createdAt,
+        });
+      }
+
+      for (const movement of database.movements) {
+        if (movement.tenantId !== context.tenantId || movement.storeId !== context.storeId) continue;
+        if (movement.type !== 'PURCHASE' && movement.type !== 'ADJUSTMENT') continue;
+        const product = database.products.find((item) => item.id === movement.productId);
+        const created =
+          movement.type === 'PURCHASE' &&
+          (movement.reason === 'Inventario inicial' || movement.reason === 'Importacion inicial');
+        events.push({
+          id: `audit-stock-${movement.id}`,
+          tenantId: movement.tenantId,
+          actorUserId: movement.userId,
+          actorName: actorName(movement.userId),
+          storeId: movement.storeId,
+          action: created ? 'PRODUCT_CREATED' : 'PRODUCT_UPDATED',
+          entityType: 'PRODUCT',
+          entityId: movement.productId,
+          details: {
+            productName: product?.name ?? 'N/A',
+            quantity: movement.quantity,
+            reason: movement.reason,
+          },
+          createdAt: movement.date,
+        });
+      }
+
+      const needle = query.q?.trim().toLowerCase();
+      const filtered = events
+        .filter((event) => !query.action || event.action === query.action)
+        .filter((event) => !query.entityType || event.entityType === query.entityType)
+        .filter((event) => !query.storeId || event.storeId === query.storeId)
+        .filter((event) => !query.from || event.createdAt >= query.from)
+        .filter((event) => !query.to || event.createdAt <= query.to)
+        .filter((event) => {
+          if (!needle) return true;
+          const haystack = [
+            event.action,
+            event.entityType,
+            event.entityId,
+            event.actorName,
+            event.actorUserId,
+            JSON.stringify(event.details),
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+          return haystack.includes(needle);
+        })
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      return clone(filtered.slice(0, query.limit ?? 500));
     },
   };
 }
