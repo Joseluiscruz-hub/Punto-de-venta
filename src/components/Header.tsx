@@ -14,6 +14,7 @@ import {
   WifiOff,
   X,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import type { Role, View } from '../models/types';
@@ -43,6 +44,7 @@ const VIEW_TITLES: Record<View, { title: string; subtitle: string }> = {
   movements: { title: 'Movimientos', subtitle: 'Auditoría de inventario' },
   corte: { title: 'Caja y turnos', subtitle: 'Control de efectivo' },
   audit: { title: 'Auditoría', subtitle: 'Eventos y exportación' },
+  invoicing: { title: 'Facturación', subtitle: 'CFDI 4.0 y global' },
 };
 
 const COMMANDS: NavigationCommand[] = [
@@ -95,6 +97,13 @@ const COMMANDS: NavigationCommand[] = [
     label: 'Auditoría',
     description: 'Consultar eventos y exportar CSV',
     icon: <ShieldCheck size={18} />,
+    roles: ['ADMIN', 'MANAGER'],
+  },
+  {
+    view: 'invoicing',
+    label: 'Facturación',
+    description: 'CFDI 4.0, global y notas de crédito',
+    icon: <FileText size={18} />,
     roles: ['ADMIN', 'MANAGER'],
   },
 ];
