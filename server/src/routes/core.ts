@@ -5,6 +5,7 @@ import { registerCatalogRoutes } from './coreCatalog.js';
 import { registerShiftRoutes } from './coreShifts.js';
 import { registerSalesRoutes } from './coreSales.js';
 import { registerReturnAndStockRoutes } from './coreReturns.js';
+import { registerInvoiceRoutes } from './invoices.js';
 
 export async function coreRoutes(app: FastifyInstance) {
   app.addHook('preHandler', authenticate);
@@ -13,4 +14,5 @@ export async function coreRoutes(app: FastifyInstance) {
   registerSalesRoutes(app);
   registerReturnAndStockRoutes(app);
   registerAuditRoutes(app);
+  registerInvoiceRoutes(app);
 }
