@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
 import { AlertCircle, LockKeyhole } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -14,7 +14,7 @@ function isUnlocked(code: string): boolean {
   return sessionStorage.getItem(STORAGE_KEY) === code;
 }
 
-export function AccessGate({ children }: { children: React.ReactNode }) {
+export function AccessGate({ children }: { children: ReactNode }) {
   const code = useMemo(expectedCode, []);
   const [unlocked, setUnlocked] = useState(() => isUnlocked(code));
   const [value, setValue] = useState('');
