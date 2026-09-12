@@ -1,23 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { database, type QueryClient } from '../database.js';
+import type { QueryClient } from '../database.js';
 import { config } from '../config.js';
-import { HttpError } from '../http.js';
-import { money, saleDetails, type SaleRow } from '../routes/coreHelpers.js';
-import {
-  createCreditNoteInvoice,
-  createIncomeInvoice,
-  currentGlobalPeriod,
-  getInvoiceUrls,
-  GLOBAL_LEGAL_NAME,
-  GLOBAL_RFC,
-  GLOBAL_TAX_SYSTEM,
-  inferTaxSystem,
-  isFacturapiConfigured,
-  isValidCustomerRfc,
-  periodParts,
-  type PaymentMethodCode,
-  type SaleLineForInvoice,
-} from './facturapi.js';
+import { money } from '../routes/coreHelpers.js';
+import { getInvoiceUrls, type SaleLineForInvoice } from './facturapi.js';
 
 export type InvoiceStatus = 'NONE' | 'PENDING_GLOBAL' | 'STAMPED' | 'ERROR' | 'CREDIT_NOTE';
 export type InvoiceKind = 'SALE' | 'GLOBAL' | 'CREDIT_NOTE';
