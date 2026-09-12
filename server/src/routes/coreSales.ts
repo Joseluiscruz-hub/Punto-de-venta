@@ -12,6 +12,7 @@ import {
   type ShiftRow,
   type SaleRow,
 } from './coreHelpers.js';
+import { applyInvoiceAfterSale } from '../invoicing/service.js';
 
 export function registerSalesRoutes(app: FastifyInstance) {
   app.post('/sales', async (request, reply) => {
@@ -207,6 +208,12 @@ export function registerSalesRoutes(app: FastifyInstance) {
       });
       return saleDetails(client, inserted.rows[0] as SaleRow);
     });
+    try {
+      const invoiced = await applyInvoiceAfterSale(request.user.tenantId, sale.id);
+      if (invoiced) return reply.status(201).send(invoiced);
+    } catch (error) {
+      request.log.warn({ err: error, saleId: sale.id }, 'CFDI post-venta no bloqueante');
+    }
     return reply.status(201).send(sale);
   });
 }
