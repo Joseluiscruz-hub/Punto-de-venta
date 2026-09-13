@@ -3,6 +3,7 @@ import type {
   AuditEventQuery,
   CashMovement,
   Client,
+  InvoiceRecord,
   CreateCashMovementInput,
   CreateProductInput,
   LoginResponse,
@@ -262,6 +263,34 @@ export const remoteBackend = {
     const suffix = params.toString() ? `?${params.toString()}` : '';
     return request(`/audit-events${suffix}`, {
       headers: contextHeaders({ storeId: context.storeId }),
+    });
+  },
+
+  async listInvoices(
+    context: Pick<RequestContext, 'tenantId' | 'storeId'>,
+  ): Promise<InvoiceRecord[]> {
+    return request('/invoices', { headers: contextHeaders(context) });
+  },
+
+  async stampSaleInvoice(context: RequestContext, saleId: string) {
+    return request<{ invoice: InvoiceRecord; sale: Sale }>(`/invoices/sale/${saleId}`, {
+      method: 'POST',
+      headers: contextHeaders(context),
+    });
+  },
+
+  async stampGlobalInvoice(context: RequestContext, period?: string) {
+    return request<{ invoice: InvoiceRecord; salesCount: number }>('/invoices/global', {
+      method: 'POST',
+      headers: contextHeaders(context),
+      body: JSON.stringify(period ? { period } : {}),
+    });
+  },
+
+  async stampCreditNote(context: RequestContext, invoiceId: string): Promise<InvoiceRecord> {
+    return request(`/invoices/${invoiceId}/credit-note`, {
+      method: 'POST',
+      headers: contextHeaders(context),
     });
   },
 };

@@ -133,6 +133,8 @@ export interface CashMovementRow {
   created_at: string;
 }
 
+export type InvoiceStatus = 'NONE' | 'PENDING_GLOBAL' | 'STAMPED' | 'ERROR' | 'CREDIT_NOTE';
+
 export interface SaleRow {
   id: string;
   external_id: string | null;
@@ -148,6 +150,11 @@ export interface SaleRow {
   amount_tendered: string | number;
   change_amount: string | number;
   items_count: number;
+  invoice_status?: InvoiceStatus | null;
+  invoice_id?: string | null;
+  invoice_uuid?: string | null;
+  invoice_error?: string | null;
+  global_period?: string | null;
 }
 
 export interface SaleItemRow {
@@ -372,6 +379,11 @@ export async function saleDetails(client: QueryClient, sale: SaleRow) {
     })),
     returnedTotal,
     returnStatus: returnedTotal === 0 ? 'NONE' : fullyReturned ? 'FULL' : 'PARTIAL',
+    invoiceStatus: sale.invoice_status ?? 'NONE',
+    invoiceId: sale.invoice_id ?? undefined,
+    invoiceUuid: sale.invoice_uuid ?? undefined,
+    invoiceError: sale.invoice_error ?? undefined,
+    globalPeriod: sale.global_period ?? undefined,
   };
 }
 

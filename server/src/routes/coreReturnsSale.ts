@@ -16,12 +16,13 @@ import {
   type SaleReturnRow,
   type SaleReturnItemRow,
 } from './coreHelpers.js';
+import { createCreditNoteForReturn } from '../invoicing/service.js';
 
 export function registerSaleReturnRoute(app: FastifyInstance) {
   app.post('/sales/:id/return', async (request, reply) => {
     const { id: saleId } = parse(z.object({ id: uuid }), request.params);
     const input = parse(returnSaleSchema, request.body);
-    const result = await database.transaction(async (client) => {
+    let result = await database.transaction(async (client) => {
       const context = await resolveStoreContext(request, client);
       const saleResult = await client.query(
         `SELECT * FROM sales
@@ -235,7 +236,28 @@ export function registerSaleReturnRoute(app: FastifyInstance) {
         },
       };
     });
+    if (result.sale.invoiceStatus === 'STAMPED') {
+      try {
+        await createCreditNoteForReturn(
+          request.user.tenantId,
+          result.sale.id,
+          result.saleReturn.items.map((item: { name: string; quantity: number; price: number }) => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+          result.saleReturn.total,
+        );
+        const refreshed = await database.query<SaleRow>('SELECT * FROM sales WHERE id = $1', [
+          result.sale.id,
+        ]);
+        if (refreshed.rows[0]) {
+          result.sale = await saleDetails(database, refreshed.rows[0]);
+        }
+      } catch (error) {
+        request.log.warn({ err: error, saleId: result.sale.id }, 'NC post-devolucion no bloqueante');
+      }
+    }
     return reply.status(201).send(result);
   });
-
 }

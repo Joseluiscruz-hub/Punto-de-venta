@@ -8,11 +8,13 @@ export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'MIXED';
 export type RefundMethod = 'CASH' | 'STORE_CREDIT';
 export type CashMovementType = 'CASH_IN' | 'CASH_OUT';
 export type ReturnStatus = 'NONE' | 'PARTIAL' | 'FULL';
+export type InvoiceStatus = 'NONE' | 'PENDING_GLOBAL' | 'STAMPED' | 'ERROR' | 'CREDIT_NOTE';
+export type InvoiceKind = 'SALE' | 'GLOBAL' | 'CREDIT_NOTE';
 export type MovementType = 'SALE' | 'PURCHASE' | 'ADJUSTMENT' | 'RETURN' | 'CASH_IN' | 'CASH_OUT';
 export type Feature =
   'POS' | 'INVENTORY' | 'MULTISTORE' | 'AUDIT' | 'OFFLINE' | 'API' | 'CASH_CONTROL';
 export type ShiftStatus = 'OPEN' | 'CLOSED';
-export type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients' | 'audit';
+export type View = 'pos' | 'dashboard' | 'inventory' | 'sales' | 'movements' | 'corte' | 'clients' | 'audit' | 'invoicing';
 
 export interface Shift {
   id: Id;
@@ -140,6 +142,30 @@ export interface Sale {
   items?: SaleItemWithName[];
   returnedTotal: Money;
   returnStatus: ReturnStatus;
+  invoiceStatus?: InvoiceStatus;
+  invoiceId?: string;
+  invoiceUuid?: string;
+  invoiceError?: string;
+  globalPeriod?: string;
+}
+
+export interface InvoiceRecord {
+  id: Id;
+  tenantId: Id;
+  storeId?: Id;
+  saleId?: Id;
+  kind: InvoiceKind;
+  status: InvoiceStatus;
+  facturapiId?: string;
+  uuid?: string;
+  globalPeriod?: string;
+  error?: string;
+  total: Money;
+  paymentForm?: string;
+  pdfUrl?: string;
+  xmlUrl?: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
 }
 
 export interface SaleItemWithName extends SaleItem {
