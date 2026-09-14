@@ -31,11 +31,9 @@ jobs:
         run: npm ci
 
       - name: Lint
-        continue-on-error: true
         run: npm run lint
 
       - name: Test
-        continue-on-error: true
         run: npm test
 
       - name: Build API
@@ -45,7 +43,8 @@ jobs:
         env:
           VITE_BACKEND_MODE: local
           VITE_BASE_PATH: /Punto-de-venta/
-          VITE_DEMO_ACCESS_CODE: ET-9f4K2m
+          # Nunca hardcodear el candado. Crear el secret VITE_DEMO_ACCESS_CODE en el repo.
+          VITE_DEMO_ACCESS_CODE: ${{ secrets.VITE_DEMO_ACCESS_CODE }}
         run: npm run build:web
 
       - name: Configure Pages
